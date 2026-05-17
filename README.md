@@ -42,6 +42,7 @@ Neste trabalho não serão considerados:
 - Execução dos agentes em containers ou processos completamente isolados.
 - Envio assíncrono de e-mails por fila.
 - Deploy final em ambiente de produção com domínio próprio e HTTPS obrigatório.
+- Estratégia de Backup do Banco de Dados.
 
 ## 4. Protótipo
 
