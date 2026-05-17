@@ -47,12 +47,12 @@ Neste trabalho não serão considerados:
 
 A princípio, a aplicação deverá conter as seguintes páginas:
 
-- Página inicial, apresentando a ideia do jogo e da plataforma.
+- [Página inicial](src/http/routes/index.pl), apresentando a ideia do jogo e da plataforma.
 - Página de cadastro de usuário.
 - Página de login.
 - Página de envio de agente Prolog.
-- Página de listagem de agentes.
-- Página de criação de partida.
+- [Página de listagem de agentes](src/http/routes/agents.pl).
+- [Página de criação de partida](src/http/routes/matches.pl).
 - Página de visualização dos detalhes e resultado de uma partida.
 
 A interface será simples e funcional, servida pelo próprio backend em SWI-Prolog, utilizando geração de HTML por meio de uma DSL e estilização com Tailwind CSS via CDN.
