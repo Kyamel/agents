@@ -2,6 +2,9 @@
      layout/3
   ]).
 
+%!  layout(+Title, +Body, -Page) is det.
+%
+%   Monta layout HTML base da aplicação com header, conteúdo e footer.
 layout(Title, Body, Page) :-
     Page = [
         div([class('min-h-screen bg-slate-950 text-white flex flex-col')], [
@@ -20,5 +23,4 @@ layout(Title, Body, Page) :-
             ])
         ])
     ].
-
 

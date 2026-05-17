@@ -2,6 +2,9 @@
     button_link/3
   ]).
 
+%!  button_link(+Href, +Label, -Html) is det.
+%
+%   Constrói um link estilizado em formato de botão.
 button_link(Href, Label, Html) :-
     Html = a(
         [
@@ -10,5 +13,4 @@ button_link(Href, Label, Html) :-
         ],
         Label
     ).
-
 
