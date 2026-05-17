@@ -1,6 +1,6 @@
 # CSI606-2026-01 - Proposta de Trabalho Final
 
-**Discente:** Lucas Camelo
+**Discente:** Lucas dos Anjos Camelo
 
 ## Resumo
 
