@@ -1,0 +1,18 @@
+{ pkgs ? import <nixpkgs> {} }:
+
+pkgs.mkShell {
+  packages = [
+    pkgs.swi-prolog
+    pkgs.sqlite
+    pkgs.pkg-config
+    pkgs.gcc
+  ];
+
+  LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+    pkgs.sqlite
+  ];
+
+  shellHook = ''
+    swipl --version
+  '';
+}
