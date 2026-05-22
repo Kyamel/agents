@@ -4,7 +4,7 @@
 ]).
 
 :- use_module(library(http/html_write)).
-:- use_module('../http/security/web_session').
+%:- use_module('../http/security/web_session').
 
 %!  tailwind_config(-Script) is det.
 %
@@ -21,7 +21,7 @@ tailwind_config(
 %   Renderiza uma pagina HTML completa: resolve a sessao atual, monta o layout
 %   com navegacao consciente de autenticacao e responde com Tailwind via CDN.
 reply_page(Request, Title, Content) :-
-    web_session:current_user_or_anon(Request, User),
+    %web_session:current_user_or_anon(Request, User),
     layout(User, Content, Body),
     tailwind_config(TwConfig),
     reply_html_page(
