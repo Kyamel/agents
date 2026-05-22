@@ -4,7 +4,7 @@
 ]).
 
 :- use_module('./config/env').
-:- use_module('./db/sqlite_store').
+%:- use_module('./db/sqlite_store').
 :- use_module('./http/server').
 
 %!  main is det.
@@ -14,7 +14,7 @@
 %   top-level do Prolog continua disponivel.
 main :-
     env:load_dotenv('.env'),
-    sqlite_store:init,
+    %sqlite_store:init,
     server:start.
 
 %!  main_foreground is det.
