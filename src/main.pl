@@ -1,5 +1,6 @@
 :- module(main, [
-    main/0
+    main/0,
+    main_foreground/0
 ]).
 
 :- use_module('./config/env').
@@ -8,20 +9,23 @@
 
 %!  main is det.
 %
-%   Inicializa configuração, banco e servidor HTTP, mantendo o processo em
-%   foreground.
+%   Carrega o `.env`, inicializa o banco e sobe o servidor HTTP. O servidor
+%   roda em threads de fundo, portanto em uso interativo (`?- main.`) o
+%   top-level do Prolog continua disponivel.
 main :-
     env:load_dotenv('.env'),
     sqlite_store:init,
-    server:start,
-    keep_foreground.
+    server:start.
 
-%!  keep_foreground is det.
+%!  main_foreground is det.
 %
-%   Bloqueia a thread principal para impedir que o processo finalize após o
-%   boot.
-%keep_foreground :-
-    % Blocks the main thread so the process does not exit after startup.
-    %thread_get_message(_).
+%   Igual a main/0, mas bloqueia a thread principal para que o processo nao
+%   finalize apos o boot. Util em execucao nao-interativa, por exemplo:
+%   `swipl -g main_foreground src/main.pl`.
+main_foreground :-
+    main,
+    thread_get_message(_).
 
-%:- initialization(main, main).
+% Sobe a aplicacao automaticamente ao carregar este arquivo
+% (`swipl src/main.pl`), mantendo o top-level interativo logo em seguida.
+:- initialization(main).
