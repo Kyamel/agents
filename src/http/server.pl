@@ -7,12 +7,12 @@
 :- use_module(library(http/http_cors)).
 :- use_module(library(http/http_ssl_plugin)).
 :- use_module('../config/env').
+:- use_module('./routes/static').
 :- use_module('./routes/index').
-:- use_module('./routes/agents').
-:- use_module('./routes/matches').
 
 
-:- set_setting(http:cors, [*]).
+
+:- set_setting(http:cors, []).
 :- http_handler(root(api), options_handler, [method(options), prefix]).
 
 %!  start is det.
