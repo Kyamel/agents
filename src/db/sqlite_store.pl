@@ -10,12 +10,16 @@
     consume_email_verification/2,
     save_auth_session/4,
     find_user_id_by_session_token_hash/2,
+    revoke_auth_session/1,
 
-    save_agent/7,
+    save_agent/5,
     get_agent/2,
     list_agents/1,
+    delete_agent/1,
+    update_agent_source/2,
 
     save_match/5,
+    get_match/2,
     list_matches/1
 ]).
 
@@ -143,9 +147,7 @@ migrate :-
         owner_user_id TEXT NOT NULL,
         name TEXT NOT NULL,
         role TEXT NOT NULL,
-        source_path TEXT NOT NULL,
-        module_name TEXT NOT NULL,
-        entry_predicate TEXT NOT NULL,
+        source_text TEXT NOT NULL,
         created_at TEXT NOT NULL
     );"),
     sql_exec("CREATE TABLE IF NOT EXISTS matches (
@@ -289,10 +291,24 @@ find_user_id_by_session_token_hash(TokenHash, UserId) :-
     timestamp_iso(Now),
     ExpiresAt @> Now.
 
-%!  save_agent(+OwnerUserId, +Name, +Role, +SourcePath, +ModuleName, +EntryPredicate, -AgentId) is det.
+%!  revoke_auth_session(+TokenHash) is det.
 %
-%   Persiste agente e retorna `AgentId`.
-save_agent(OwnerUserId, Name, Role, SourcePath, ModuleName, EntryPredicate, AgentId) :-
+%   Marca uma sessao como revogada, invalidando o token associado.
+revoke_auth_session(TokenHash) :-
+    ensure_connected,
+    sql_quote(TokenHash, QToken),
+    timestamp_iso(Now),
+    sql_quote(Now, QNow),
+    format(string(SQL),
+           "UPDATE auth_sessions SET revoked_at = ~s WHERE token_hash = ~s;",
+           [QNow, QToken]),
+    sql_exec(SQL).
+
+%!  save_agent(+OwnerUserId, +Name, +Role, +SourceText, -AgentId) is det.
+%
+%   Persiste agente e retorna `AgentId`. O DB e o source-of-truth; o
+%   `source_text` eh o codigo Prolog completo do agente.
+save_agent(OwnerUserId, Name, Role, SourceText, AgentId) :-
     ensure_connected,
     uuid(Uuid),
     atom_string(Uuid, AgentId),
@@ -301,40 +317,38 @@ save_agent(OwnerUserId, Name, Role, SourcePath, ModuleName, EntryPredicate, Agen
     sql_quote(OwnerUserId, QOwner),
     sql_quote(Name, QName),
     sql_quote(Role, QRole),
-    sql_quote(SourcePath, QPath),
-    sql_quote(ModuleName, QModule),
-    sql_quote(EntryPredicate, QEntry),
+    sql_quote(SourceText, QSource),
     sql_quote(CreatedAt, QCreated),
     format(string(SQL),
-        "INSERT INTO agents(id, owner_user_id, name, role, source_path, module_name, entry_predicate, created_at) VALUES(~s, ~s, ~s, ~s, ~s, ~s, ~s, ~s);",
-        [QId, QOwner, QName, QRole, QPath, QModule, QEntry, QCreated]),
+        "INSERT INTO agents(id, owner_user_id, name, role, source_text, created_at) VALUES(~s, ~s, ~s, ~s, ~s, ~s);",
+        [QId, QOwner, QName, QRole, QSource, QCreated]),
     sql_exec(SQL).
 
 %!  get_agent(+AgentId, -Agent) is semidet.
 %
-%   Busca agente por ID.
+%   Busca agente por ID, incluindo o `source_text` (necessario para
+%   materializar o agente no cache do filesystem antes do match).
 get_agent(AgentId, Agent) :-
     ensure_connected,
     sql_quote(AgentId, QAgentId),
     format(string(SQL),
-      "SELECT id, owner_user_id, name, role, source_path, module_name, entry_predicate, created_at FROM agents WHERE id = ~s LIMIT 1;",
+      "SELECT id, owner_user_id, name, role, source_text, created_at FROM agents WHERE id = ~s LIMIT 1;",
       [QAgentId]),
     conn_alias(Alias),
-    once(prosqlite:sqlite_query(Alias, SQL, row(Id, Owner, Name, Role, Path, ModuleName, Entry, CreatedAt))),
+    once(prosqlite:sqlite_query(Alias, SQL, row(Id, Owner, Name, Role, Source, CreatedAt))),
     Agent = _{
       id: Id,
       owner_user_id: Owner,
       name: Name,
       role: Role,
-      source_path: Path,
-      module: ModuleName,
-      entry_predicate: Entry,
+      source_text: Source,
       created_at: CreatedAt
     }.
 
 %!  list_agents(-Agents) is det.
 %
-%   Lista agentes em ordem decrescente de criação.
+%   Lista agentes (metadados) em ordem decrescente de criacao. NAO inclui
+%   `source_text` para manter a listagem leve.
 list_agents(Agents) :-
     ensure_connected,
     conn_alias(Alias),
@@ -343,15 +357,35 @@ list_agents(Agents) :-
         owner_user_id: Owner,
         name: Name,
         role: Role,
-        source_path: Path,
-        module: ModuleName,
-        entry_predicate: Entry,
         created_at: CreatedAt
     },
     prosqlite:sqlite_query(Alias,
-      "SELECT id, owner_user_id, name, role, source_path, module_name, entry_predicate, created_at FROM agents ORDER BY created_at DESC;",
-      row(Id, Owner, Name, Role, Path, ModuleName, Entry, CreatedAt)),
+      "SELECT id, owner_user_id, name, role, created_at FROM agents ORDER BY created_at DESC;",
+      row(Id, Owner, Name, Role, CreatedAt)),
     Agents).
+
+%!  delete_agent(+AgentId) is det.
+%
+%   Remove o agente do banco. O cache em disco eh responsabilidade do
+%   chamador (engine/agent_cache).
+delete_agent(AgentId) :-
+    ensure_connected,
+    sql_quote(AgentId, QId),
+    format(string(SQL), "DELETE FROM agents WHERE id = ~s;", [QId]),
+    sql_exec(SQL).
+
+%!  update_agent_source(+AgentId, +SourceText) is det.
+%
+%   Atualiza o codigo do agente. O cache em disco fica obsoleto e deve
+%   ser invalidado/regravado pelo chamador na próxima execucao.
+update_agent_source(AgentId, SourceText) :-
+    ensure_connected,
+    sql_quote(AgentId, QId),
+    sql_quote(SourceText, QSource),
+    format(string(SQL),
+        "UPDATE agents SET source_text = ~s WHERE id = ~s;",
+        [QSource, QId]),
+    sql_exec(SQL).
 
 %!  save_match(+ThiefAgentId, +DetectiveAgentId, +Winner, +ReplayJson, -MatchId) is det.
 %
@@ -371,6 +405,26 @@ save_match(ThiefAgentId, DetectiveAgentId, Winner, ReplayJson, MatchId) :-
       "INSERT INTO matches(id, thief_agent_id, detective_agent_id, winner, replay_json, created_at) VALUES(~s, ~s, ~s, ~s, ~s, ~s);",
       [QId, QT, QD, QW, QR, QC]),
     sql_exec(SQL).
+
+%!  get_match(+MatchId, -Match) is semidet.
+%
+%   Busca uma partida por ID.
+get_match(MatchId, Match) :-
+    ensure_connected,
+    sql_quote(MatchId, QId),
+    format(string(SQL),
+      "SELECT id, thief_agent_id, detective_agent_id, winner, replay_json, created_at FROM matches WHERE id = ~s LIMIT 1;",
+      [QId]),
+    conn_alias(Alias),
+    once(prosqlite:sqlite_query(Alias, SQL, row(Id, Thief, Detective, Winner, Replay, CreatedAt))),
+    Match = _{
+        id: Id,
+        thief_agent_id: Thief,
+        detective_agent_id: Detective,
+        winner: Winner,
+        replay_json: Replay,
+        created_at: CreatedAt
+    }.
 
 %!  list_matches(-Matches) is det.
 %
