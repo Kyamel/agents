@@ -1,55 +1,63 @@
-:- module(app_matches, [
-    matches_page/1
-  ]).
+:- module(route_matches, []).
 
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/html_write)).
+:- use_module(library(apply)).
 :- use_module('../../db/sqlite_store').
-:- use_module('../../components/page').
+:- use_module('../../components/layout/page').
+:- use_module('../../components/cards/match_card').
+:- use_module('../../components/ui/button_link').
+:- use_module('../security/web_session').
+:- use_module('./matches/new', []).
+:- use_module('./matches/[id]', []).
 
-:- http_handler(root(matches), matches_page, [method(get)]).
+:- http_handler(root(matches), router, [prefix]).
 
-%!  matches_page(+Request) is det.
-%
-%   Renderiza a página com histórico de partidas.
-matches_page(_Request) :-
-    Title = 'Matches',
+% Dispatcher do segmento /matches. O proprio arquivo renderiza o index;
+% rotas mais especificas delegam para arquivos irmaos no subdir matches/.
+router(Request) :-
+    memberchk(path(Path), Request),
+    dispatch(Path, Request).
+
+dispatch('/matches', Request)   :- !, render_index(Request).
+dispatch('/matches/', Request)  :- !, render_index(Request).
+dispatch('/matches/new', Request) :-
+    !,
+    memberchk(method(Method), Request),
+    route_matches_new:render(Method, Request).
+dispatch(Path, Request) :-
+    atom_concat('/matches/', Id, Path),
+    Id \== '',
+    !,
+    route_matches_show:render(Request, Id).
+dispatch(_, Request) :-
+    route_matches_show:render_invalid(Request).
+
+% -----------------------------
+% Index: /matches
+% -----------------------------
+
+render_index(Request) :-
+    web_session:current_user_or_anon(Request, User),
     sqlite_store:list_matches(Matches),
-    matches_list(Matches, MatchesHtml),
-    page:layout(Title, [
-        h1([class('text-2xl font-bold mb-4')], 'Partidas'),
+    matches_list_html(Matches, ListHtml),
+    new_match_cta(User, Cta),
+    page:reply_page(Request, 'Partidas', [
+        div([class('flex items-center justify-between gap-3 mb-2')], [
+            h1([class('text-2xl font-bold')], 'Partidas'),
+            Cta
+        ]),
         p([class('text-slate-400 mb-6')],
-          'Historico de partidas criadas via API em /api/v1/matches.'),
-        MatchesHtml
-      ],
-      Page
-    ),
-    reply_html_page(
-        [
-            title(Title),
-            script([src('https://cdn.tailwindcss.com')], [])
-        ],
-        Page
-    ).
-
-%!  matches_list(+Matches, -Html) is det.
-%
-%   Converte a lista de partidas em estrutura HTML.
-matches_list(Matches, Html) :-
-    (   Matches == []
-    ->  Html = p([class('text-slate-500')], 'Nenhuma partida registrada ainda.')
-    ;   maplist(match_card, Matches, Cards),
-        Html = div([class('grid gap-4')], Cards)
-    ).
-
-%!  match_card(+Match, -Html) is det.
-%
-%   Renderiza o cartão HTML de uma partida.
-match_card(Match, Html) :-
-    Html = div([class('rounded-xl bg-slate-900 p-4 border border-slate-800')], [
-        h2([class('font-bold text-lg')], Match.id),
-        p([class('text-slate-300')], ['Vencedor: ', Match.winner]),
-        p([class('text-slate-500 text-sm mt-2')], ['Thief: ', Match.thief_agent_id]),
-        p([class('text-slate-500 text-sm')], ['Detective: ', Match.detective_agent_id]),
-        p([class('text-slate-500 text-sm')], ['Criada em: ', Match.created_at])
+          'Historico de partidas. Tambem disponivel na API em /api/v1/matches.'),
+        ListHtml
     ]).
+
+new_match_cta(anon, '') :- !.
+new_match_cta(_, Html) :-
+    button_link:button_link('/matches/new', 'Nova partida', Html).
+
+matches_list_html([], Html) :-
+    !,
+    Html = p([class('text-slate-500')], 'Nenhuma partida registrada ainda.').
+matches_list_html(Matches, div([class('grid gap-4')], Cards)) :-
+    maplist(match_card:match_card, Matches, Cards).

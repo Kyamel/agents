@@ -21,8 +21,8 @@
 materialize_agent(Agent, AbsPath) :-
     must_be(dict, Agent),
     get_dict(id, Agent, AgentId),
-    get_dict(source_text, Agent, SourceText),
-    must_be(string, SourceText),
+    get_dict(source_text, Agent, SourceRaw),
+    coerce_string(SourceRaw, SourceText),
     agent_cache_path(AgentId, AbsPath),
     file_directory_name(AbsPath, Dir),
     make_directory_path(Dir),
@@ -31,6 +31,12 @@ materialize_agent(Agent, AbsPath) :-
         format(Out, '~s~n', [SourceText]),
         close(Out)
     ).
+
+% prosqlite devolve TEXT como atom por padrao; tolera ambos para nao acoplar
+% o consumidor ao detalhe do driver.
+coerce_string(X, X)  :- string(X), !.
+coerce_string(X, S)  :- atom(X), !, atom_string(X, S).
+coerce_string(X, S)  :- format(string(S), '~w', [X]).
 
 %!  forget_agent(+AgentId) is det.
 %

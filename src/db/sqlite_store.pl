@@ -474,3 +474,9 @@ sql_quote(Input, Quoted) :-
 sql_escaped([]) --> [].
 sql_escaped([39|Rest]) --> "''", sql_escaped(Rest).
 sql_escaped([C|Rest]) --> [C], sql_escaped(Rest).
+
+% Eager-load do pacote prosqlite no carregamento deste modulo. Sem isso o
+% `check/0` reclama de prosqlite:sqlite_*/N porque o pack so seria atachado
+% lazy via init/0. Erros sao engolidos para nao quebrar build se o pack
+% estiver ausente; ai a falha vira no momento do uso real.
+:- catch(ensure_prosqlite, _, true).

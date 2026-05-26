@@ -1,2 +1,6 @@
 data/*
 .env
+.vscode/*
+uploads/*
+.vscode/*
+packs/*

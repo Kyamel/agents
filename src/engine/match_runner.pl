@@ -222,3 +222,8 @@ move_dest(Action, Dest) :-
     !,
     Dest = Dest0.
 move_dest(_, "-").
+
+% Eager-load do Interactor.prolog no carregamento deste modulo. Sem isso o
+% `check/0` reclama de gameStart/6 porque o consult seria lazy. Erros sao
+% engolidos para nao quebrar o build se a engine estiver ausente.
+:- catch(ensure_interactor_loaded, _, true).
