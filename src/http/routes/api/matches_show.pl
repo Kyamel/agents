@@ -26,14 +26,17 @@ handler(Request) :-
 dispatch(options, _) :-
     format("Content-type: text/plain~n~n").
 dispatch(get, Path) :-
+    handle_get(Path).
+dispatch(_, _) :-
+    reply(405, _{error: "method_not_allowed"}).
+
+handle_get(Path) :-
     extract_id(Path, Id),
     !,
     load_match(Id, Status, Payload),
     reply(Status, Payload).
-dispatch(get, _) :-
+handle_get(_) :-
     reply(404, _{error: "not_found"}).
-dispatch(_, _) :-
-    reply(405, _{error: "method_not_allowed"}).
 
 extract_id(Path, Id) :-
     atom_concat('/api/v1/matches/', Id, Path),
@@ -50,11 +53,10 @@ load_match(Id, 200, _{match: Json}) :-
 load_match(_, 404, _{error: "match_not_found"}).
 
 % Decodifica o replay JSON persistido e o anexa ao dict da partida.
-match_with_replay(Match, Json) :-
-    (   catch(atom_json_dict(Match.replay_json, Replay, []), _, fail)
-    ->  Json = Match.put(replay, Replay)
-    ;   Json = Match
-    ).
+match_with_replay(Match, Match.put(replay, Replay)) :-
+    catch(atom_json_dict(Match.replay_json, Replay, []), _, fail),
+    !.
+match_with_replay(Match, Match).
 
 % =============================
 % Resposta (JSON)

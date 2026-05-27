@@ -25,14 +25,17 @@ handler(Request) :-
 dispatch(options, _) :-
     format("Content-type: text/plain~n~n").
 dispatch(get, Path) :-
+    handle_get(Path).
+dispatch(_, _) :-
+    reply(405, _{error: "method_not_allowed"}).
+
+handle_get(Path) :-
     extract_id(Path, Id),
     !,
     load_agent(Id, Status, Payload),
     reply(Status, Payload).
-dispatch(get, _) :-
+handle_get(_) :-
     reply(404, _{error: "not_found"}).
-dispatch(_, _) :-
-    reply(405, _{error: "method_not_allowed"}).
 
 extract_id(Path, Id) :-
     atom_concat('/api/v1/agents/', Id, Path),
@@ -50,11 +53,8 @@ load_agent(_, 404, _{error: "agent_not_found"}).
 
 % Remove `source_text` antes de responder pela API. O codigo do agente eh
 % privado; deixar publico permitiria copia trivial.
-strip_source(Agent, Public) :-
-    (   del_dict(source_text, Agent, _, Public)
-    ->  true
-    ;   Public = Agent
-    ).
+strip_source(Agent, Public) :- del_dict(source_text, Agent, _, Public), !.
+strip_source(Agent, Agent).
 
 % =============================
 % Resposta (JSON)

@@ -19,10 +19,14 @@
 
 handler(Request) :-
     memberchk(path(Path), Request),
-    (   extract_id(Path, Id)
-    ->  load_and_render(Request, Id)
-    ;   http_redirect(see_other, '/matches', Request)
-    ).
+    handle_path(Path, Request).
+
+handle_path(Path, Request) :-
+    extract_id(Path, Id),
+    !,
+    load_and_render(Request, Id).
+handle_path(_, Request) :-
+    http_redirect(see_other, '/matches', Request).
 
 extract_id(Path, Id) :-
     atom_concat('/matches/', Id, Path),
@@ -34,26 +38,27 @@ extract_id(Path, Id) :-
 % =============================
 
 load_and_render(Request, Id) :-
-    (   sqlite_store:get_match(Id, Match)
-    ->  agent_display_name(Match.thief_agent_id, ThiefName),
-        agent_display_name(Match.detective_agent_id, DetectiveName),
-        replay_turns(Match.replay_json, Turns),
-        render_detail(Request, Match, ThiefName, DetectiveName, Turns)
-    ;   render_not_found(Request)
-    ).
+    sqlite_store:get_match(Id, Match),
+    !,
+    agent_display_name(Match.thief_agent_id, ThiefName),
+    agent_display_name(Match.detective_agent_id, DetectiveName),
+    replay_turns(Match.replay_json, Turns),
+    render_detail(Request, Match, ThiefName, DetectiveName, Turns).
+load_and_render(Request, _) :-
+    render_not_found(Request).
 
 agent_display_name(AgentId, Name) :-
-    (   sqlite_store:get_agent(AgentId, Agent)
-    ->  Name = Agent.name
-    ;   Name = AgentId
-    ).
+    sqlite_store:get_agent(AgentId, Agent),
+    !,
+    Name = Agent.name.
+agent_display_name(AgentId, AgentId).
 
 replay_turns(ReplayJson, Turns) :-
-    (   catch(atom_json_dict(ReplayJson, Parsed, []), _, fail),
-        is_list(Parsed)
-    ->  Turns = Parsed
-    ;   Turns = []
-    ).
+    catch(atom_json_dict(ReplayJson, Parsed, []), _, fail),
+    is_list(Parsed),
+    !,
+    Turns = Parsed.
+replay_turns(_, []).
 
 % =============================
 % Resposta (HTML)
@@ -133,10 +138,10 @@ turn_row(Turn, tr([class('border-t border-slate-800')], [
     turn_field(Turn, detective_position, DetectivePos).
 
 turn_field(Turn, Key, Text) :-
-    (   get_dict(Key, Turn, Value)
-    ->  format(string(Text), "~w", [Value])
-    ;   Text = "-"
-    ).
+    get_dict(Key, Turn, Value),
+    !,
+    format(string(Text), "~w", [Value]).
+turn_field(_, _, "-").
 
 render_not_found(Request) :-
     page:reply_page(Request, 'Partida nao encontrada', [

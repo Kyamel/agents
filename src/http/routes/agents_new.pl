@@ -37,53 +37,53 @@ dispatch(post, Request, User) :-
 % =============================
 
 process_post(Request, User, Values) :-
-    (   User.is_verified \== true
-    ->  render_form(Request, User, Values)
-    ;   fields_filled([Values.name, Values.role, Values.source])
-    ->  to_id_string(User.id, UserId),
-        try_register(UserId, Values, Result),
-        (   Result == ok
-        ->  http_redirect(see_other, '/agents', Request)
-        ;   Result = error(Message),
-            render_form(Request, User, Values.put(error, Message))
-        )
-    ;   render_form(Request, User,
-            Values.put(error, "Preencha todos os campos do formulario."))
-    ).
+    User.is_verified \== true,
+    !,
+    render_form(Request, User, Values).
+process_post(Request, User, Values) :-
+    \+ fields_filled([Values.name, Values.role, Values.source]),
+    !,
+    render_form(Request, User,
+        Values.put(error, "Preencha todos os campos do formulario.")).
+process_post(Request, User, Values) :-
+    to_id_string(User.id, UserId),
+    try_register(UserId, Values, Result),
+    finish_register(Result, Request, User, Values).
 
-fields_filled(Values) :-
-    forall(member(V, Values), (string(V), V \== "")).
+finish_register(ok, Request, _, _) :-
+    http_redirect(see_other, '/agents', Request).
+finish_register(error(Message), Request, User, Values) :-
+    render_form(Request, User, Values.put(error, Message)).
 
-to_id_string(Id, Str) :-
-    (   string(Id) -> Str = Id
-    ;   atom(Id)   -> atom_string(Id, Str)
-    ;   term_string(Id, Str)
-    ).
+fields_filled([]).
+fields_filled([V|Vs]) :- string(V), V \== "", fields_filled(Vs).
+
+to_id_string(Id, Id) :- string(Id), !.
+to_id_string(Id, Str) :- atom(Id), !, atom_string(Id, Str).
+to_id_string(Id, Str) :- term_string(Id, Str).
 
 try_register(UserId, V, Result) :-
-    catch(
-        (   agent_registry:register_agent_source(UserId, V.name, V.role,
-                                                 V.source, _Agent)
-        ->  Result = ok
-        ;   Result = error("Nao foi possivel registrar o agente \c
-                            (codigo muito grande ou invalido).")
-        ),
-        Error,
-        ( register_error_message(Error, Message), Result = error(Message) )
-    ).
+    catch(register_or_fail(UserId, V, Result),
+          Error,
+          register_error(Error, Result)).
 
-register_error_message(error(permission_error(load, agent_source, Pattern), _), Message) :-
+register_or_fail(UserId, V, ok) :-
+    agent_registry:register_agent_source(UserId, V.name, V.role, V.source, _),
+    !.
+register_or_fail(_, _,
+    error("Nao foi possivel registrar o agente \c
+           (codigo muito grande ou invalido).")).
+
+register_error(error(permission_error(load, agent_source, Pattern), _), error(Message)) :-
     !,
     format(string(Message),
            "Codigo bloqueado pela validacao de seguranca: padrao proibido '~w'.",
            [Pattern]).
-register_error_message(error(domain_error(role, _), _), Message) :-
-    !,
-    Message = "Papel invalido. Escolha ladrao ou detetive.".
-register_error_message(error(type_error(_, _), _), Message) :-
-    !,
-    Message = "Campos invalidos no formulario.".
-register_error_message(_, "Erro inesperado ao registrar o agente.").
+register_error(error(domain_error(role, _), _),
+               error("Papel invalido. Escolha ladrao ou detetive.")) :- !.
+register_error(error(type_error(_, _), _),
+               error("Campos invalidos no formulario.")) :- !.
+register_error(_, error("Erro inesperado ao registrar o agente.")).
 
 % =============================
 % Resposta (HTML)
@@ -122,10 +122,12 @@ render_form(Request, _User, State) :-
     ]).
 
 error_alert(State, Html) :-
-    (   get_dict(error, State, Message)
-    ->  alert:alert(error, Message, Html)
-    ;   Html = ''
-    ).
+    get_dict(error, State, Message),
+    !,
+    alert:alert(error, Message, Html).
+error_alert(_, '').
 
 state_value(State, Key, Value) :-
-    (   get_dict(Key, State, Found) -> Value = Found ; Value = "" ).
+    get_dict(Key, State, Value),
+    !.
+state_value(_, _, "").

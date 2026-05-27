@@ -37,29 +37,24 @@ dispatch(_, _) :-
 % Logica (validacao + DB)
 % =============================
 
-create_agent(UserId, Request, Status, Payload) :-
-    (   verified_user(UserId)
-    ->  json_request:read_json_body(Request, Body),
-        json_request:require_string(Body, name, Name),
-        json_request:require_string(Body, role, Role),
-        json_request:require_string(Body, source, Source),
-        id_string(UserId, UserIdStr),
-        agent_registry:register_agent_source(UserIdStr, Name, Role, Source, Agent),
-        Status = 201,
-        Payload = _{status: "created", agent: Agent}
-    ;   Status = 403,
-        Payload = _{error: "email_not_verified_or_user_not_found"}
-    ).
+create_agent(UserId, _, 403, _{error: "email_not_verified_or_user_not_found"}) :-
+    \+ verified_user(UserId),
+    !.
+create_agent(UserId, Request, 201, _{status: "created", agent: Agent}) :-
+    json_request:read_json_body(Request, Body),
+    json_request:require_string(Body, name, Name),
+    json_request:require_string(Body, role, Role),
+    json_request:require_string(Body, source, Source),
+    id_string(UserId, UserIdStr),
+    agent_registry:register_agent_source(UserIdStr, Name, Role, Source, Agent).
 
 verified_user(UserId) :-
     sqlite_store:find_user_by_id(UserId, User),
     User.is_verified == true.
 
-id_string(Id, Str) :-
-    (   string(Id) -> Str = Id
-    ;   atom(Id)   -> atom_string(Id, Str)
-    ;   term_string(Id, Str)
-    ).
+id_string(Id, Id) :- string(Id), !.
+id_string(Id, Str) :- atom(Id), !, atom_string(Id, Str).
+id_string(Id, Str) :- term_string(Id, Str).
 
 % =============================
 % Resposta (JSON)

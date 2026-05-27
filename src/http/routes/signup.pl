@@ -32,22 +32,28 @@ dispatch(post, Request) :-
 % Logica (validacao, calculo, DB)
 % =============================
 
+process_signup(Request, "", _) :- !,
+    render_error(Request, "", "Informe email e senha.").
+process_signup(Request, Email, "") :- !,
+    render_error(Request, Email, "Informe email e senha.").
 process_signup(Request, Email, Password) :-
-    (   ( Email == "" ; Password == "" )
-    ->  render_error(Request, Email, "Informe email e senha.")
-    ;   string_length(Password, Length), Length < 6
-    ->  render_error(Request, Email, "A senha deve ter ao menos 6 caracteres.")
-    ;   safe_signup(Email, Password, Outcome),
-        handle_outcome(Outcome, Request, Email)
-    ).
+    string_length(Password, Length),
+    Length < 6,
+    !,
+    render_error(Request, Email, "A senha deve ter ao menos 6 caracteres.").
+process_signup(Request, Email, Password) :-
+    safe_signup(Email, Password, Outcome),
+    handle_outcome(Outcome, Request, Email).
 
 safe_signup(Email, Password, Outcome) :-
     catch(auth_orchestrator:signup(Email, Password, Outcome),
           Error,
-          ( format(user_error,
-                   '[signup] erro inesperado para ~w: ~q~n',
-                   [Email, Error]),
-            Outcome = failed )).
+          log_and_fail(Email, Error, Outcome)).
+
+log_and_fail(Email, Error, failed) :-
+    format(user_error,
+           '[signup] erro inesperado para ~w: ~q~n',
+           [Email, Error]).
 
 handle_outcome(created(_, _), Request, _) :-
     http_redirect(see_other, '/login?notice=signup_ok', Request).

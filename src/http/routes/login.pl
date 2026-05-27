@@ -35,12 +35,18 @@ dispatch(post, Request) :-
 % Logica (validacao, calculo, DB)
 % =============================
 
+process_login(Request, "", _) :- !,
+    render_error(Request, "", "Informe email e senha.").
+process_login(Request, Email, "") :- !,
+    render_error(Request, Email, "Informe email e senha.").
 process_login(Request, Email, Password) :-
-    (   ( Email == "" ; Password == "" )
-    ->  render_error(Request, Email, "Informe email e senha.")
-    ;   catch(auth_orchestrator:login(Email, Password, Outcome), _, Outcome = failed),
-        handle_outcome(Outcome, Request, Email)
-    ).
+    safe_login(Email, Password, Outcome),
+    handle_outcome(Outcome, Request, Email).
+
+safe_login(Email, Password, Outcome) :-
+    catch(auth_orchestrator:login(Email, Password, Outcome),
+          _,
+          Outcome = failed).
 
 handle_outcome(ok(Token, _UserId, _ExpiresAt), _Request, _Email) :-
     web_session:send_session_redirect(Token, '/').

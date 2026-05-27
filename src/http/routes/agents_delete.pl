@@ -16,10 +16,14 @@
 handler(Request) :-
     web_session:require_user(Request, User),
     memberchk(path(Path), Request),
-    (   extract_id(Path, Id)
-    ->  process_delete(User, Id)
-    ;   reply_not_found
-    ).
+    handle_path(Path, User).
+
+handle_path(Path, User) :-
+    extract_id(Path, Id),
+    !,
+    process_delete(User, Id).
+handle_path(_, _) :-
+    reply_not_found.
 
 % =============================
 % Logica (autorizacao + DB)
@@ -31,24 +35,26 @@ extract_id(Path, Id) :-
     Id \== new.
 
 process_delete(User, Id) :-
-    (   sqlite_store:get_agent(Id, Agent)
-    ->  ensure_owner(User, Agent),
-        sqlite_store:delete_agent(Id),
-        agent_cache:forget_agent(Id),
-        reply_empty
-    ;   reply_not_found
-    ).
+    sqlite_store:get_agent(Id, Agent),
+    !,
+    ensure_owner(User, Agent),
+    sqlite_store:delete_agent(Id),
+    agent_cache:forget_agent(Id),
+    reply_empty.
+process_delete(_, _) :-
+    reply_not_found.
 
 ensure_owner(User, Agent) :-
     normalize_id(User.id, UserIdN),
     normalize_id(Agent.owner_user_id, OwnerIdN),
-    (   UserIdN == OwnerIdN
-    ->  true
-    ;   throw(http_reply(forbidden('/agents'),
-                         [],
-                         [content_type('text/plain'),
-                          status(403)]))
-    ).
+    same_owner(UserIdN, OwnerIdN).
+
+same_owner(Id, Id) :- !.
+same_owner(_, _) :-
+    throw(http_reply(forbidden('/agents'),
+                     [],
+                     [content_type('text/plain'),
+                      status(403)])).
 
 normalize_id(X, S) :- atom(X), !, atom_string(X, S).
 normalize_id(X, X) :- string(X), !.

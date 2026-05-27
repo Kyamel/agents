@@ -26,19 +26,21 @@
 %   `email_exists` ou `created(UserId, MailStatus)`.
 signup(EmailRaw, Password, Outcome) :-
     normalize_email(EmailRaw, Email),
-    (   sqlite_store:find_user_by_email(Email, _)
-    ->  Outcome = email_exists
-    ;   password:hash_password(Password, PasswordHash),
-        sqlite_store:create_user(Email, PasswordHash, UserId, _CreatedAt),
-        verify_email:issue_verification_token(UserId, PlainToken, TokenHash),
-        env:env_int('EMAIL_VERIFY_TTL_MIN', 30, TtlMin),
-        verify_email:expiry_iso(TtlMin, ExpiresAt),
-        sqlite_store:save_email_verification(TokenHash, UserId, ExpiresAt, ExpiresAt),
-        env:env_required_string('APP_BASE_URL', BaseUrl),
-        format(string(VerifyUrl), '~s/api/v1/auth/verify?token=~s', [BaseUrl, PlainToken]),
-        mail:send_verification_email(Email, VerifyUrl, MailStatus),
-        Outcome = created(UserId, MailStatus)
-    ).
+    do_signup(Email, Password, Outcome).
+
+do_signup(Email, _, email_exists) :-
+    sqlite_store:find_user_by_email(Email, _),
+    !.
+do_signup(Email, Password, created(UserId, MailStatus)) :-
+    password:hash_password(Password, PasswordHash),
+    sqlite_store:create_user(Email, PasswordHash, UserId, _CreatedAt),
+    verify_email:issue_verification_token(UserId, PlainToken, TokenHash),
+    env:env_int('EMAIL_VERIFY_TTL_MIN', 30, TtlMin),
+    verify_email:expiry_iso(TtlMin, ExpiresAt),
+    sqlite_store:save_email_verification(TokenHash, UserId, ExpiresAt, ExpiresAt),
+    env:env_required_string('APP_BASE_URL', BaseUrl),
+    format(string(VerifyUrl), '~s/api/v1/auth/verify?token=~s', [BaseUrl, PlainToken]),
+    mail:send_verification_email(Email, VerifyUrl, MailStatus).
 
 %!  login(+EmailRaw, +Password, -Outcome) is det.
 %
@@ -46,17 +48,24 @@ signup(EmailRaw, Password, Outcome) :-
 %   `email_not_verified` ou `ok(Token, UserId, ExpiresAt)`.
 login(EmailRaw, Password, Outcome) :-
     normalize_email(EmailRaw, Email),
-    (   sqlite_store:find_user_by_email(Email, User)
-    ->  (   password:verify_password(Password, User.password_hash)
-        ->  (   User.is_verified == true
-            ->  issue_session(User.id, Token, ExpiresAt),
-                Outcome = ok(Token, User.id, ExpiresAt)
-            ;   Outcome = email_not_verified
-            )
-        ;   Outcome = invalid_credentials
-        )
-    ;   Outcome = invalid_credentials
-    ).
+    find_user_or_anon(Email, UserOrAnon),
+    authenticate(UserOrAnon, Password, Outcome).
+
+find_user_or_anon(Email, User) :-
+    sqlite_store:find_user_by_email(Email, User),
+    !.
+find_user_or_anon(_, anon).
+
+authenticate(anon, _, invalid_credentials) :- !.
+authenticate(User, Password, invalid_credentials) :-
+    \+ password:verify_password(Password, User.password_hash),
+    !.
+authenticate(User, _, email_not_verified) :-
+    User.is_verified \== true,
+    !.
+authenticate(User, _, ok(Token, UserId, ExpiresAt)) :-
+    UserId = User.id,
+    issue_session(UserId, Token, ExpiresAt).
 
 %!  issue_session(+UserId, -Token, -ExpiresAt) is det.
 %
@@ -131,13 +140,13 @@ login_payload(ok(Token, UserId, ExpiresAt), 200, Payload) :-
 verify_from_request(Request, Status, Payload) :-
     http_parameters(Request, [token(Token, [string])]),
     verify_email:token_hash(Token, TokenHash),
-    (   sqlite_store:consume_email_verification(TokenHash, UserId)
-    ->  sqlite_store:mark_user_verified(UserId),
-        Status = 200,
-        Payload = _{status: "verified", user_id: UserId}
-    ;   Status = 400,
-        Payload = _{error: "invalid_or_expired_token"}
-    ).
+    consume_and_mark(TokenHash, Status, Payload).
+
+consume_and_mark(TokenHash, 200, _{status: "verified", user_id: UserId}) :-
+    sqlite_store:consume_email_verification(TokenHash, UserId),
+    !,
+    sqlite_store:mark_user_verified(UserId).
+consume_and_mark(_, 400, _{error: "invalid_or_expired_token"}).
 
 % -----------------------------
 % Auxiliares

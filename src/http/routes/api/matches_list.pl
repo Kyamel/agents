@@ -50,12 +50,12 @@ create_match(Request, Payload) :-
         match: MatchResult
     }.
 
-ensure_agent_exists(AgentId, RoleLabel, Agent) :-
-    (   sqlite_store:get_agent(AgentId, Agent)
-    ->  true
-    ;   role_not_found_error(RoleLabel, Message),
-        throw(http_reply(not_found(_{error: Message})))
-    ).
+ensure_agent_exists(AgentId, _, Agent) :-
+    sqlite_store:get_agent(AgentId, Agent),
+    !.
+ensure_agent_exists(_, RoleLabel, _) :-
+    role_not_found_error(RoleLabel, Message),
+    throw(http_reply(not_found(_{error: Message}))).
 
 role_not_found_error(thief, "thief_agent_not_found").
 role_not_found_error(detective, "detective_agent_not_found").

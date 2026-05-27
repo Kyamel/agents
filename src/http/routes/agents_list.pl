@@ -29,11 +29,15 @@ handler(Request) :-
 % N+1 query consciente: volumes pequenos no projeto.
 augment_with_owner([], []).
 augment_with_owner([A|As], [A2|As2]) :-
-    (   sqlite_store:find_user_by_id(A.owner_user_id, Owner)
-    ->  put_dict(owner_email, A, Owner.email, A2)
-    ;   put_dict(owner_email, A, "", A2)
-    ),
+    owner_email(A, Email),
+    put_dict(owner_email, A, Email, A2),
     augment_with_owner(As, As2).
+
+owner_email(A, Email) :-
+    sqlite_store:find_user_by_id(A.owner_user_id, Owner),
+    !,
+    Email = Owner.email.
+owner_email(_, "").
 
 % =============================
 % Resposta (HTML)

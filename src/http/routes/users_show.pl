@@ -30,10 +30,11 @@ extract_id(Path, Id) :-
 % =============================
 
 load_and_render(Request, Id) :-
-    (   sqlite_store:find_user_by_id(Id, User)
-    ->  render_stub(Request, User)
-    ;   render_not_found(Request)
-    ).
+    sqlite_store:find_user_by_id(Id, User),
+    !,
+    render_stub(Request, User).
+load_and_render(Request, _) :-
+    render_not_found(Request).
 
 % =============================
 % Resposta (HTML)
