@@ -14,6 +14,7 @@
 :- use_module('../../auth/verify_email', []).
 :- use_module('../../auth/session_token', []).
 :- use_module('../../auth/mail').
+:- use_module('./json_request').
 
 % -----------------------------
 % Servicos (reutilizados pela API JSON e pelas paginas web)
@@ -75,9 +76,9 @@ issue_session(UserId, Token, ExpiresAt) :-
 %
 %   Processa cadastro a partir de um corpo JSON e devolve status/payload HTTP.
 signup_from_request(Request, Status, Payload) :-
-    read_json_body(Request, Body),
-    require_string(Body, email, Email),
-    require_string(Body, password, Password),
+    json_request:read_json_body(Request, Body),
+    json_request:require_string(Body, email, Email),
+    json_request:require_string(Body, password, Password),
     signup(Email, Password, Outcome),
     signup_payload(Outcome, Status, Payload).
 
@@ -105,9 +106,9 @@ mail_status_string(failed, "failed").
 %
 %   Processa login a partir de um corpo JSON e devolve token de sessao.
 login_from_request(Request, Status, Payload) :-
-    read_json_body(Request, Body),
-    require_string(Body, email, Email),
-    require_string(Body, password, Password),
+    json_request:read_json_body(Request, Body),
+    json_request:require_string(Body, email, Email),
+    json_request:require_string(Body, password, Password),
     login(Email, Password, Outcome),
     login_payload(Outcome, Status, Payload).
 
@@ -141,27 +142,6 @@ verify_from_request(Request, Status, Payload) :-
 % -----------------------------
 % Auxiliares
 % -----------------------------
-
-%!  require_string(+Dict, +Key, -Value) is det.
-%
-%   Extrai campo string obrigatorio do corpo JSON.
-require_string(Dict, Key, Value) :-
-    get_dict(Key, Dict, Value),
-    string(Value),
-    Value \= "",
-    !.
-require_string(_, Key, _) :-
-    format(string(Message), "Missing or invalid string field: ~w", [Key]),
-    throw(http_reply(bad_request(_{error: Message}))).
-
-%!  read_json_body(+Request, -Body) is det.
-%
-%   Le corpo JSON da requisicao ou lanca erro 400.
-read_json_body(Request, Body) :-
-    catch(http_read_json_dict(Request, Body), _, fail),
-    !.
-read_json_body(_, _) :-
-    throw(http_reply(bad_request(_{error: "invalid_json_body"}))).
 
 %!  normalize_email(+EmailIn, -EmailOut) is det.
 %

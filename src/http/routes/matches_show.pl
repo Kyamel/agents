@@ -1,36 +1,72 @@
-:- module(route_matches_show, [
-    render/2,
-    render_not_found/1,
-    render_invalid/1
-]).
+:- module(route_matches_show, []).
 
+:- use_module(library(http/http_dispatch)).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/json)).
 :- use_module(library(apply)).
-:- use_module('../../../db/sqlite_store').
-:- use_module('../../../components/layout/page').
-:- use_module('../../../components/cards/match_card').
+:- use_module('../../db/sqlite_store').
+:- use_module('../../components/layout/page').
+:- use_module('../../components/cards/match_card').
+:- use_module('../../components/ui/page_section').
 
-%!  render(+Request, +MatchId) is det.
-%
-%   Renderiza os detalhes e o replay de uma partida.
-render(Request, Id) :-
+% Prefix em /matches/ para capturar /matches/<id>. /matches/new tem handler
+% proprio (mais especifico) e ganha por especificidade.
+:- http_handler('/matches/', handler, [method(get), prefix]).
+
+% =============================
+% Handler
+% =============================
+
+handler(Request) :-
+    memberchk(path(Path), Request),
+    (   extract_id(Path, Id)
+    ->  load_and_render(Request, Id)
+    ;   http_redirect(see_other, '/matches', Request)
+    ).
+
+extract_id(Path, Id) :-
+    atom_concat('/matches/', Id, Path),
+    Id \== '',
+    Id \== new.
+
+% =============================
+% Logica (DB)
+% =============================
+
+load_and_render(Request, Id) :-
     (   sqlite_store:get_match(Id, Match)
-    ->  render_detail(Request, Match)
+    ->  agent_display_name(Match.thief_agent_id, ThiefName),
+        agent_display_name(Match.detective_agent_id, DetectiveName),
+        replay_turns(Match.replay_json, Turns),
+        render_detail(Request, Match, ThiefName, DetectiveName, Turns)
     ;   render_not_found(Request)
     ).
 
-render_detail(Request, Match) :-
-    agent_display_name(Match.thief_agent_id, ThiefName),
-    agent_display_name(Match.detective_agent_id, DetectiveName),
+agent_display_name(AgentId, Name) :-
+    (   sqlite_store:get_agent(AgentId, Agent)
+    ->  Name = Agent.name
+    ;   Name = AgentId
+    ).
+
+replay_turns(ReplayJson, Turns) :-
+    (   catch(atom_json_dict(ReplayJson, Parsed, []), _, fail),
+        is_list(Parsed)
+    ->  Turns = Parsed
+    ;   Turns = []
+    ).
+
+% =============================
+% Resposta (HTML)
+% =============================
+
+render_detail(Request, Match, ThiefName, DetectiveName, Turns) :-
+    page_section:back_link('/matches', 'Voltar para partidas', BackLink),
     stat_card('Ladrao', ThiefName, ThiefCard),
     stat_card('Detetive', DetectiveName, DetectiveCard),
     winner_card(Match.winner, WinnerCard),
-    replay_turns(Match.replay_json, Turns),
     turns_table(Turns, TableHtml),
     page:reply_page(Request, 'Detalhe da partida', [
-        a([href('/matches'), class('text-sm text-ufop-400 hover:underline')],
-          'Voltar para partidas'),
+        BackLink,
         h1([class('text-2xl font-bold mt-3 mb-1')], 'Detalhe da partida'),
         p([class('font-mono text-xs text-slate-500 mb-5 break-all')], Match.id),
         div([class('grid sm:grid-cols-3 gap-4 mb-8')], [
@@ -39,12 +75,6 @@ render_detail(Request, Match) :-
         h2([class('font-semibold mb-3')], 'Replay turno a turno'),
         TableHtml
     ]).
-
-agent_display_name(AgentId, Name) :-
-    (   sqlite_store:get_agent(AgentId, Agent)
-    ->  Name = Agent.name
-    ;   Name = AgentId
-    ).
 
 stat_card(Label, Value, Html) :-
     Html = div([class('rounded-xl bg-slate-900 p-4 border border-slate-800')], [
@@ -69,16 +99,9 @@ winner_card_class(_, 'rounded-xl bg-slate-900 p-4 border border-slate-700 text-s
 amber_card('rounded-xl bg-amber-950 p-4 border border-amber-800 text-amber-200').
 emerald_card('rounded-xl bg-emerald-950 p-4 border border-emerald-800 text-emerald-200').
 
-replay_turns(ReplayJson, Turns) :-
-    (   catch(atom_json_dict(ReplayJson, Parsed, []), _, fail),
-        is_list(Parsed)
-    ->  Turns = Parsed
-    ;   Turns = []
-    ).
-
 turns_table([], Html) :-
     !,
-    Html = p([class('text-slate-500 text-sm')], 'Replay indisponivel para esta partida.').
+    page_section:empty_state('Replay indisponivel para esta partida.', Html).
 turns_table(Turns, Html) :-
     maplist(turn_row, Turns, Rows),
     Html = div([class('overflow-x-auto rounded-xl border border-slate-800')], [
@@ -115,22 +138,11 @@ turn_field(Turn, Key, Text) :-
     ;   Text = "-"
     ).
 
-% -----------------------------
-% Paginas auxiliares
-% -----------------------------
-
 render_not_found(Request) :-
     page:reply_page(Request, 'Partida nao encontrada', [
         h1([class('text-2xl font-bold mb-2')], 'Partida nao encontrada'),
         p([class('text-slate-400 mb-6')],
           'Nao existe partida com esse identificador.'),
-        a([href('/matches'), class('text-ufop-400 hover:underline')],
-          'Voltar para partidas')
-    ]).
-
-render_invalid(Request) :-
-    page:reply_page(Request, 'Pagina nao encontrada', [
-        h1([class('text-2xl font-bold mb-2')], 'Pagina nao encontrada'),
         a([href('/matches'), class('text-ufop-400 hover:underline')],
           'Voltar para partidas')
     ]).

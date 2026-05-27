@@ -1,26 +1,31 @@
-:- module(route_matches_new, [
-    render/2
-]).
+:- module(route_matches_new, []).
 
 :- use_module(library(http/html_write)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_parameters)).
 :- use_module(library(apply)).
-:- use_module('../../../db/sqlite_store').
-:- use_module('../../../engine/match_runner').
-:- use_module('../../../components/layout/page').
-:- use_module('../../../components/ui/alert').
-:- use_module('../../../components/ui/form_field').
-:- use_module('../../security/web_session').
+:- use_module('../../db/sqlite_store').
+:- use_module('../../engine/match_runner').
+:- use_module('../../components/layout/page').
+:- use_module('../../components/ui/alert').
+:- use_module('../../components/ui/form_field').
+:- use_module('../../components/ui/page_section').
+:- use_module('../security/web_session').
 
-%!  render(+Method, +Request) is det.
-%
-%   GET renderiza o formulario; POST executa a partida e redireciona.
-render(get, Request) :-
+:- http_handler(root(matches/new), handler, [methods([get, post])]).
+
+% =============================
+% Handler
+% =============================
+
+handler(Request) :-
+    memberchk(method(Method), Request),
     web_session:require_user(Request, _User),
+    dispatch(Method, Request).
+
+dispatch(get, Request) :-
     render_form(Request, _{}).
-render(post, Request) :-
-    web_session:require_user(Request, _User),
+dispatch(post, Request) :-
     http_parameters(Request, [
         thief_agent_id(ThiefId, [default(""), string]),
         detective_agent_id(DetectiveId, [default(""), string])
@@ -34,9 +39,9 @@ render(post, Request) :-
             _{error: Message, thief: ThiefId, detective: DetectiveId})
     ).
 
-% -----------------------------
-% Execucao
-% -----------------------------
+% =============================
+% Logica (validacao, execucao, DB)
+% =============================
 
 run_new_match(ThiefId, DetectiveId, Outcome) :-
     (   ( ThiefId == "" ; DetectiveId == "" )
@@ -86,9 +91,9 @@ agent_role_atom(Agent, RoleAtom) :-
 agent_has_role_(Role, Agent) :-
     agent_has_role(Agent, Role).
 
-% -----------------------------
-% Form
-% -----------------------------
+% =============================
+% Resposta (HTML)
+% =============================
 
 render_form(Request, State) :-
     sqlite_store:list_agents(Agents),
@@ -108,6 +113,11 @@ render_form(Request, State) :-
 render_form_fields(Request, State, Thieves, Detectives) :-
     maplist(agent_option, Thieves, ThiefOptions),
     maplist(agent_option, Detectives, DetectiveOptions),
+    page_section:page_heading(
+        'Nova partida',
+        'A partida e executada na hora e o replay fica disponivel ao final.',
+        Heading
+    ),
     form_field:select_field(thief_agent_id, 'Agente ladrao', ThiefOptions, ThiefField),
     form_field:select_field(detective_agent_id, 'Agente detetive', DetectiveOptions,
                             DetectiveField),
@@ -117,9 +127,7 @@ render_form_fields(Request, State, Thieves, Detectives) :-
     ;   AlertHtml = ''
     ),
     page:reply_page(Request, 'Nova partida', [
-        h1([class('text-2xl font-bold mb-1')], 'Nova partida'),
-        p([class('text-slate-400 text-sm mb-6')],
-          'A partida e executada na hora e o replay fica disponivel ao final.'),
+        Heading,
         AlertHtml,
         form([method(post), action('/matches/new'), class('max-w-lg')], [
             ThiefField, DetectiveField, Submit

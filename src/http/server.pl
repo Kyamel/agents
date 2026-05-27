@@ -6,16 +6,30 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_cors)).
 :- use_module('../config/env').
+
+% Rotas web (uma rota por arquivo, flat)
 :- use_module('./routes/static').
 :- use_module('./routes/index').
-:- use_module('./routes/agents').
-:- use_module('./routes/matches').
-:- use_module('./routes/users').
-:- use_module('./routes/auth_pages').
+:- use_module('./routes/signup').
+:- use_module('./routes/login').
+:- use_module('./routes/logout').
+:- use_module('./routes/agents_list').
+:- use_module('./routes/agents_new').
+:- use_module('./routes/agents_delete').
+:- use_module('./routes/matches_list').
+:- use_module('./routes/matches_new').
+:- use_module('./routes/matches_show').
+:- use_module('./routes/users_show').
+
+% Rotas API (JSON, flat)
 :- use_module('./routes/api/health').
-:- use_module('./routes/api/auth').
-:- use_module('./routes/api/agents').
-:- use_module('./routes/api/matches').
+:- use_module('./routes/api/auth_signup').
+:- use_module('./routes/api/auth_login').
+:- use_module('./routes/api/auth_verify').
+:- use_module('./routes/api/agents_list').
+:- use_module('./routes/api/agents_show').
+:- use_module('./routes/api/matches_list').
+:- use_module('./routes/api/matches_show').
 
 
 :- set_setting(http:cors, []).
