@@ -5,7 +5,7 @@
 :- use_module(library(http/http_cors)).
 :- use_module('../../security/rate_limit').
 :- use_module('../../security/authz').
-:- use_module('../../controller/json_request').
+:- use_module('../../json_request').
 :- use_module('../../../db/sqlite_store').
 :- use_module('../../../engine/registry').
 

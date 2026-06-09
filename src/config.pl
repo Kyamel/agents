@@ -16,15 +16,6 @@
     resend_from/1
 ]).
 
-% =====================================================================
-% Configuracao do projeto.
-%
-% Edite os valores aqui mesmo. Cada predicado guarda UM valor: numeros sao
-% inteiros, caminhos/textos sao strings ("...") e liga/desliga e um atomo
-% (true/false). Sem variaveis de ambiente e sem arquivo .env -- o que esta
-% escrito aqui e o que vale.
-% =====================================================================
-
 % --- Servidor HTTP ---
 
 % Porta em que o servidor escuta.
@@ -75,7 +66,7 @@ auth_session_ttl_minutes(10080).
 % --- Email ---
 
 % Transporte de envio: `console` imprime o link no terminal (modo dev);
-% `resend` envia de verdade pela API do Resend (exige as chaves abaixo).
+% `resend` envia de verdade pela API do Resend.
 mail_transport(console).
 
 resend_api_key("").

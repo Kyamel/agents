@@ -5,7 +5,7 @@
 :- use_module('../../components/layout/page').
 :- use_module('../../components/ui/form_field').
 :- use_module('../../components/ui/alert').
-:- use_module('../controller/auth_orchestrator').
+:- use_module('../auth_orchestrator').
 :- use_module('../security/rate_limit').
 
 :- http_handler(root(signup), handler, [methods([get, post])]).

@@ -11,9 +11,9 @@
 :- use_module('./agent_cache').
 
 % Camada fina sobre a engine do professor (Interactor.prolog). Mantém a mesma
-% assinatura `run_match/4` esperada pelas rotas em src/http e pelo controller
-% de matches, traduzindo agentes carregados do banco SQL e o resultado da
-% engine para o formato consumido pela UI/API.
+% assinatura `run_match/4` esperada pelas rotas em src/http, traduzindo agentes
+% carregados do banco SQL e o resultado da engine para o formato consumido pela
+% UI/API.
 
 :- dynamic interactor_loaded/0.
 :- dynamic engine_dir_fact/1.

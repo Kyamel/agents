@@ -4,7 +4,7 @@
 :- use_module(library(http/http_json)).
 :- use_module(library(http/http_cors)).
 :- use_module('../../security/rate_limit').
-:- use_module('../../controller/auth_orchestrator').
+:- use_module('../../auth_orchestrator').
 
 :- http_handler(root(api/v1/auth/verify), handler, [methods([get, options])]).
 

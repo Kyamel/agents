@@ -8,12 +8,12 @@
 
 :- use_module(library(http/http_json)).
 :- use_module(library(http/http_parameters)).
-:- use_module('../../config').
-:- use_module('../../db/sqlite_store').
-:- use_module('../../auth/password').
-:- use_module('../../auth/verify_email', []).
-:- use_module('../../auth/session_token', []).
-:- use_module('../../auth/mail').
+:- use_module('../config').
+:- use_module('../db/sqlite_store').
+:- use_module('../auth/password').
+:- use_module('../auth/verify_email', []).
+:- use_module('../auth/session_token', []).
+:- use_module('../auth/mail').
 :- use_module('./json_request').
 
 % -----------------------------
@@ -25,7 +25,7 @@
 %   Cria um usuario e dispara o email de verificacao. `Outcome` e
 %   `email_exists` ou `created(UserId, MailStatus)`.
 signup(EmailRaw, Password, Outcome) :-
-    normalize_email(EmailRaw, Email),
+    string_lower(EmailRaw, Email),
     do_signup(Email, Password, Outcome).
 
 do_signup(Email, _, email_exists) :-
@@ -47,7 +47,7 @@ do_signup(Email, Password, created(UserId, MailStatus)) :-
 %   Autentica um usuario e emite uma sessao. `Outcome` e `invalid_credentials`,
 %   `email_not_verified` ou `ok(Token, UserId, ExpiresAt)`.
 login(EmailRaw, Password, Outcome) :-
-    normalize_email(EmailRaw, Email),
+    string_lower(EmailRaw, Email),
     find_user_or_anon(Email, UserOrAnon),
     authenticate(UserOrAnon, Password, Outcome).
 
@@ -147,13 +147,3 @@ consume_and_mark(TokenHash, 200, _{status: "verified", user_id: UserId}) :-
     !,
     sqlite_store:mark_user_verified(UserId).
 consume_and_mark(_, 400, _{error: "invalid_or_expired_token"}).
-
-% -----------------------------
-% Auxiliares
-% -----------------------------
-
-%!  normalize_email(+EmailIn, -EmailOut) is det.
-%
-%   Normaliza email para lowercase.
-normalize_email(EmailIn, EmailOut) :-
-    string_lower(EmailIn, EmailOut).
