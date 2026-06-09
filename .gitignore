@@ -4,4 +4,8 @@ data/*
 uploads/*
 .vscode/*
 packs/*
+
 src/config.pl
+agents/*
+!agents/agented.pl
+!agents/agentel.pl
