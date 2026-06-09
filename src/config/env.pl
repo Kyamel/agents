@@ -28,11 +28,16 @@ load_dotenv(_).
 %   Lê todas as linhas do stream `In` e aplica cada entrada de configuração.
 read_dotenv_lines(In) :-
     read_line_to_string(In, Line),
-    (   Line == end_of_file
-    ->  true
-    ;   apply_dotenv_line(Line),
-        read_dotenv_lines(In)
-    ).
+    read_dotenv_line(Line, In).
+
+%!  read_dotenv_line(+Line, +In) is det.
+%
+%   Aplica a linha lida e segue para a próxima, parando em fim de arquivo.
+read_dotenv_line(end_of_file, _In) :-
+    !.
+read_dotenv_line(Line, In) :-
+    apply_dotenv_line(Line),
+    read_dotenv_lines(In).
 
 %!  apply_dotenv_line(+Line0) is det.
 %
@@ -60,32 +65,51 @@ apply_dotenv_line(_).
 %   Remove aspas simples ou duplas envolvendo um valor textual.
 strip_quotes(Value0, Value) :-
     normalize_space(string(Value1), Value0),
-    (   sub_string(Value1, 0, 1, _, "\"")
-    ->  sub_string(Value1, 1, _, 1, Value)
-    ;   sub_string(Value1, 0, 1, _, "'")
-    ->  sub_string(Value1, 1, _, 1, Value)
-    ;   Value = Value1
-    ).
+    unquote(Value1, Value).
+
+%!  unquote(+Quoted, -Bare) is det.
+%
+%   Retira um par de aspas simples ou duplas envolvendo o texto.
+unquote(Quoted, Bare) :-
+    sub_string(Quoted, 0, 1, _, "\""),
+    !,
+    sub_string(Quoted, 1, _, 1, Bare).
+unquote(Quoted, Bare) :-
+    sub_string(Quoted, 0, 1, _, "'"),
+    !,
+    sub_string(Quoted, 1, _, 1, Bare).
+unquote(Bare, Bare).
 
 %!  env_string(+Key, +Default, -Value) is det.
 %
 %   Obtém variável de ambiente como string ou devolve `Default` se ausente.
 env_string(Key, Default, Value) :-
     atom(Key),
-    (   getenv(Key, Raw)
-    ->  atom_string(Raw, Value)
-    ;   Value = Default
-    ).
+    env_string_value(Key, Default, Value).
+
+%!  env_string_value(+Key, +Default, -Value) is det.
+%
+%   Lê a variável `Key`, caindo para `Default` quando não definida.
+env_string_value(Key, _Default, Value) :-
+    getenv(Key, Raw),
+    !,
+    atom_string(Raw, Value).
+env_string_value(_Key, Default, Default).
 
 %!  env_required_string(+Key, -Value) is det.
 %
 %   Obtém variável obrigatória; lança erro se não estiver definida.
 env_required_string(Key, Value) :-
     env_string(Key, "", Value),
-    (   Value == ""
-    ->  existence_error(environment_variable, Key)
-    ;   true
-    ).
+    require_nonempty(Key, Value).
+
+%!  require_nonempty(+Key, +Value) is det.
+%
+%   Lança `existence_error` quando `Value` é a string vazia.
+require_nonempty(Key, "") :-
+    !,
+    existence_error(environment_variable, Key).
+require_nonempty(_Key, _Value).
 
 %!  env_int(+Key, +Default, -Value) is det.
 %
@@ -93,13 +117,19 @@ env_required_string(Key, Value) :-
 env_int(Key, Default, Value) :-
     must_be(integer, Default),
     env_string(Key, "", Raw),
-    (   Raw == ""
-    ->  Value = Default
-    ;   catch(number_string(N, Raw), _, fail),
-        integer(N)
-    ->  Value = N
-    ;   domain_error(integer_env_value, Key=Raw)
-    ).
+    parse_int_env(Key, Raw, Default, Value).
+
+%!  parse_int_env(+Key, +Raw, +Default, -Value) is det.
+%
+%   Converte o texto cru em inteiro, com fallback e erro de domínio.
+parse_int_env(_Key, "", Default, Default) :-
+    !.
+parse_int_env(_Key, Raw, _Default, Value) :-
+    catch(number_string(Value, Raw), _, fail),
+    integer(Value),
+    !.
+parse_int_env(Key, Raw, _Default, _Value) :-
+    domain_error(integer_env_value, Key=Raw).
 
 %!  env_bool(+Key, +Default, -Value) is det.
 %
@@ -108,11 +138,18 @@ env_bool(Key, Default, Value) :-
     must_be(boolean, Default),
     env_string(Key, "", Raw0),
     string_lower(Raw0, Raw),
-    (   Raw == ""
-    ->  Value = Default
-    ;   memberchk(Raw, ["1", "true", "yes", "on"])
-    ->  Value = true
-    ;   memberchk(Raw, ["0", "false", "no", "off"])
-    ->  Value = false
-    ;   domain_error(boolean_env_value, Key=Raw0)
-    ).
+    parse_bool_env(Key, Raw, Raw0, Default, Value).
+
+%!  parse_bool_env(+Key, +Raw, +Raw0, +Default, -Value) is det.
+%
+%   Interpreta `Raw` como booleano; `Raw0` é o texto original para o erro.
+parse_bool_env(_Key, "", _Raw0, Default, Default) :-
+    !.
+parse_bool_env(_Key, Raw, _Raw0, _Default, true) :-
+    memberchk(Raw, ["1", "true", "yes", "on"]),
+    !.
+parse_bool_env(_Key, Raw, _Raw0, _Default, false) :-
+    memberchk(Raw, ["0", "false", "no", "off"]),
+    !.
+parse_bool_env(Key, _Raw, Raw0, _Default, _Value) :-
+    domain_error(boolean_env_value, Key=Raw0).

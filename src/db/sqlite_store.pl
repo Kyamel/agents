@@ -48,35 +48,43 @@ init :-
 ensure_prosqlite :-
     ensure_local_prosqlite_pack,
     ensure_prosqlite_loaded,
-    (   current_predicate(prosqlite:sqlite_connect/3)
-    ->  true
-    ;   throw(error(existence_error(package, prosqlite), _))
-    ).
+    require_prosqlite.
+
+%!  require_prosqlite is semidet.
+%
+%   Confirma que `prosqlite` foi carregado; lança erro caso contrário.
+require_prosqlite :-
+    current_predicate(prosqlite:sqlite_connect/3),
+    !.
+require_prosqlite :-
+    throw(error(existence_error(package, prosqlite), _)).
 
 %!  ensure_prosqlite_loaded is det.
 %
 %   Carrega `library(prosqlite)` quando ainda não está no runtime.
 ensure_prosqlite_loaded :-
-    (   current_predicate(prosqlite:sqlite_connect/3)
-    ->  true
-    ;   catch(use_module(library(prosqlite), []), _, fail)
-    ->  true
-    ;   local_prosqlite_module_file(ModuleFile),
-        exists_file(ModuleFile),
-        use_module(ModuleFile, [])
-    ).
+    current_predicate(prosqlite:sqlite_connect/3),
+    !.
+ensure_prosqlite_loaded :-
+    catch(use_module(library(prosqlite), []), _, fail),
+    !.
+ensure_prosqlite_loaded :-
+    local_prosqlite_module_file(ModuleFile),
+    exists_file(ModuleFile),
+    use_module(ModuleFile, []).
 
 %!  ensure_local_prosqlite_pack is det.
 %
 %   Anexa pacote local `packs/prosqlite` quando presente.
 ensure_local_prosqlite_pack :-
-    (   current_predicate(prosqlite:sqlite_connect/3)
-    ->  true
-    ;   local_prosqlite_pack_dir(PackDir),
-        exists_directory(PackDir)
-    ->  catch(pack_attach(PackDir, [duplicate(replace)]), _, true)
-    ;   true
-    ).
+    current_predicate(prosqlite:sqlite_connect/3),
+    !.
+ensure_local_prosqlite_pack :-
+    local_prosqlite_pack_dir(PackDir),
+    exists_directory(PackDir),
+    !,
+    catch(pack_attach(PackDir, [duplicate(replace)]), _, true).
+ensure_local_prosqlite_pack.
 
 %!  local_prosqlite_pack_dir(-PackDir) is det.
 %
@@ -101,22 +109,26 @@ local_prosqlite_module_file(ModuleFile) :-
 ensure_connected :-
     ensure_prosqlite,
     conn_alias(Alias),
-    (   sqlite_connection_ready(Alias)
-    ->  true
-    ;   env:env_string('DB_PATH', './data/agents.db', DbPath),
-        file_directory_name(DbPath, Dir),
-        make_directory_path(Dir),
-        prosqlite:sqlite_connect(DbPath, Alias, [alias(Alias), exists(false), ext('')])
-    ).
+    ensure_connection_open(Alias).
+
+%!  ensure_connection_open(+Alias) is det.
+%
+%   Abre a conexão SQLite quando ainda não há uma pronta para o alias.
+ensure_connection_open(Alias) :-
+    sqlite_connection_ready(Alias),
+    !.
+ensure_connection_open(Alias) :-
+    env:env_string('DB_PATH', './data/agents.db', DbPath),
+    file_directory_name(DbPath, Dir),
+    make_directory_path(Dir),
+    prosqlite:sqlite_connect(DbPath, Alias, [alias(Alias), exists(false), ext('')]).
 
 %!  sqlite_connection_ready(+Alias) is semidet.
 %
 %   Verifica se a conexão alias já está aberta.
 sqlite_connection_ready(Alias) :-
-    (   current_predicate(prosqlite:sqlite_current_connection/1)
-    ->  prosqlite:sqlite_current_connection(Alias)
-    ;   false
-    ).
+    current_predicate(prosqlite:sqlite_current_connection/1),
+    prosqlite:sqlite_current_connection(Alias).
 
 %!  migrate is det.
 %

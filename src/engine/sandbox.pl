@@ -21,7 +21,7 @@ validate_agent_source(SourceText) :-
 %
 %   Lança erro de permissão quando `Pattern` aparece no código-fonte.
 blocked_pattern(Pattern, SourceText) :-
-    (   sub_string(SourceText, _, _, _, Pattern)
-    ->  throw(error(permission_error(load, agent_source, Pattern), _))
-    ;   true
-    ).
+    sub_string(SourceText, _, _, _, Pattern),
+    !,
+    throw(error(permission_error(load, agent_source, Pattern), _)).
+blocked_pattern(_Pattern, _SourceText).

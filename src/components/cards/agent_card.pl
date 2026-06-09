@@ -39,12 +39,12 @@ owner_link(Agent, Html) :-
            class('text-ufop-400 hover:underline break-all')], Label)
     ]).
 
+owner_label(Agent, Email) :-
+    get_dict(owner_email, Agent, Email),
+    Email \== "",
+    !.
 owner_label(Agent, Label) :-
-    (   get_dict(owner_email, Agent, Email),
-        Email \== ""
-    ->  Label = Email
-    ;   Label = Agent.owner_user_id
-    ).
+    Label = Agent.owner_user_id.
 
 %!  actions(+Agent, +CurrentUser, -Html) is det.
 %

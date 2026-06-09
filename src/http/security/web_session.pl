@@ -28,19 +28,18 @@ current_user(Request, User) :-
 %
 %   Igual a current_user/2, mas devolve o atomo `anon` quando nao ha sessao.
 current_user_or_anon(Request, User) :-
-    (   current_user(Request, Found)
-    ->  User = Found
-    ;   User = anon
-    ).
+    current_user(Request, User),
+    !.
+current_user_or_anon(_Request, anon).
 
 %!  require_user(+Request, -User) is det.
 %
 %   Garante uma sessao valida; caso contrario redireciona para o login.
 require_user(Request, User) :-
-    (   current_user(Request, User)
-    ->  true
-    ;   throw(http_reply(see_other('/login?notice=login_required')))
-    ).
+    current_user(Request, User),
+    !.
+require_user(_Request, _User) :-
+    throw(http_reply(see_other('/login?notice=login_required'))).
 
 %!  session_token_from_request(+Request, -Token) is semidet.
 %
@@ -55,23 +54,25 @@ session_token_from_request(Request, Token) :-
 %!  cookie_value_string(+Value, -Str) is det.
 %
 %   Normaliza o valor de um cookie para string.
+cookie_value_string(Value, Value) :-
+    string(Value),
+    !.
 cookie_value_string(Value, Str) :-
-    (   string(Value)
-    ->  Str = Value
-    ;   atom(Value)
-    ->  atom_string(Value, Str)
-    ;   term_string(Value, Str)
-    ).
+    atom(Value),
+    !,
+    atom_string(Value, Str).
+cookie_value_string(Value, Str) :-
+    term_string(Value, Str).
 
 %!  revoke_web_session(+Request) is det.
 %
 %   Revoga (best-effort) a sessao associada ao cookie da requisicao.
 revoke_web_session(Request) :-
-    (   session_token_from_request(Request, Token)
-    ->  session_token:token_hash(Token, TokenHash),
-        catch(sqlite_store:revoke_auth_session(TokenHash), _, true)
-    ;   true
-    ).
+    session_token_from_request(Request, Token),
+    !,
+    session_token:token_hash(Token, TokenHash),
+    catch(sqlite_store:revoke_auth_session(TokenHash), _, true).
+revoke_web_session(_Request).
 
 %!  send_session_redirect(+Token, +Location) is det.
 %

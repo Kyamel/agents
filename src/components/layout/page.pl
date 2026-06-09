@@ -81,16 +81,7 @@ layout(User, Content, Body) :-
 %   Logo da UFOP no rodape. Usa a imagem em `assets/logo-ufop.png` quando ela
 %   existe; caso contrario, exibe um fallback textual.
 ufop_logo(Html) :-
-    (   exists_file('assets/logo-ufop.png')
-    ->  Logo = img([
-            src('/assets/logo-ufop.png'),
-            alt('UFOP'),
-            class('h-32 w-auto shrink-0')
-        ])
-    ;   Logo = span([
-            class('text-ufop-500 font-bold text-lg shrink-0')
-        ], 'UFOP')
-    ),
+    ufop_logo_mark(Logo),
     Html = a([
         href('https://ufop.br'),
         target('_blank'),
@@ -98,6 +89,20 @@ ufop_logo(Html) :-
         'aria-label'('Ir para o site da UFOP'),
         class('inline-flex items-center')
     ], Logo).
+
+%!  ufop_logo_mark(-Logo) is det.
+%
+%   A imagem da logo quando o arquivo existe; senao um fallback textual.
+ufop_logo_mark(img([
+        src('/assets/logo-ufop.png'),
+        alt('UFOP'),
+        class('h-32 w-auto shrink-0')
+    ])) :-
+    exists_file('assets/logo-ufop.png'),
+    !.
+ufop_logo_mark(span([
+        class('text-ufop-500 font-bold text-lg shrink-0')
+    ], 'UFOP')).
 
 %!  footer_link(+Href, +Label, -Html) is det.
 %

@@ -61,16 +61,30 @@ take_token(IP, Now, WindowSec, MaxPerWindow) :-
 %
 %   Atualiza bucket do IP e lança erro HTTP 429 quando excede limite.
 take_token_locked(IP, Now, WindowSec, MaxPerWindow) :-
-    (   retract(bucket(IP, WindowStart, Count, WindowSec))
-    ->  Age is Now - WindowStart,
-        (   Age < WindowSec
-        ->  (   Count < MaxPerWindow
-            ->  NextCount is Count + 1,
-                assertz(bucket(IP, WindowStart, NextCount, WindowSec))
-            ;   assertz(bucket(IP, WindowStart, Count, WindowSec)),
-                throw(http_reply(too_many_requests('rate_limit_exceeded')))
-            )
-        ;   assertz(bucket(IP, Now, 1, WindowSec))
-        )
-    ;   assertz(bucket(IP, Now, 1, WindowSec))
-    ).
+    retract(bucket(IP, WindowStart, Count, WindowSec)),
+    !,
+    update_bucket(IP, Now, WindowStart, WindowSec, Count, MaxPerWindow).
+take_token_locked(IP, Now, WindowSec, _MaxPerWindow) :-
+    assertz(bucket(IP, Now, 1, WindowSec)).
+
+%!  update_bucket(+IP, +Now, +WindowStart, +WindowSec, +Count, +MaxPerWindow) is det.
+%
+%   Reaproveita a janela atual ou a reinicia quando ela expirou.
+update_bucket(IP, Now, WindowStart, WindowSec, Count, MaxPerWindow) :-
+    Now - WindowStart < WindowSec,
+    !,
+    count_request(IP, WindowStart, WindowSec, Count, MaxPerWindow).
+update_bucket(IP, Now, _WindowStart, WindowSec, _Count, _MaxPerWindow) :-
+    assertz(bucket(IP, Now, 1, WindowSec)).
+
+%!  count_request(+IP, +WindowStart, +WindowSec, +Count, +MaxPerWindow) is det.
+%
+%   Incrementa o contador da janela ou rejeita com HTTP 429 ao exceder.
+count_request(IP, WindowStart, WindowSec, Count, MaxPerWindow) :-
+    Count < MaxPerWindow,
+    !,
+    NextCount is Count + 1,
+    assertz(bucket(IP, WindowStart, NextCount, WindowSec)).
+count_request(IP, WindowStart, WindowSec, Count, _MaxPerWindow) :-
+    assertz(bucket(IP, WindowStart, Count, WindowSec)),
+    throw(http_reply(too_many_requests('rate_limit_exceeded'))).

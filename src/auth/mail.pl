@@ -40,13 +40,12 @@ chosen_transport(resend).
 %!  deliver(+Transport, +ToEmail, +VerifyUrl, -Status) is det.
 deliver(console, ToEmail, VerifyUrl, console) :-
     print_console_link(ToEmail, VerifyUrl).
-deliver(resend, ToEmail, VerifyUrl, Status) :-
-    (   catch(resend_client:send_verification_email(ToEmail, VerifyUrl, _Resp),
-              Error,
-              ( log_resend_error(Error), fail ))
-    ->  Status = sent
-    ;   Status = failed
-    ).
+deliver(resend, ToEmail, VerifyUrl, sent) :-
+    catch(resend_client:send_verification_email(ToEmail, VerifyUrl, _Resp),
+          Error,
+          ( log_resend_error(Error), fail )),
+    !.
+deliver(resend, _ToEmail, _VerifyUrl, failed).
 deliver(Other, ToEmail, VerifyUrl, console) :-
     format(user_error,
            '[mail] transport desconhecido "~w"; caindo para console~n', [Other]),

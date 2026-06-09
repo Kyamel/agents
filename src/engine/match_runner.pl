@@ -106,12 +106,17 @@ reset_engine_dynamics :-
 capture_engine_run(Scenario, Qdis, ThiefPath, DetectivePath, Winner, Lines) :-
     State = state(_),
     with_output_to(string(Output),
-        (   user:gameStart(Scenario, Qdis, ThiefPath, DetectivePath, _, W)
-        ->  nb_setarg(1, State, W)
-        ;   throw(error(engine_failure(gameStart), _))
-        )),
+        run_engine(Scenario, Qdis, ThiefPath, DetectivePath, State)),
     arg(1, State, Winner),
     split_string(Output, "\n", "", Lines).
+
+% Executa a engine e guarda o vencedor; falha da engine vira excecao.
+run_engine(Scenario, Qdis, ThiefPath, DetectivePath, State) :-
+    user:gameStart(Scenario, Qdis, ThiefPath, DetectivePath, _, W),
+    !,
+    nb_setarg(1, State, W).
+run_engine(_Scenario, _Qdis, _ThiefPath, _DetectivePath, _State) :-
+    throw(error(engine_failure(gameStart), _)).
 
 map_winner(ladrao, "thief") :- !.
 map_winner(detetive, "detective") :- !.

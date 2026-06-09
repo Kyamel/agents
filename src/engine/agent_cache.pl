@@ -44,10 +44,16 @@ coerce_string(X, S)  :- format(string(S), '~w', [X]).
 %   do arquivo (idempotente).
 forget_agent(AgentId) :-
     agent_cache_path(AgentId, AbsPath),
-    (   exists_file(AbsPath)
-    ->  catch(delete_file(AbsPath), _, true)
-    ;   true
-    ).
+    delete_cached_file(AbsPath).
+
+%!  delete_cached_file(+AbsPath) is det.
+%
+%   Apaga o arquivo cacheado quando presente; ignora ausência e erros.
+delete_cached_file(AbsPath) :-
+    exists_file(AbsPath),
+    !,
+    catch(delete_file(AbsPath), _, true).
+delete_cached_file(_AbsPath).
 
 %!  agent_cache_path(+AgentId, -AbsPath) is det.
 %
@@ -64,8 +70,12 @@ cache_dir(Dir) :-
     env:env_string('AGENT_CACHE_DIR', "./uploads/agents", S),
     atom_string(Dir, S).
 
+id_atom(Id, Id) :-
+    atom(Id),
+    !.
 id_atom(Id, Atom) :-
-    (   atom(Id) -> Atom = Id
-    ;   string(Id) -> atom_string(Atom, Id)
-    ;   type_error(agent_id, Id)
-    ).
+    string(Id),
+    !,
+    atom_string(Atom, Id).
+id_atom(Id, _Atom) :-
+    type_error(agent_id, Id).
