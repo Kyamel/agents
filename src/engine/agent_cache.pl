@@ -1,12 +1,13 @@
 :- module(agent_cache, [
     materialize_agent/2,
     forget_agent/1,
-    agent_cache_path/2
+    agent_cache_path/3
 ]).
 
 :- use_module(library(filesex)).
 :- use_module(library(error)).
-:- use_module('../config/env').
+:- use_module(library(apply)).
+:- use_module('../config').
 
 % Cache em disco do `source_text` armazenado no banco. O DB eh sempre o
 % source-of-truth; o filesystem eh read-only e regravado a cada partida.
@@ -15,15 +16,16 @@
 
 %!  materialize_agent(+Agent, -AbsPath) is det.
 %
-%   Escreve `uploads/agents/<id>.pl` a partir do `source_text` do Agent
-%   (dict vindo de `sqlite_store:get_agent/2`) e devolve o caminho
+%   Escreve `uploads/agents/<id>-<slug>.pl` a partir do `source_text` do
+%   Agent (dict vindo de `sqlite_store:get_agent/2`) e devolve o caminho
 %   absoluto. Sempre sobrescreve para refletir o DB.
 materialize_agent(Agent, AbsPath) :-
     must_be(dict, Agent),
     get_dict(id, Agent, AgentId),
+    get_dict(name, Agent, Name),
     get_dict(source_text, Agent, SourceRaw),
     coerce_string(SourceRaw, SourceText),
-    agent_cache_path(AgentId, AbsPath),
+    agent_cache_path(AgentId, Name, AbsPath),
     file_directory_name(AbsPath, Dir),
     make_directory_path(Dir),
     setup_call_cleanup(
@@ -40,11 +42,15 @@ coerce_string(X, S)  :- format(string(S), '~w', [X]).
 
 %!  forget_agent(+AgentId) is det.
 %
-%   Remove o arquivo cacheado do agente, quando existir. Tolera ausencia
-%   do arquivo (idempotente).
+%   Remove os arquivos cacheados do agente (`<id>-<slug>.pl`, ou o antigo
+%   `<id>.pl`), localizados por prefixo de id -- o id e um UUID unico, entao
+%   nao e preciso conhecer o slug. Idempotente.
 forget_agent(AgentId) :-
-    agent_cache_path(AgentId, AbsPath),
-    delete_cached_file(AbsPath).
+    cache_dir(Dir),
+    id_atom(AgentId, IdAtom),
+    atomic_list_concat([Dir, '/', IdAtom, '*.pl'], Pattern),
+    expand_file_name(Pattern, Files),
+    maplist(delete_cached_file, Files).
 
 %!  delete_cached_file(+AbsPath) is det.
 %
@@ -55,19 +61,42 @@ delete_cached_file(AbsPath) :-
     catch(delete_file(AbsPath), _, true).
 delete_cached_file(_AbsPath).
 
-%!  agent_cache_path(+AgentId, -AbsPath) is det.
+%!  agent_cache_path(+AgentId, +Name, -AbsPath) is det.
 %
-%   Resolve o caminho absoluto do arquivo cache de um agente. O
-%   diretorio raiz eh configuravel via env `AGENT_CACHE_DIR`.
-agent_cache_path(AgentId, AbsPath) :-
+%   Resolve o caminho absoluto do arquivo cache de um agente, no formato
+%   `<dir>/<id>-<slug>.pl`. O diretorio raiz eh configuravel via env
+%   `AGENT_CACHE_DIR`. Cai em `<id>.pl` se o nome nao gerar slug.
+agent_cache_path(AgentId, Name, AbsPath) :-
     cache_dir(Dir),
     id_atom(AgentId, IdAtom),
-    file_name_extension(IdAtom, pl, FileName),
+    cache_basename(IdAtom, Name, Base),
+    file_name_extension(Base, pl, FileName),
     directory_file_path(Dir, FileName, Rel),
     absolute_file_name(Rel, AbsPath).
 
+%!  cache_basename(+IdAtom, +Name, -Base) is det.
+%
+%   `<id>-<name>`. O nome ja vem validado como slug ([a-z0-9-]); cai em
+%   `<id>` quando o nome estiver ausente/vazio.
+cache_basename(IdAtom, Name, Base) :-
+    name_atom(Name, NameAtom),
+    NameAtom \== '',
+    !,
+    atomic_list_concat([IdAtom, '-', NameAtom], Base).
+cache_basename(IdAtom, _Name, IdAtom).
+
+%!  name_atom(+Name, -Atom) is det.
+name_atom(Name, Name) :-
+    atom(Name),
+    !.
+name_atom(Name, Atom) :-
+    string(Name),
+    !,
+    atom_string(Atom, Name).
+name_atom(_Name, '').
+
 cache_dir(Dir) :-
-    env:env_string('AGENT_CACHE_DIR', "./uploads/agents", S),
+    config:agent_cache_dir(S),
     atom_string(Dir, S).
 
 id_atom(Id, Id) :-

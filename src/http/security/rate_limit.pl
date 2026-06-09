@@ -6,7 +6,7 @@
 
 :- use_module(library(http/http_header)).
 :- use_module(library(http/http_dispatch)).
-:- use_module('../../config/env').
+:- use_module('../../config').
 
 :- dynamic bucket/4.
 % bucket(IP, WindowStartEpochSec, Count, WindowSec).
@@ -21,8 +21,8 @@ reset_rate_limit_state :-
 %
 %   Consome um token do bucket associado ao IP da requisição.
 enforce_ip_rate_limit(Request) :-
-    env:env_int('RATE_LIMIT_WINDOW_SEC', 60, WindowSec),
-    env:env_int('RATE_LIMIT_MAX', 120, MaxPerWindow),
+    config:rate_limit_window_seconds(WindowSec),
+    config:rate_limit_max(MaxPerWindow),
     request_ip(Request, IP),
     now_epoch_sec(Now),
     take_token(IP, Now, WindowSec, MaxPerWindow).
@@ -31,7 +31,7 @@ enforce_ip_rate_limit(Request) :-
 %
 %   Extrai IP do `x-forwarded-for` (quando habilitado) ou do peer da conexão.
 request_ip(Request, IP) :-
-    env:env_bool('TRUST_PROXY', false, true),
+    config:trust_proxy(true),
     memberchk(x_forwarded_for(Xff), Request),
     atom_string(Xff, XffStr),
     split_string(XffStr, ",", " ", [First|_]),

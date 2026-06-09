@@ -1,5 +1,6 @@
 :- module(form_field, [
     text_field/5,
+    slug_field/4,
     textarea_field/4,
     select_field/4,
     submit_button/2
@@ -26,6 +27,25 @@ text_field(Name, Label, Type, Value, Html) :-
     Html = div([class('mb-4')], [
         label([for(Name), class(LabelClass)], Label),
         input([type(Type), name(Name), id(Name), value(Value), class(InputClass)])
+    ]).
+
+%!  slug_field(+Name, +Label, +Value, -Html) is det.
+%
+%   Campo de texto que so aceita slug ASCII (minusculas, numeros e hifens).
+%   Forca o formato durante a digitacao e valida o padrao no envio, para nao
+%   ser preciso normalizar nada no servidor.
+slug_field(Name, Label, Value, Html) :-
+    input_class(InputClass),
+    label_class(LabelClass),
+    Html = div([class('mb-4')], [
+        label([for(Name), class(LabelClass)], Label),
+        input([type(text), name(Name), id(Name), value(Value), class(InputClass),
+               pattern('[a-z0-9-]+'),
+               placeholder('meu-agente'),
+               title('Use apenas minusculas, numeros e hifens (ex.: meu-agente).'),
+               autocapitalize(none), autocomplete(off), spellcheck(false),
+               oninput('this.value=this.value.toLowerCase().replace(/[^a-z0-9]+/g,\'-\')')
+              ])
     ]).
 
 %!  textarea_field(+Name, +Label, +Value, -Html) is det.

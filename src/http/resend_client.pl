@@ -4,14 +4,14 @@
 
 :- use_module(library(http/http_client)).
 :- use_module(library(http/http_json)).
-:- use_module('../config/env').
+:- use_module('../config').
 
 %!  send_verification_email(+ToEmail, +VerifyUrl, -Response) is det.
 %
 %   Envia email transacional de verificação via API do Resend.
 send_verification_email(ToEmail, VerifyUrl, Response) :-
-    env:env_required_string('RESEND_API_KEY', ApiKey),
-    env:env_required_string('RESEND_FROM', From),
+    config:resend_api_key(ApiKey),
+    config:resend_from(From),
 
     Payload = _{
         from: From,

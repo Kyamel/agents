@@ -27,7 +27,7 @@
 :- use_module(library(filesex)).
 :- use_module(library(prolog_pack)).
 :- use_module(library(uuid)).
-:- use_module('../config/env').
+:- use_module('../config').
 
 %!  conn_alias(-Alias) is det.
 %
@@ -118,7 +118,7 @@ ensure_connection_open(Alias) :-
     sqlite_connection_ready(Alias),
     !.
 ensure_connection_open(Alias) :-
-    env:env_string('DB_PATH', './data/agents.db', DbPath),
+    config:db_path(DbPath),
     file_directory_name(DbPath, Dir),
     make_directory_path(Dir),
     prosqlite:sqlite_connect(DbPath, Alias, [alias(Alias), exists(false), ext('')]).

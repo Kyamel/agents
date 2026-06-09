@@ -2,40 +2,19 @@
     send_verification_email/3
 ]).
 
-:- use_module('../config/env').
+:- use_module('../config').
 :- use_module('../http/resend_client', []).
 
 %!  send_verification_email(+ToEmail, +VerifyUrl, -Status) is det.
 %
-%   Despacha o email de verificacao para o transporte ativo. Status:
+%   Despacha o email de verificacao para o transporte configurado em
+%   `src/config.pl` (`mail_transport/1`). Status:
 %     * `sent`    — Resend respondeu OK
-%     * `console` — link impresso no terminal (dev fallback)
+%     * `console` — link impresso no terminal (modo dev)
 %     * `failed`  — Resend retornou erro
-%
-%   Escolha do transporte (em ordem de precedencia):
-%     1. env MAIL_TRANSPORT=console|resend (explicito)
-%     2. APP_ENV != production -> console (dev por padrao)
-%     3. RESEND_API_KEY vazio  -> console (fallback)
-%     4. caso contrario        -> resend
 send_verification_email(ToEmail, VerifyUrl, Status) :-
-    chosen_transport(Transport),
+    config:mail_transport(Transport),
     deliver(Transport, ToEmail, VerifyUrl, Status).
-
-%!  chosen_transport(-Transport) is det.
-chosen_transport(Transport) :-
-    env:env_string('MAIL_TRANSPORT', "", Explicit),
-    Explicit \== "",
-    !,
-    atom_string(Transport, Explicit).
-chosen_transport(console) :-
-    env:env_string('APP_ENV', "development", AppEnv),
-    AppEnv \== "production",
-    !.
-chosen_transport(console) :-
-    env:env_string('RESEND_API_KEY', "", ApiKey),
-    ApiKey == "",
-    !.
-chosen_transport(resend).
 
 %!  deliver(+Transport, +ToEmail, +VerifyUrl, -Status) is det.
 deliver(console, ToEmail, VerifyUrl, console) :-

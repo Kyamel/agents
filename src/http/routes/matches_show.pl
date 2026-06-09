@@ -42,8 +42,8 @@ load_and_render(Request, Id) :-
     !,
     agent_display_name(Match.thief_agent_id, ThiefName),
     agent_display_name(Match.detective_agent_id, DetectiveName),
-    replay_turns(Match.replay_json, Turns),
-    render_detail(Request, Match, ThiefName, DetectiveName, Turns).
+    replay_data(Match.replay_json, Replay),
+    render_detail(Request, Match, ThiefName, DetectiveName, Replay).
 load_and_render(Request, _) :-
     render_not_found(Request).
 
@@ -53,22 +53,36 @@ agent_display_name(AgentId, Name) :-
     Name = Agent.name.
 agent_display_name(AgentId, AgentId).
 
-replay_turns(ReplayJson, Turns) :-
-    catch(atom_json_dict(ReplayJson, Parsed, []), _, fail),
-    is_list(Parsed),
-    !,
-    Turns = Parsed.
-replay_turns(_, []).
+%!  replay_data(+ReplayJson, -Replay) is det.
+%
+%   Decodifica o replay para o dict `{turns, events, setup, ...}`. Cai num
+%   dict vazio se o JSON estiver ausente ou corrompido.
+replay_data(ReplayJson, Replay) :-
+    catch(atom_json_dict(ReplayJson, Replay, []), _, fail),
+    is_dict(Replay),
+    !.
+replay_data(_, _{}).
+
+%!  replay_field(+Replay, +Key, +Default, -Value) is det.
+replay_field(Replay, Key, _Default, Value) :-
+    get_dict(Key, Replay, Value),
+    !.
+replay_field(_Replay, _Key, Default, Default).
 
 % =============================
 % Resposta (HTML)
 % =============================
 
-render_detail(Request, Match, ThiefName, DetectiveName, Turns) :-
+render_detail(Request, Match, ThiefName, DetectiveName, Replay) :-
+    replay_field(Replay, turns, [], Turns),
+    replay_field(Replay, events, [], Events),
+    replay_field(Replay, setup, _{}, Setup),
     page_section:back_link('/matches', 'Voltar para partidas', BackLink),
     stat_card('Ladrao', ThiefName, ThiefCard),
     stat_card('Detetive', DetectiveName, DetectiveCard),
     winner_card(Match.winner, WinnerCard),
+    setup_section(Setup, SetupHtml),
+    events_section(Events, EventsHtml),
     turns_table(Turns, TableHtml),
     page:reply_page(Request, 'Detalhe da partida', [
         BackLink,
@@ -77,9 +91,119 @@ render_detail(Request, Match, ThiefName, DetectiveName, Turns) :-
         div([class('grid sm:grid-cols-3 gap-4 mb-8')], [
             ThiefCard, DetectiveCard, WinnerCard
         ]),
+        SetupHtml,
+        EventsHtml,
         h2([class('font-semibold mb-3')], 'Replay turno a turno'),
         TableHtml
     ]).
+
+% =============================
+% Secao: configuracao da partida (setup)
+% =============================
+
+%!  setup_section(+Setup, -Html) is det.
+%
+%   Painel com os metadados iniciais da partida extraidos da engine.
+setup_section(Setup, Html) :-
+    field_text(Setup, scenario, Scenario),
+    field_text(Setup, target, Target),
+    field_text(Setup, max_turns, MaxTurns),
+    field_text(Setup, thief_start, ThiefStart),
+    field_text(Setup, detective_start, DetectiveStart),
+    field_text(Setup, disguises, Disguises),
+    fact('Cenario', Scenario, F1),
+    fact('Alvo do ladrao', Target, F2),
+    fact('Limite de turnos', MaxTurns, F3),
+    fact('Inicio do ladrao', ThiefStart, F4),
+    fact('Inicio do detetive', DetectiveStart, F5),
+    fact('Disfarces disponiveis', Disguises, F6),
+    appearance_chips(Setup, Chips),
+    Html = div([class('rounded-xl bg-slate-900 p-4 border border-slate-800 mb-8')], [
+        h2([class('font-semibold mb-4')], 'Configuracao da partida'),
+        div([class('grid sm:grid-cols-3 gap-x-6 gap-y-4 text-sm')],
+            [F1, F2, F3, F4, F5, F6]),
+        div([class('mt-5')], [
+            p([class('text-slate-500 text-xs uppercase tracking-wide mb-2')],
+              'Aparencia do alvo'),
+            div([class('flex flex-wrap gap-2')], Chips)
+        ])
+    ]).
+
+fact(Label, Value, div([], [
+        dt([class('text-slate-500 text-xs uppercase tracking-wide')], Label),
+        dd([class('font-medium mt-0.5 break-all')], Value)
+    ])).
+
+appearance_chips(Setup, Chips) :-
+    get_dict(appearance, Setup, Attrs),
+    is_list(Attrs),
+    Attrs \= [],
+    !,
+    maplist(chip, Attrs, Chips).
+appearance_chips(_Setup, [span([class('text-slate-500 text-sm')], '-')]).
+
+chip(Text, span([class('inline-block rounded-full bg-slate-800 text-slate-300 \c
+                        px-3 py-1 text-xs')], Text)).
+
+% =============================
+% Secao: eventos do jogo (roubos)
+% =============================
+
+%!  events_section(+Events, -Html) is det.
+%
+%   Linha do tempo dos eventos relevantes (roubos) capturados na partida.
+events_section([], Html) :-
+    !,
+    Html = div([class('mb-8')], [
+        h2([class('font-semibold mb-3')], 'Eventos'),
+        p([class('text-slate-500 text-sm')], 'Nenhum roubo registrado nesta partida.')
+    ]).
+events_section(Events, Html) :-
+    maplist(event_item, Events, Items),
+    Html = div([class('mb-8')], [
+        h2([class('font-semibold mb-3')], 'Eventos'),
+        ul([class('space-y-2')], Items)
+    ]).
+
+event_item(Event, Html) :-
+    get_dict(type, Event, "robbery"),
+    !,
+    field_text(Event, turn, Turn),
+    field_text(Event, item, Item),
+    field_text(Event, city, City),
+    revealed_text(Event, Revealed),
+    format(string(Title), "Turno ~w: roubo de ~w em ~w", [Turn, Item, City]),
+    Html = li([class('rounded-lg bg-amber-950/40 border border-amber-900/60 px-3 py-2')], [
+        p([class('text-amber-200 text-sm font-medium')], Title),
+        p([class('text-amber-200/70 text-xs mt-0.5')], Revealed)
+    ]).
+event_item(Event, Html) :-
+    field_text(Event, turn, Turn),
+    field_text(Event, detail, Detail),
+    format(string(Text), "Turno ~w: ~w", [Turn, Detail]),
+    Html = li([class('rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 \c
+                      text-slate-300 text-sm')], Text).
+
+%!  revealed_text(+Event, -Text) is det.
+%
+%   Descreve as pistas (atributos) reveladas por um roubo.
+revealed_text(Event, Text) :-
+    get_dict(revealed, Event, Revealed),
+    is_list(Revealed),
+    Revealed \= [],
+    !,
+    atomic_list_concat(Revealed, ', ', Joined),
+    format(string(Text), "Pistas reveladas: ~w", [Joined]).
+revealed_text(_Event, "Sem novas pistas.").
+
+%!  field_text(+Dict, +Key, -Text) is det.
+%
+%   Le um campo do dict como texto exibivel, com traco como fallback.
+field_text(Dict, Key, Text) :-
+    get_dict(Key, Dict, Value),
+    !,
+    format(string(Text), "~w", [Value]).
+field_text(_Dict, _Key, "-").
 
 stat_card(Label, Value, Html) :-
     Html = div([class('rounded-xl bg-slate-900 p-4 border border-slate-800')], [
@@ -126,22 +250,26 @@ turns_table(Turns, Html) :-
 
 turn_row(Turn, tr([class('border-t border-slate-800')], [
         td([class('px-3 py-2 text-slate-400')], TurnNo),
-        td([class('px-3 py-2')], ThiefAction),
+        td([class(ThiefClass)], ThiefAction),
         td([class('px-3 py-2 text-slate-400')], ThiefPos),
-        td([class('px-3 py-2')], DetectiveAction),
+        td([class(DetectiveClass)], DetectiveAction),
         td([class('px-3 py-2 text-slate-400')], DetectivePos)
     ])) :-
-    turn_field(Turn, turn, TurnNo),
-    turn_field(Turn, thief_action, ThiefAction),
-    turn_field(Turn, thief_position, ThiefPos),
-    turn_field(Turn, detective_action, DetectiveAction),
-    turn_field(Turn, detective_position, DetectivePos).
+    field_text(Turn, turn, TurnNo),
+    field_text(Turn, thief_action, ThiefAction),
+    field_text(Turn, thief_position, ThiefPos),
+    field_text(Turn, detective_action, DetectiveAction),
+    field_text(Turn, detective_position, DetectivePos),
+    action_class(Turn, thief_status, ThiefClass),
+    action_class(Turn, detective_status, DetectiveClass).
 
-turn_field(Turn, Key, Text) :-
-    get_dict(Key, Turn, Value),
-    !,
-    format(string(Text), "~w", [Value]).
-turn_field(_, _, "-").
+%!  action_class(+Turn, +StatusKey, -Class) is det.
+%
+%   Acoes ilegais (rejeitadas pela engine) sao destacadas em vermelho.
+action_class(Turn, StatusKey, 'px-3 py-2 text-rose-400') :-
+    get_dict(StatusKey, Turn, "Ilegal"),
+    !.
+action_class(_Turn, _StatusKey, 'px-3 py-2').
 
 render_not_found(Request) :-
     page:reply_page(Request, 'Partida nao encontrada', [

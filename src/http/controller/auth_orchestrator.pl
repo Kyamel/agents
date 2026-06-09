@@ -8,7 +8,7 @@
 
 :- use_module(library(http/http_json)).
 :- use_module(library(http/http_parameters)).
-:- use_module('../../config/env').
+:- use_module('../../config').
 :- use_module('../../db/sqlite_store').
 :- use_module('../../auth/password').
 :- use_module('../../auth/verify_email', []).
@@ -35,10 +35,10 @@ do_signup(Email, Password, created(UserId, MailStatus)) :-
     password:hash_password(Password, PasswordHash),
     sqlite_store:create_user(Email, PasswordHash, UserId, _CreatedAt),
     verify_email:issue_verification_token(UserId, PlainToken, TokenHash),
-    env:env_int('EMAIL_VERIFY_TTL_MIN', 30, TtlMin),
+    config:email_verify_ttl_minutes(TtlMin),
     verify_email:expiry_iso(TtlMin, ExpiresAt),
     sqlite_store:save_email_verification(TokenHash, UserId, ExpiresAt, ExpiresAt),
-    env:env_required_string('APP_BASE_URL', BaseUrl),
+    config:app_base_url(BaseUrl),
     format(string(VerifyUrl), '~s/api/v1/auth/verify?token=~s', [BaseUrl, PlainToken]),
     mail:send_verification_email(Email, VerifyUrl, MailStatus).
 
@@ -71,7 +71,7 @@ authenticate(User, _, ok(Token, UserId, ExpiresAt)) :-
 %
 %   Emite e persiste um token de sessao para o usuario.
 issue_session(UserId, Token, ExpiresAt) :-
-    env:env_int('AUTH_SESSION_TTL_MIN', 10080, TtlMin),
+    config:auth_session_ttl_minutes(TtlMin),
     session_token:issue_session_token(Token, TokenHash),
     session_token:expiry_iso(TtlMin, ExpiresAt),
     session_token:now_iso(CreatedAt),

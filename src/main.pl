@@ -3,17 +3,15 @@
     main_foreground/0
 ]).
 
-:- use_module('./config/env').
 :- use_module('./db/sqlite_store').
 :- use_module('./http/server').
 
 %!  main is det.
 %
-%   Carrega o `.env`, inicializa o banco e sobe o servidor HTTP. O servidor
-%   roda em threads de fundo, portanto em uso interativo (`?- main.`) o
-%   top-level do Prolog continua disponivel.
+%   Inicializa o banco e sobe o servidor HTTP. O servidor roda em threads de
+%   fundo, portanto em uso interativo (`?- main.`) o top-level do Prolog
+%   continua disponivel. A configuracao fica em `src/config.pl`.
 main :-
-    env:load_dotenv('.env'),
     sqlite_store:init,
     server:start.
 

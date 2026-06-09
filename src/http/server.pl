@@ -5,7 +5,7 @@
 :- use_module(library(http/thread_httpd)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_cors)).
-:- use_module('../config/env').
+:- use_module('../config').
 
 % Rotas web (uma rota por arquivo, flat)
 :- use_module('./routes/static').
@@ -38,10 +38,10 @@
 %!  start is det.
 %
 %   Inicia o servidor HTTP. TLS eh terminado no reverse proxy (Caddy/nginx);
-%   esse processo so fala HTTP. Atras do proxy, defina TRUST_PROXY=true para
-%   o rate limiter honrar os headers X-Forwarded-*.
+%   esse processo so fala HTTP. Atras do proxy, ligue `trust_proxy(true)` em
+%   `src/config.pl` para o rate limiter honrar os headers X-Forwarded-*.
 start :-
-    env:env_int('HTTP_PORT', 8080, HttpPort),
+    config:http_port(HttpPort),
     http_server(http_dispatch, [port(HttpPort)]),
     format('HTTP listening on :~w~n', [HttpPort]).
 

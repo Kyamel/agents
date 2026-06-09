@@ -46,9 +46,30 @@ process_post(Request, User, Values) :-
     render_form(Request, User,
         Values.put(error, "Preencha todos os campos do formulario.")).
 process_post(Request, User, Values) :-
+    \+ valid_name(Values.name),
+    !,
+    render_form(Request, User,
+        Values.put(error, "Nome invalido: use apenas minusculas, numeros e \c
+                           hifens (ex.: meu-agente).")).
+process_post(Request, User, Values) :-
     to_id_string(User.id, UserId),
     try_register(UserId, Values, Result),
     finish_register(Result, Request, User, Values).
+
+%!  valid_name(+Name) is semidet.
+%
+%   Nome deve ser um slug ASCII: minusculas, digitos e hifens, com ao menos
+%   um caractere alfanumerico.
+valid_name(Name) :-
+    string_codes(Name, Codes),
+    forall(member(C, Codes), slug_code(C)),
+    once((member(A, Codes), alnum_code(A))).
+
+slug_code(0'-) :- !.
+slug_code(C) :- alnum_code(C).
+
+alnum_code(C) :- C >= 0'a, C =< 0'z, !.
+alnum_code(C) :- C >= 0'0, C =< 0'9.
 
 finish_register(ok, Request, _, _) :-
     http_redirect(see_other, '/agents', Request).
@@ -108,7 +129,7 @@ render_form(Request, _User, State) :-
         'Ladrao deve exportar ladrao_action/3 e ladrao_preload/7. Detetive deve exportar detetive_action/3 e detetive_preload/5.',
         Heading
     ),
-    form_field:text_field(name, 'Nome do agente', text, Name, NameField),
+    form_field:slug_field(name, 'Nome do agente', Name, NameField),
     form_field:select_field(role, 'Papel',
         [opt("thief", 'Ladrao'), opt("detective", 'Detetive')], RoleField),
     form_field:textarea_field(source, 'Codigo Prolog', Source, SourceField),

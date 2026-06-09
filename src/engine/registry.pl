@@ -3,7 +3,7 @@
 ]).
 
 :- use_module(library(error)).
-:- use_module('../config/env').
+:- use_module('../config').
 :- use_module('../db/sqlite_store').
 :- use_module('./sandbox').
 
@@ -21,7 +21,7 @@ register_agent_source(UserId, Name, Role, SourceText, Agent) :-
     validate_role(Role),
     sandbox:validate_agent_source(SourceText),
 
-    env:env_int('AGENT_MAX_SOURCE_BYTES', 65536, MaxBytes),
+    config:agent_max_source_bytes(MaxBytes),
     string_length(SourceText, Len),
     Len =< MaxBytes,
 

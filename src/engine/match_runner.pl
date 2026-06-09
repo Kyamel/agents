@@ -7,7 +7,7 @@
 :- use_module(library(filesex)).
 :- use_module(library(lists)).
 :- use_module(library(apply)).
-:- use_module('../config/env').
+:- use_module('../config').
 :- use_module('./agent_cache').
 
 % Camada fina sobre a engine do professor (Interactor.prolog). Mantém a mesma
@@ -41,18 +41,28 @@ run_match_locked(ThiefAgent, DetectiveAgent, Result, ReplayJson) :-
     agent_cache:materialize_agent(DetectiveAgent, DetectivePath),
     disguise_count(Qdis),
     reset_engine_dynamics,
-    capture_engine_run(ScenarioArg, Qdis, ThiefPath, DetectivePath, RawWinner, Lines),
-    parse_replay(Lines, Turns),
+    capture_engine_run(ScenarioArg, Qdis, ThiefPath, DetectivePath,
+                       RawWinner, InitialState, Lines),
     map_winner(RawWinner, Winner),
-    atom_json_dict(ReplayJson, Turns, []),
+    parse_replay(Lines, Turns, Events),
+    setup_dict(InitialState, ScenarioName, Setup),
     length(Turns, FinalTurn),
+    Replay = _{
+        scenario: ScenarioName,
+        winner: Winner,
+        final_turn: FinalTurn,
+        setup: Setup,
+        turns: Turns,
+        events: Events
+    },
+    atom_json_dict(ReplayJson, Replay, [width(0)]),
     Result = _{
         thief_agent_id: ThiefAgent.id,
         detective_agent_id: DetectiveAgent.id,
         winner: Winner,
         final_turn: FinalTurn,
         scenario: ScenarioName,
-        replay: Turns
+        replay: Replay
     }.
 
 % -----------------------------
@@ -69,8 +79,7 @@ ensure_interactor_loaded :-
 engine_dir(Dir) :- engine_dir_fact(Dir).
 
 scenario_name(Name) :-
-    env:env_string('ENGINE_SCENARIO', "mapa1", S),
-    atom_string(Name, S).
+    config:engine_scenario(Name).
 
 % A engine concatena ".prolog" e chama consult/1, entao passamos o caminho
 % absoluto SEM extensao para que o consult resolva o arquivo correto.
@@ -78,7 +87,7 @@ scenario_engine_arg(Name, Arg) :-
     engine_dir(Dir),
     directory_file_path(Dir, Name, Arg).
 
-disguise_count(Q) :- env:env_int('ENGINE_QDIS', 3, Q).
+disguise_count(Q) :- config:engine_disguises(Q).
 
 % A engine acumula facts dinamicos entre partidas (roubado/2, fechado/1,
 % pistas/3) e cada cenario consultado deixa cidade/conectado/item/tesouro
@@ -101,23 +110,28 @@ reset_engine_dynamics :-
 % Captura de saida e mapeamento de vencedor
 % -----------------------------
 
-% Falhas/excecoes da engine sao propagadas para que a rota chamadora
-% mostre erro ao usuario em vez de salvar uma partida invalida.
-capture_engine_run(Scenario, Qdis, ThiefPath, DetectivePath, Winner, Lines) :-
-    State = state(_),
+%!  capture_engine_run(+Scenario, +Qdis, +ThiefPath, +DetectivePath, -Winner, -InitialState, -Lines) is det.
+%
+%   Roda a engine capturando o stdout. Alem do vencedor, devolve o estado
+%   inicial (5o argumento de gameStart/6, antes descartado) para extrair os
+%   metadados da partida via introspecao. Falhas viram excecao para a rota.
+capture_engine_run(Scenario, Qdis, ThiefPath, DetectivePath, Winner, InitialState, Lines) :-
     with_output_to(string(Output),
-        run_engine(Scenario, Qdis, ThiefPath, DetectivePath, State)),
-    arg(1, State, Winner),
+        run_engine(Scenario, Qdis, ThiefPath, DetectivePath, InitialState, Winner)),
     split_string(Output, "\n", "", Lines).
 
-% Executa a engine e guarda o vencedor; falha da engine vira excecao.
-run_engine(Scenario, Qdis, ThiefPath, DetectivePath, State) :-
-    user:gameStart(Scenario, Qdis, ThiefPath, DetectivePath, _, W),
-    !,
-    nb_setarg(1, State, W).
-run_engine(_Scenario, _Qdis, _ThiefPath, _DetectivePath, _State) :-
+%!  run_engine(+Scenario, +Qdis, +ThiefPath, +DetectivePath, -InitialState, -Winner) is det.
+%
+%   Executa a engine uma vez; falha da engine vira `engine_failure`.
+run_engine(Scenario, Qdis, ThiefPath, DetectivePath, InitialState, Winner) :-
+    user:gameStart(Scenario, Qdis, ThiefPath, DetectivePath, InitialState, Winner),
+    !.
+run_engine(_Scenario, _Qdis, _ThiefPath, _DetectivePath, _InitialState, _Winner) :-
     throw(error(engine_failure(gameStart), _)).
 
+%!  map_winner(+EngineWinner, -Winner) is det.
+%
+%   Traduz o vencedor da engine (atomo) para o vocabulario da UI/API.
 map_winner(ladrao, "thief") :- !.
 map_winner(detetive, "detective") :- !.
 map_winner(empate, "draw") :- !.
@@ -125,108 +139,239 @@ map_winner(Other, "draw") :-
     print_message(warning, format("match_runner: unknown engine winner ~q", [Other])).
 
 % -----------------------------
-% Parsing do log da engine
+% Parsing do log da engine (introspecao por leitura de termos)
 % -----------------------------
 %
-% A engine emite duas linhas por turno via `logar/4`:
-%   "<N> ladrao: <Action>[<OBS>]"
-%   "<N> detetive: <Action>[<OBS>]"
-% onde OBS eh "OK" ou "Ilegal". Eventos do detetive entram como
-% "  >>>> Evento <termo>" e sao ignorados pelo parser.
+% A engine so expoe o que acontece via `write/1` no stdout, em duas formas:
+%   "<N> ladrao: <AcaoTermo>[<OBS>]"      (logar/4, OBS = OK | Ilegal)
+%   "<N> detetive: <AcaoTermo>[<OBS>]"
+%   "  >>>> Evento roubo(Item,Cidade,Pistas)"  (emitirEvento/3)
+%
+% Em vez de fatiar strings, lemos cada acao/evento DE VOLTA para um termo
+% Prolog (term_string/2) e inspecionamos functor/argumentos. Isso captura
+% todos os eventos possiveis sem tocar em Interactor.prolog, inclusive os
+% roubos que o parser antigo descartava.
 
-parse_replay(Lines, Turns) :-
-    convlist(parse_log_line, Lines, Entries),
-    build_turns(Entries, Turns).
+%!  parse_replay(+Lines, -Turns, -Events) is det.
+%
+%   Constroi a lista de turnos (visao turno-a-turno) e a linha do tempo
+%   plana de eventos do jogo a partir das linhas capturadas.
+parse_replay(Lines, Turns, Events) :-
+    convlist(classify_line, Lines, Records),
+    attach_events(Records, [], Entries),
+    build_turns(Entries, Turns),
+    timeline(Entries, Events).
 
-parse_log_line(Line, log(Turn, Role, Action, Status)) :-
-    (   string_concat(Body, "[OK]", Line), StatusCandidate = "OK"
-    ;   string_concat(Body, "[Ilegal]", Line), StatusCandidate = "Ilegal"
-    ),
+%!  classify_line(+Line, -Record) is semidet.
+%
+%   Reconhece uma linha de evento ou de log; demais linhas sao descartadas.
+classify_line(Line, evento(Term)) :-
+    normalize_space(string(Trimmed), Line),
+    string_concat(">>>> Evento ", TermStr, Trimmed),
     !,
-    string_codes(Body, Codes),
-    prefix_parse(Turn, Role, ActionRaw, Codes),
-    normalize_space(string(Action), ActionRaw),
-    Status = StatusCandidate.
+    safe_term(TermStr, Term).
+classify_line(Line, log(Turn, Role, Action, Status)) :-
+    split_status(Line, Body, Status),
+    parse_log_body(Body, Turn, Role, Action).
 
-prefix_parse(Turn, Role, ActionStr, Codes) :-
-    digits_split(Codes, DigitCodes, [0' |Rest1]),
-    DigitCodes \= [],
-    number_codes(Turn, DigitCodes),
-    take_until_codes(Rest1, 0':, RoleCodes, [0':|Rest2]),
-    string_codes(RoleStr, RoleCodes),
+%!  split_status(+Line, -Body, -Status) is semidet.
+%
+%   Separa o sufixo "[OK]"/"[Ilegal]" do corpo da linha de log.
+split_status(Line, Body, "OK") :-
+    string_concat(Body, "[OK]", Line),
+    !.
+split_status(Line, Body, "Ilegal") :-
+    string_concat(Body, "[Ilegal]", Line).
+
+%!  parse_log_body(+Body, -Turn, -Role, -Action) is semidet.
+%
+%   Extrai turno, papel e acao (como termo) de "<N> <papel>: <acao>".
+parse_log_body(Body, Turn, Role, Action) :-
+    sub_string(Body, Before, _, After, ": "),
+    !,
+    sub_string(Body, 0, Before, _, Prefix),
+    sub_string(Body, _, After, 0, ActionStr),
+    split_string(Prefix, " ", "", [TurnStr, RoleStr]),
+    number_string(Turn, TurnStr),
     role_atom(RoleStr, Role),
-    skip_ws_codes(Rest2, Rest3),
-    string_codes(ActionStr, Rest3).
-
-digits_split([C|Cs], [C|Ds], Rest) :- code_type(C, digit), !, digits_split(Cs, Ds, Rest).
-digits_split(Cs, [], Cs).
-
-take_until_codes([C|Cs], Stop, [], [C|Cs]) :- C == Stop, !.
-take_until_codes([C|Cs], Stop, [C|Acc], Rest) :- take_until_codes(Cs, Stop, Acc, Rest).
-take_until_codes([], _, [], []).
-
-skip_ws_codes([0' |Cs], R) :- !, skip_ws_codes(Cs, R).
-skip_ws_codes(Cs, Cs).
+    safe_term(ActionStr, Action).
 
 role_atom("ladrao", thief).
 role_atom("detetive", detective).
 
+%!  safe_term(+Str, -Term) is det.
+%
+%   Le de volta o termo escrito pela engine; mantem o texto cru se nao
+%   for parseavel (atomos com aspas, etc.).
+safe_term(Str, Term) :-
+    catch(term_string(Term, Str), _, fail),
+    !.
+safe_term(Str, Str).
+
+%!  attach_events(+Records, +Pending, -Entries) is det.
+%
+%   Eventos sao escritos imediatamente antes da linha de log da acao que os
+%   gerou (sempre o ladrao). Acumulamos os eventos pendentes e os anexamos a
+%   proxima entrada de log.
+attach_events([], _Pending, []).
+attach_events([evento(E)|Rest], Pending, Entries) :-
+    !,
+    attach_events(Rest, [E|Pending], Entries).
+attach_events([log(N, Role, Action, Status)|Rest], Pending,
+              [entry(N, Role, Action, Status, Events)|Entries]) :-
+    reverse(Pending, Events),
+    attach_events(Rest, [], Entries).
+
 % Agrupa entradas consecutivas thief/detective do mesmo turno. A engine emite
 % o log do ladrao antes do detetive em cada turno, com o mesmo numero N.
 build_turns([], []).
-build_turns([log(N, thief, TA, TS), log(N, detective, DA, DS) | Rest],
+build_turns([entry(N, thief, TA, TS, TE), entry(N, detective, DA, DS, DE)|Rest],
             [Turn|Turns]) :-
     !,
-    move_dest(TA, ThiefPos),
-    move_dest(DA, DetPos),
-    Turn = _{
-        turn: N,
-        thief_action: TA,
-        thief_status: TS,
-        thief_position: ThiefPos,
-        detective_action: DA,
-        detective_status: DS,
-        detective_position: DetPos
-    },
+    turn_dict(N, entry(thief, TA, TS, TE), entry(detective, DA, DS, DE), Turn),
     build_turns(Rest, Turns).
-build_turns([log(N, thief, TA, TS) | Rest], [Turn|Turns]) :-
+build_turns([entry(N, thief, TA, TS, TE)|Rest], [Turn|Turns]) :-
     !,
-    move_dest(TA, ThiefPos),
-    Turn = _{
-        turn: N,
-        thief_action: TA,
-        thief_status: TS,
-        thief_position: ThiefPos,
-        detective_action: "-",
-        detective_status: "",
-        detective_position: "-"
-    },
+    turn_dict(N, entry(thief, TA, TS, TE), none, Turn),
     build_turns(Rest, Turns).
-build_turns([log(N, detective, DA, DS) | Rest], [Turn|Turns]) :-
-    move_dest(DA, DetPos),
-    Turn = _{
-        turn: N,
-        thief_action: "-",
-        thief_status: "",
-        thief_position: "-",
-        detective_action: DA,
-        detective_status: DS,
-        detective_position: DetPos
-    },
+build_turns([entry(N, detective, DA, DS, DE)|Rest], [Turn|Turns]) :-
+    turn_dict(N, none, entry(detective, DA, DS, DE), Turn),
     build_turns(Rest, Turns).
 
-% Extrai destino de uma acao "move(X,Y)" para preencher a posicao do agente
-% no replay. Demais acoes nao revelam posicao, entao caem no traco.
-move_dest(Action, Dest) :-
-    string_concat("move(", Rest, Action),
+%!  turn_dict(+Turn, +ThiefEntry, +DetectiveEntry, -Dict) is det.
+%
+%   Monta o dict de um turno. Mantem as chaves antigas (thief_action, ...)
+%   por compatibilidade e acrescenta a lista de eventos do turno.
+turn_dict(N, Thief, Detective, Turn) :-
+    role_fields(Thief, TAction, TStatus, TPos),
+    role_fields(Detective, DAction, DStatus, DPos),
+    entry_events(Thief, TEvents),
+    entry_events(Detective, DEvents),
+    append(TEvents, DEvents, RawEvents),
+    maplist(event_dict, RawEvents, Events),
+    Turn = _{
+        turn: N,
+        thief_action: TAction,
+        thief_status: TStatus,
+        thief_position: TPos,
+        detective_action: DAction,
+        detective_status: DStatus,
+        detective_position: DPos,
+        events: Events
+    }.
+
+%!  role_fields(+Entry, -ActionText, -Status, -Position) is det.
+role_fields(none, "-", "", "-") :- !.
+role_fields(entry(_Role, Action, Status, _Events), Text, Status, Pos) :-
+    action_text(Action, Text),
+    action_position(Action, Pos).
+
+%!  entry_events(+Entry, -Events) is det.
+entry_events(none, []) :- !.
+entry_events(entry(_Role, _Action, _Status, Events), Events).
+
+%!  action_text(+Action, -Text) is det.
+action_text(Action, Action) :-
+    string(Action),
+    !.
+action_text(Action, Text) :-
+    term_string(Action, Text).
+
+%!  action_position(+Action, -Position) is det.
+%
+%   So "move(_,Destino)" revela a posicao do agente; demais acoes caem no traco.
+action_position(move(_From, To), Pos) :-
     !,
-    split_string(Rest, ",)", " )", Parts),
-    Parts = [_From, ToRaw | _],
-    string_concat(ToRaw, "", Dest0),
-    Dest0 \= "",
+    term_text(To, Pos).
+action_position(_Action, "-").
+
+%!  event_dict(+EventTerm, -Dict) is det.
+%
+%   Estrutura um evento da engine. Hoje o unico evento emitido e o roubo,
+%   que carrega item, cidade e os atributos revelados (pistas ao detetive).
+event_dict(roubo(Item, City, Revealed), Dict) :-
+    is_list(Revealed),
     !,
-    Dest = Dest0.
-move_dest(_, "-").
+    term_text(Item, ItemText),
+    term_text(City, CityText),
+    maplist(term_text, Revealed, RevealedText),
+    Dict = _{
+        type: "robbery",
+        item: ItemText,
+        city: CityText,
+        revealed: RevealedText
+    }.
+event_dict(Other, _{type: "unknown", detail: Text}) :-
+    term_text(Other, Text).
+
+%!  timeline(+Entries, -Events) is det.
+%
+%   Lista plana de todos os eventos do jogo, na ordem de ocorrencia, cada um
+%   anotado com o turno e o agente responsavel.
+timeline(Entries, Events) :-
+    foldl(entry_timeline, Entries, [], Reversed),
+    reverse(Reversed, Events).
+
+entry_timeline(entry(N, Role, _Action, _Status, Raw), Acc0, Acc) :-
+    foldl(timeline_event(N, Role), Raw, Acc0, Acc).
+
+timeline_event(N, Role, RawEvent, Acc, [Full|Acc]) :-
+    event_dict(RawEvent, Base),
+    Full = Base.put(_{turn: N, by: Role}).
+
+% -----------------------------
+% Estado inicial (introspecao do termo gSt/7 da engine)
+% -----------------------------
+
+%!  setup_dict(+InitialState, +Scenario, -Setup) is det.
+%
+%   Extrai os metadados da partida do estado inicial gSt/7 sem tocar na
+%   engine: cidades de partida, alvo do ladrao, aparencia, disfarces e limite
+%   de turnos. Cai num dict minimo se o formato do estado nao for o esperado.
+setup_dict(gSt(Thief, Detective, Target, _Locks, _BOs, _Caught, MaxTurns),
+           Scenario, Setup) :-
+    Thief = thief(loc(ThiefCity), ThiefId, Appearance, _Obj, _Items, Disguises),
+    Detective = detective(loc(DetCity), _Mandate, _Clues),
+    !,
+    term_text(ThiefCity, ThiefCityText),
+    term_text(DetCity, DetCityText),
+    term_text(Target, TargetText),
+    appearance_attrs(Appearance, AppearanceText),
+    Setup = _{
+        scenario: Scenario,
+        thief_id: ThiefId,
+        thief_start: ThiefCityText,
+        detective_start: DetCityText,
+        target: TargetText,
+        disguises: Disguises,
+        max_turns: MaxTurns,
+        appearance: AppearanceText
+    }.
+setup_dict(_Other, Scenario, _{scenario: Scenario}).
+
+%!  appearance_attrs(+Appearance, -Attrs) is det.
+appearance_attrs(aparencia(List), Attrs) :-
+    is_list(List),
+    !,
+    maplist(term_text, List, Attrs).
+appearance_attrs(_Other, []).
+
+%!  term_text(+Term, -Text) is det.
+%
+%   Converte um termo da engine para um valor seguro p/ JSON: numeros sao
+%   preservados, atomos viram string, compostos sao serializados.
+term_text(Term, Term) :-
+    number(Term),
+    !.
+term_text(Term, Text) :-
+    atom(Term),
+    !,
+    atom_string(Term, Text).
+term_text(Term, Term) :-
+    string(Term),
+    !.
+term_text(Term, Text) :-
+    term_string(Term, Text).
 
 % Eager-load do Interactor.prolog no carregamento deste modulo. Sem isso o
 % `check/0` reclama de gameStart/6 porque o consult seria lazy. Erros sao
