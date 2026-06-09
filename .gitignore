@@ -4,8 +4,12 @@ data/*
 uploads/*
 .vscode/*
 packs/*
+__pycache__/
+*.pyc
 
 src/config.pl
 agents/*
 !agents/agented.pl
 !agents/agentel.pl
+tools/eval/results/*
+!tools/eval/results/.gitkeep
