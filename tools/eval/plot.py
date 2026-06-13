@@ -10,7 +10,9 @@ The script writes PNG figures to <batch-dir>/figs/.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -18,6 +20,7 @@ FIGSIZE = (4, 3)
 
 
 def import_plot_libs():
+    os.environ.setdefault("MPLCONFIGDIR", tempfile.mkdtemp(prefix="agents-mpl-"))
     try:
         import matplotlib.pyplot as plt
         import matplotlib.ticker as mticker
@@ -106,23 +109,31 @@ def without_all(summary):
     return filtered if not filtered.empty else summary
 
 
+def comparison_axis(frame):
+    if "thief_agent" in frame.columns and frame["thief_agent"].nunique() > 1:
+        return "thief_agent", "Ladrao"
+    return "detective_agent", "Detetive"
+
+
 def plot_score_distribution(matches, figs_dir: Path, plt, sns) -> None:
+    x_col, x_label = comparison_axis(matches)
     plt.figure(figsize=FIGSIZE)
-    sns.boxplot(data=matches, x="detective_agent", y="score", color="#7aa6c2")
-    sns.stripplot(data=matches, x="detective_agent", y="score", color="#263238", alpha=0.55, jitter=0.25, size=4)
-    plt.title("Distribuicao do score por detetive")
-    plt.xlabel("Detetive")
+    sns.boxplot(data=matches, x=x_col, y="score", color="#7aa6c2")
+    sns.stripplot(data=matches, x=x_col, y="score", color="#263238", alpha=0.55, jitter=0.25, size=4)
+    plt.title(f"Distribuicao do score por {x_label.lower()}")
+    plt.xlabel(x_label)
     plt.ylabel("Score PEAS")
     plt.xticks(rotation=25, ha="right")
-    savefig(figs_dir / "score_distribution_by_detective.png", plt)
+    savefig(figs_dir / f"score_distribution_by_{x_col}.png", plt)
 
 
 def plot_win_rates(summary, figs_dir: Path, plt, sns) -> None:
     data = without_all(summary).copy()
+    x_col, x_label = comparison_axis(data)
     plt.figure(figsize=FIGSIZE)
-    ax = sns.barplot(data=data, x="detective_agent", y="win_rate", color="#4c956c")
-    plt.title("Taxa de vitoria do ladrao por detetive")
-    plt.xlabel("Detetive")
+    ax = sns.barplot(data=data, x=x_col, y="win_rate", color="#4c956c")
+    plt.title(f"Taxa de vitoria por {x_label.lower()}")
+    plt.xlabel(x_label)
     plt.ylabel("Win rate")
     plt.ylim(0, 1)
     ax.axhline(0, color="#333333", linewidth=0.8)
@@ -133,29 +144,31 @@ def plot_win_rates(summary, figs_dir: Path, plt, sns) -> None:
         if value == 0:
             ax.scatter([idx], [0], color="#4c956c", s=18, zorder=3)
     plt.xticks(rotation=25, ha="right")
-    savefig(figs_dir / "win_rate_by_detective.png", plt)
+    savefig(figs_dir / f"win_rate_by_{x_col}.png", plt)
 
 
 def plot_outcomes(matches, figs_dir: Path, plt, sns) -> None:
-    data = matches.groupby(["detective_agent", "winner"]).size().reset_index(name="count")
+    x_col, x_label = comparison_axis(matches)
+    data = matches.groupby([x_col, "winner"]).size().reset_index(name="count")
     plt.figure(figsize=FIGSIZE)
-    sns.barplot(data=data, x="detective_agent", y="count", hue="winner")
-    plt.title("Resultados por detetive")
-    plt.xlabel("Detetive")
+    sns.barplot(data=data, x=x_col, y="count", hue="winner")
+    plt.title(f"Resultados por {x_label.lower()}")
+    plt.xlabel(x_label)
     plt.ylabel("Partidas")
     plt.xticks(rotation=25, ha="right")
     plt.legend(title="Resultado")
-    savefig(figs_dir / "outcomes_by_detective.png", plt)
+    savefig(figs_dir / f"outcomes_by_{x_col}.png", plt)
 
 
 def plot_score_over_rounds(matches, figs_dir: Path, plt, sns, mticker) -> None:
+    hue_col, hue_label = comparison_axis(matches)
     plt.figure(figsize=FIGSIZE)
-    ax = sns.lineplot(data=matches, x="round", y="score", hue="detective_agent", marker="o", errorbar=None)
+    ax = sns.lineplot(data=matches, x="round", y="score", hue=hue_col, marker="o", errorbar=None)
     plt.title("Score por rodada")
     plt.xlabel("Rodada")
     plt.ylabel("Score PEAS")
     ax.xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
-    plt.legend(title="Detetive")
+    plt.legend(title=hue_label)
     savefig(figs_dir / "score_over_rounds.png", plt)
 
 
@@ -173,20 +186,21 @@ def plot_key_metrics(matches, figs_dir: Path, plt, sns, pd) -> None:
     if not available:
         return
 
+    group_col, group_label = comparison_axis(matches)
     melted = matches.melt(
-        id_vars=["detective_agent"],
+        id_vars=[group_col],
         value_vars=available,
         var_name="metric",
         value_name="value",
     )
     plt.figure(figsize=FIGSIZE)
-    sns.barplot(data=melted, x="metric", y="value", hue="detective_agent", estimator="mean", errorbar=None)
-    plt.title("Metricas medias por detetive")
+    sns.barplot(data=melted, x="metric", y="value", hue=group_col, estimator="mean", errorbar=None)
+    plt.title(f"Metricas medias por {group_label.lower()}")
     plt.xlabel("Metrica")
     plt.ylabel("Media")
     plt.xticks(rotation=25, ha="right")
-    plt.legend(title="Detetive")
-    savefig(figs_dir / "mean_metrics_by_detective.png", plt)
+    plt.legend(title=group_label)
+    savefig(figs_dir / f"mean_metrics_by_{group_col}.png", plt)
 
 
 def plot_loss_reasons(matches, figs_dir: Path, plt, sns) -> None:
@@ -195,11 +209,12 @@ def plot_loss_reasons(matches, figs_dir: Path, plt, sns) -> None:
     data = matches[matches["loss_reason"].fillna("") != ""]
     if data.empty:
         return
-    counts = data.groupby(["detective_agent", "loss_reason"]).size().reset_index(name="count")
+    x_col, x_label = comparison_axis(matches)
+    counts = data.groupby([x_col, "loss_reason"]).size().reset_index(name="count")
     plt.figure(figsize=FIGSIZE)
-    sns.barplot(data=counts, x="detective_agent", y="count", hue="loss_reason")
+    sns.barplot(data=counts, x=x_col, y="count", hue="loss_reason")
     plt.title("Motivos de derrota")
-    plt.xlabel("Detetive")
+    plt.xlabel(x_label)
     plt.ylabel("Partidas")
     plt.xticks(rotation=25, ha="right")
     plt.legend(title="Motivo")
@@ -211,8 +226,9 @@ def plot_best_worst(summary, figs_dir: Path, plt, sns, pd) -> None:
     if not needed.issubset(summary.columns):
         return
     data = without_all(summary).copy()
+    x_col, x_label = comparison_axis(data)
     data = data.melt(
-        id_vars=["detective_agent"],
+        id_vars=[x_col],
         value_vars=["score_best", "score_mean", "score_worst"],
         var_name="kind",
         value_name="score",
@@ -229,9 +245,9 @@ def plot_best_worst(summary, figs_dir: Path, plt, sns, pd) -> None:
     }
     data["kind"] = data["kind"].map(labels)
     plt.figure(figsize=FIGSIZE)
-    sns.barplot(data=data, x="detective_agent", y="score", hue="kind")
+    sns.barplot(data=data, x=x_col, y="score", hue="kind")
     plt.title("Pior, media e melhor score")
-    plt.xlabel("Detetive")
+    plt.xlabel(x_label)
     plt.ylabel("Score PEAS")
     plt.xticks(rotation=25, ha="right")
     plt.legend(title="")
@@ -242,12 +258,13 @@ def plot_score_vs_exposure(matches, figs_dir: Path, plt, sns) -> None:
     x_col = "real_revealed_attrs" if "real_revealed_attrs" in matches.columns else "revealed_attrs_total"
     if x_col not in matches.columns:
         return
+    hue_col, hue_label = comparison_axis(matches)
     plt.figure(figsize=FIGSIZE)
-    sns.scatterplot(data=matches, x=x_col, y="score", hue="detective_agent", style="winner", s=90)
+    sns.scatterplot(data=matches, x=x_col, y="score", hue=hue_col, style="winner", s=90)
     plt.title("Score vs exposicao de pistas")
     plt.xlabel(x_col)
     plt.ylabel("Score PEAS")
-    plt.legend(title="Detetive / resultado")
+    plt.legend(title=f"{hue_label} / resultado")
     savefig(figs_dir / "score_vs_exposure.png", plt)
 
 

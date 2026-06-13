@@ -58,7 +58,7 @@ def main() -> int:
     args = parse_args()
     scenario = parse_scenario(args.scenario)
     detectives = [resolve_path(p) for p in args.detectives]
-    thief = resolve_path(args.thief)
+    thieves = [resolve_path(p) for p in args.thieves]
     weights = {
         "vit": args.w_vit,
         "turn": args.w_turn,
@@ -69,7 +69,7 @@ def main() -> int:
 
     config = {
         "scenario": str(scenario.path.relative_to(ROOT)),
-        "thief": str(thief.relative_to(ROOT)),
+        "thieves": [str(p.relative_to(ROOT)) for p in thieves],
         "detectives": [str(p.relative_to(ROOT)) for p in detectives],
         "rounds": args.rounds,
         "seed_start": args.seed_start,
@@ -83,24 +83,31 @@ def main() -> int:
     (out_dir / "config.json").write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     all_rows = []
-    for detective in detectives:
-        for round_idx in range(1, args.rounds + 1):
-            seed = args.seed_start + round_idx - 1
-            raw = run_match(scenario.path, thief, detective, seed, args.disguises)
-            metrics = score_match(raw, scenario, weights)
-            row = {
-                "run_id": run_id(thief, detective, scenario.path, seed),
-                "round": round_idx,
-                "seed": seed,
-                "scenario": rel(scenario.path),
-                "thief_agent": rel(thief),
-                "detective_agent": rel(detective),
-                **metrics,
-            }
-            all_rows.append(row)
-            raw_path = raw_dir / f"{row['run_id']}.json"
-            raw_path.write_text(json.dumps({"row": row, "raw": raw}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-            print(f"[{round_idx:03d}/{args.rounds:03d}] {rel(thief)} vs {rel(detective)} seed={seed} score={row['score']:.2f} winner={row['winner']}")
+    total = len(thieves) * len(detectives) * args.rounds
+    done = 0
+    for thief in thieves:
+        for detective in detectives:
+            for round_idx in range(1, args.rounds + 1):
+                seed = args.seed_start + round_idx - 1
+                raw = run_match(scenario.path, thief, detective, seed, args.disguises)
+                metrics = score_match(raw, scenario, weights)
+                row = {
+                    "run_id": run_id(thief, detective, scenario.path, seed),
+                    "round": round_idx,
+                    "seed": seed,
+                    "scenario": rel(scenario.path),
+                    "thief_agent": rel(thief),
+                    "detective_agent": rel(detective),
+                    **metrics,
+                }
+                all_rows.append(row)
+                raw_path = raw_dir / f"{row['run_id']}.json"
+                raw_path.write_text(json.dumps({"row": row, "raw": raw}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+                done += 1
+                print(
+                    f"[{done:03d}/{total:03d}] {rel(thief)} vs {rel(detective)} "
+                    f"seed={seed} score={row['score']:.2f} winner={row['winner']}"
+                )
 
     write_csv(out_dir / "matches.csv", all_rows)
     summary_rows = summarize(all_rows)
@@ -118,9 +125,16 @@ def main() -> int:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Evaluate a thief agent against detective agents on cenario1.")
+    parser = argparse.ArgumentParser(description="Evaluate thief agents against detective agents on cenario1.")
     parser.add_argument("--rounds", "-n", type=int, default=50, help="numero de rodadas por detetive (padrao: 50)")
-    parser.add_argument("--thief", "-t", required=True, help="arquivo .pl do agente ladrao a testar")
+    parser.add_argument(
+        "--thieves",
+        "--thief",
+        "-t",
+        nargs="+",
+        required=True,
+        help="arquivos .pl dos agentes ladroes a comparar",
+    )
     parser.add_argument(
         "--detectives",
         "-d",
@@ -160,9 +174,9 @@ def rel(path: Path) -> str:
 def output_dir(base: str, config: dict) -> Path:
     base_path = resolve_or_create_base(base)
     digest = hashlib.sha256(json.dumps(config, sort_keys=True).encode("utf-8")).hexdigest()[:12]
-    thief = slug(Path(config["thief"]).stem)
+    thieves = slug("-".join(Path(t).stem for t in config["thieves"]))
     detectors = slug("-".join(Path(d).stem for d in config["detectives"]))
-    name = f"{Path(config['scenario']).stem}__{thief}__vs__{detectors}__n{config['rounds']}__seed{config['seed_start']}__{digest}"
+    name = f"{Path(config['scenario']).stem}__{thieves}__vs__{detectors}__n{config['rounds']}__seed{config['seed_start']}__{digest}"
     return base_path / name
 
 
