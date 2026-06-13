@@ -6,6 +6,7 @@
     agent_cache_dir/1,
     agent_max_source_bytes/1,
     engine_scenario/1,
+    scenario_dir/1,
     engine_disguises/1,
     rate_limit_window_seconds/1,
     rate_limit_max/1,
@@ -43,8 +44,12 @@ agent_max_source_bytes(65536).
 
 % --- Engine de partidas ---
 
-% Cenario carregado pela engine (nome do arquivo em src/engine, sem extensao).
-engine_scenario(mapa1).
+% Diretorio onde ficam os arquivos .prolog de cenario. Usado para listar os
+% cenarios disponiveis ao criar uma partida. Relativo a raiz do projeto.
+scenario_dir("./scenarios").
+
+% Cenario padrao carregado pela engine: caminho do arquivo .prolog.
+engine_scenario("./scenarios/mapa1.prolog").
 
 % Quantidade de disfarces disponiveis ao ladrao.
 engine_disguises(3).

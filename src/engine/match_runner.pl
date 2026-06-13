@@ -1,5 +1,8 @@
 :- module(match_runner, [
-    run_match/4
+    run_match/4,
+    run_match/5,
+    available_scenarios/1,
+    valid_scenario/1
 ]).
 
 :- use_module(library(http/json)).
@@ -17,6 +20,7 @@
 
 :- dynamic interactor_loaded/0.
 :- dynamic engine_dir_fact/1.
+:- dynamic loaded_agent_file/1.
 
 % Resolve o diretorio do engine em tempo de carga, antes que `source_file/2`
 % se torne indisponivel ou ambiguo.
@@ -30,25 +34,35 @@
 %   global (predicados consultados, dynamic facts), portanto a execucao eh
 %   serializada por um mutex.
 run_match(ThiefAgent, DetectiveAgent, Result, ReplayJson) :-
-    with_mutex(match_runner_engine,
-               run_match_locked(ThiefAgent, DetectiveAgent, Result, ReplayJson)).
-
-run_match_locked(ThiefAgent, DetectiveAgent, Result, ReplayJson) :-
-    ensure_interactor_loaded,
     scenario_name(ScenarioName),
+    run_match(ThiefAgent, DetectiveAgent, ScenarioName, Result, ReplayJson).
+
+%!  run_match(+ThiefAgent, +DetectiveAgent, +Scenario, -Result, -ReplayJson) is det.
+%
+%   Como run_match/4, mas usando o cenario `Scenario` informado (caminho do
+%   arquivo .prolog, ex.: "./scenarios/mapa1.prolog") em vez do padrao
+%   configurado.
+run_match(ThiefAgent, DetectiveAgent, Scenario, Result, ReplayJson) :-
+    with_mutex(match_runner_engine,
+               run_match_locked(ThiefAgent, DetectiveAgent, Scenario, Result, ReplayJson)).
+
+run_match_locked(ThiefAgent, DetectiveAgent, ScenarioName, Result, ReplayJson) :-
+    ensure_interactor_loaded,
+    scenario_text(ScenarioName, ScenarioLabel),
     scenario_engine_arg(ScenarioName, ScenarioArg),
     agent_cache:materialize_agent(ThiefAgent, ThiefPath),
     agent_cache:materialize_agent(DetectiveAgent, DetectivePath),
+    prepare_agent_modules(ThiefPath, DetectivePath),
     disguise_count(Qdis),
     reset_engine_dynamics,
     capture_engine_run(ScenarioArg, Qdis, ThiefPath, DetectivePath,
                        RawWinner, InitialState, Lines),
     map_winner(RawWinner, Winner),
     parse_replay(Lines, Turns, Events),
-    setup_dict(InitialState, ScenarioName, Setup),
+    setup_dict(InitialState, ScenarioLabel, Setup),
     length(Turns, FinalTurn),
     Replay = _{
-        scenario: ScenarioName,
+        scenario: ScenarioLabel,
         winner: Winner,
         final_turn: FinalTurn,
         setup: Setup,
@@ -61,7 +75,7 @@ run_match_locked(ThiefAgent, DetectiveAgent, Result, ReplayJson) :-
         detective_agent_id: DetectiveAgent.id,
         winner: Winner,
         final_turn: FinalTurn,
-        scenario: ScenarioName,
+        scenario: ScenarioLabel,
         replay: Replay
     }.
 
@@ -78,16 +92,93 @@ ensure_interactor_loaded :-
 
 engine_dir(Dir) :- engine_dir_fact(Dir).
 
+project_root(Root) :-
+    engine_dir(EngineDir),
+    directory_file_path(SrcDir, engine, EngineDir),
+    directory_file_path(Root, src, SrcDir).
+
 scenario_name(Name) :-
     config:engine_scenario(Name).
 
-% A engine concatena ".prolog" e chama consult/1, entao passamos o caminho
-% absoluto SEM extensao para que o consult resolva o arquivo correto.
-scenario_engine_arg(Name, Arg) :-
-    engine_dir(Dir),
-    directory_file_path(Dir, Name, Arg).
+%!  available_scenarios(-Scenarios) is det.
+%
+%   Lista os cenarios .prolog no diretorio configurado em `scenario_dir/1`,
+%   ordenados por nome. Cada item e scenario(Value, Label), onde Value e o
+%   caminho do arquivo no mesmo formato de `engine_scenario/1` (com ".prolog",
+%   ex.: "./scenarios/mapa1.prolog") e Label e o nome sem extensao ("mapa1").
+available_scenarios(Scenarios) :-
+    config:scenario_dir(Dir),
+    to_atom(Dir, DirAtom),
+    (   exists_directory(DirAtom)
+    ->  directory_files(DirAtom, Entries)
+    ;   Entries = []
+    ),
+    findall(scenario(Value, Label),
+            ( member(Entry, Entries),
+              file_name_extension(Base, prolog, Entry),
+              atom_string(Base, Label),
+              directory_file_path(DirAtom, Entry, Path),
+              atom_string(Path, Value)
+            ),
+            Unsorted),
+    sort(2, @=<, Unsorted, Scenarios).
+
+%!  valid_scenario(+Value) is semidet.
+%
+%   Verdadeiro se `Value` corresponde a um cenario disponivel em `scenario_dir`.
+%   Usado para validar a escolha vinda do formulario antes de executar.
+valid_scenario(Value) :-
+    available_scenarios(Scenarios),
+    memberchk(scenario(Value, _), Scenarios).
+
+% A engine (loadCenario/1) exige um atomo e concatena ".prolog" antes de
+% consultar. Por isso removemos a extensao do caminho configurado e resolvemos
+% para um caminho absoluto (relativo a raiz do projeto) como atomo.
+scenario_engine_arg(Scenario, Arg) :-
+    to_atom(Scenario, PathAtom),
+    strip_leading_dot(PathAtom, Rel),
+    file_name_extension(RelNoExt, prolog, Rel),
+    project_root(Root),
+    directory_file_path(Root, RelNoExt, Arg).
+
+%!  scenario_text(+Scenario, -Label) is det.
+%
+%   Nome amigavel do cenario para a UI/JSON: o nome do arquivo sem o diretorio
+%   nem a extensao ".prolog" (ex.: "./scenarios/mapa1.prolog" -> "mapa1").
+scenario_text(Scenario, Label) :-
+    to_atom(Scenario, PathAtom),
+    file_base_name(PathAtom, Base),
+    ( file_name_extension(Name, prolog, Base) -> true ; Name = Base ),
+    atom_string(Name, Label).
+
+%!  strip_leading_dot(+Path, -Rel) is det.
+%
+%   Remove o prefixo "./" de um caminho, se houver, para que possa ser
+%   resolvido com directory_file_path/3 a partir da raiz do projeto.
+strip_leading_dot(Path, Rel) :-
+    ( atom_concat('./', Rel, Path) -> true ; Rel = Path ).
+
+%!  to_atom(+Value, -Atom) is det.
+%
+%   Normaliza string ou atomo para atomo.
+to_atom(Value, Value) :- atom(Value), !.
+to_atom(Value, Atom) :- string(Value), atom_string(Atom, Value).
 
 disguise_count(Q) :- config:engine_disguises(Q).
+
+% A engine carrega os agentes com use_module/1, que importa os predicados do
+% agente (ladrao_action/3, detetive_action/3, ...) para o modulo `user`. Trocar
+% de agente entre partidas faria o use_module do novo agente colidir com o
+% anterior ("No permission to import ... already imported from ..."). Por isso
+% descarregamos os arquivos da partida anterior antes de carregar os novos: o
+% unload remove os modulos e seus imports em `user`, e o use_module da engine
+% reimporta os predicados do agente atual. Tambem zera o estado dinamico interno
+% de cada agente (ex.: known_edge/2), garantindo partidas independentes.
+prepare_agent_modules(ThiefPath, DetectivePath) :-
+    forall(retract(loaded_agent_file(Old)),
+           catch(unload_file(Old), _, true)),
+    assertz(loaded_agent_file(ThiefPath)),
+    assertz(loaded_agent_file(DetectivePath)).
 
 % A engine acumula facts dinamicos entre partidas (roubado/2, fechado/1,
 % pistas/3) e cada cenario consultado deixa cidade/conectado/item/tesouro
@@ -158,7 +249,7 @@ map_winner(Other, "draw") :-
 %   plana de eventos do jogo a partir das linhas capturadas.
 parse_replay(Lines, Turns, Events) :-
     convlist(classify_line, Lines, Records),
-    attach_events(Records, [], Entries),
+    attach_events(Records, Entries),
     build_turns(Entries, Turns),
     timeline(Entries, Events).
 
@@ -208,19 +299,54 @@ safe_term(Str, Term) :-
     !.
 safe_term(Str, Str).
 
-%!  attach_events(+Records, +Pending, -Entries) is det.
+%!  attach_events(+Records, -Entries) is det.
 %
-%   Eventos sao escritos imediatamente antes da linha de log da acao que os
-%   gerou (sempre o ladrao). Acumulamos os eventos pendentes e os anexamos a
-%   proxima entrada de log.
-attach_events([], _Pending, []).
-attach_events([evento(E)|Rest], Pending, Entries) :-
+%   Reassocia cada evento de roubo a entrada de log da acao `roubar`
+%   correspondente, casando pelo item roubado (cada item e roubado uma unica
+%   vez na partida). Isso independe de QUANDO a engine imprime o evento: desde a
+%   alteracao que atrasa o evento em um turno do ladrao (atrasarEventoRoubo/1 no
+%   Interactor), a linha `>>>> Evento` nao vem mais junto da acao que a gerou,
+%   entao confiar na ordem de impressao deslocava o turno e descartava o roubo
+%   final (cujo evento nao tem linha de log depois dele).
+attach_events(Records, Entries) :-
+    records_split(Records, Logs, Events),
+    maplist(blank_entry, Logs, Entries0),
+    foldl(assign_event, Events, Entries0, Entries).
+
+%!  records_split(+Records, -Logs, -Events) is det.
+%
+%   Separa as linhas classificadas em logs de acao e eventos de roubo,
+%   preservando a ordem de cada grupo.
+records_split([], [], []).
+records_split([evento(E)|Rest], Logs, [E|Events]) :-
     !,
-    attach_events(Rest, [E|Pending], Entries).
-attach_events([log(N, Role, Action, Status)|Rest], Pending,
-              [entry(N, Role, Action, Status, Events)|Entries]) :-
-    reverse(Pending, Events),
-    attach_events(Rest, [], Entries).
+    records_split(Rest, Logs, Events).
+records_split([log(N, Role, Action, Status)|Rest],
+              [log(N, Role, Action, Status)|Logs], Events) :-
+    records_split(Rest, Logs, Events).
+
+blank_entry(log(N, Role, Action, Status), entry(N, Role, Action, Status, [])).
+
+%!  assign_event(+Event, +Entries0, -Entries) is det.
+%
+%   Anexa um evento de roubo a entrada `roubar(Item)` do ladrao. Se nao houver
+%   acao correspondente (nao deveria ocorrer), emite aviso e descarta o evento.
+assign_event(roubo(Item, City, Revealed), Entries0, Entries) :-
+    add_event_to_rob(Entries0, Item, roubo(Item, City, Revealed), Entries),
+    !.
+assign_event(Event, Entries, Entries) :-
+    print_message(warning,
+        format("match_runner: evento sem acao de roubo correspondente: ~q",
+               [Event])).
+
+%!  add_event_to_rob(+Entries0, +Item, +Event, -Entries) is semidet.
+%
+%   Encontra a entrada do ladrao cuja acao e `roubar(Item)` e anexa o evento.
+add_event_to_rob([entry(N, thief, roubar(Item), Status, Evs)|Rest], Item, Event,
+                 [entry(N, thief, roubar(Item), Status, [Event|Evs])|Rest]) :-
+    !.
+add_event_to_rob([Entry|Rest], Item, Event, [Entry|Rest1]) :-
+    add_event_to_rob(Rest, Item, Event, Rest1).
 
 % Agrupa entradas consecutivas thief/detective do mesmo turno. A engine emite
 % o log do ladrao antes do detetive em cada turno, com o mesmo numero N.

@@ -28,9 +28,10 @@ dispatch(get, Request) :-
 dispatch(post, Request) :-
     http_parameters(Request, [
         thief_agent_id(ThiefId, [default(""), string]),
-        detective_agent_id(DetectiveId, [default(""), string])
+        detective_agent_id(DetectiveId, [default(""), string]),
+        scenario(Scenario, [default(""), string])
     ]),
-    run_new_match(ThiefId, DetectiveId, Outcome),
+    run_new_match(ThiefId, DetectiveId, Scenario, Outcome),
     finish(Outcome, Request, ThiefId, DetectiveId).
 
 finish(ok(MatchId), Request, _, _) :-
@@ -44,37 +45,40 @@ finish(error(Message), Request, ThiefId, DetectiveId) :-
 % Logica (validacao, execucao, DB)
 % =============================
 
-run_new_match("", _, error("Selecione um ladrao e um detetive.")) :- !.
-run_new_match(_, "", error("Selecione um ladrao e um detetive.")) :- !.
-run_new_match(ThiefId, _, error("Agente ladrao nao encontrado.")) :-
+run_new_match("", _, _, error("Selecione um ladrao e um detetive.")) :- !.
+run_new_match(_, "", _, error("Selecione um ladrao e um detetive.")) :- !.
+run_new_match(_, _, Scenario, error("Cenário invalido.")) :-
+    \+ match_runner:valid_scenario(Scenario),
+    !.
+run_new_match(ThiefId, _, _, error("Agente ladrao nao encontrado.")) :-
     \+ sqlite_store:get_agent(ThiefId, _),
     !.
-run_new_match(_, DetectiveId, error("Agente detetive nao encontrado.")) :-
+run_new_match(_, DetectiveId, _, error("Agente detetive nao encontrado.")) :-
     \+ sqlite_store:get_agent(DetectiveId, _),
     !.
-run_new_match(ThiefId, DetectiveId, Outcome) :-
+run_new_match(ThiefId, DetectiveId, Scenario, Outcome) :-
     sqlite_store:get_agent(ThiefId, Thief),
     sqlite_store:get_agent(DetectiveId, Detective),
-    check_roles_and_run(Thief, Detective, ThiefId, DetectiveId, Outcome).
+    check_roles_and_run(Thief, Detective, ThiefId, DetectiveId, Scenario, Outcome).
 
-check_roles_and_run(Thief, Detective, ThiefId, DetectiveId, Outcome) :-
+check_roles_and_run(Thief, Detective, ThiefId, DetectiveId, Scenario, Outcome) :-
     agent_has_role(Thief, thief),
     agent_has_role(Detective, detective),
     !,
-    execute_match(ThiefId, DetectiveId, Thief, Detective, Outcome).
-check_roles_and_run(_, _, _, _,
+    execute_match(ThiefId, DetectiveId, Thief, Detective, Scenario, Outcome).
+check_roles_and_run(_, _, _, _, _,
     error("Papeis invalidos: o primeiro deve ser ladrao e o \c
            segundo detetive.")).
 
-execute_match(ThiefId, DetectiveId, Thief, Detective, Outcome) :-
+execute_match(ThiefId, DetectiveId, Thief, Detective, Scenario, Outcome) :-
     catch(
-        run_and_save(ThiefId, DetectiveId, Thief, Detective, Outcome),
+        run_and_save(ThiefId, DetectiveId, Thief, Detective, Scenario, Outcome),
         Error,
         match_error_outcome(ThiefId, DetectiveId, Error, Outcome)
     ).
 
-run_and_save(ThiefId, DetectiveId, Thief, Detective, ok(MatchId)) :-
-    match_runner:run_match(Thief, Detective, Result, ReplayJson),
+run_and_save(ThiefId, DetectiveId, Thief, Detective, Scenario, ok(MatchId)) :-
+    match_runner:run_match(Thief, Detective, Scenario, Result, ReplayJson),
     sqlite_store:save_match(ThiefId, DetectiveId, Result.winner, ReplayJson, MatchId).
 
 match_error_outcome(ThiefId, DetectiveId, Error, error(Message)) :-
@@ -125,6 +129,7 @@ render_empty_roster(Request) :-
 render_form_fields(Request, State, Thieves, Detectives) :-
     maplist(agent_option, Thieves, ThiefOptions),
     maplist(agent_option, Detectives, DetectiveOptions),
+    scenario_options(ScenarioOptions),
     page_section:page_heading(
         'Nova partida',
         'A partida e executada na hora e o replay fica disponivel ao final.',
@@ -133,15 +138,22 @@ render_form_fields(Request, State, Thieves, Detectives) :-
     form_field:select_field(thief_agent_id, 'Agente ladrao', ThiefOptions, ThiefField),
     form_field:select_field(detective_agent_id, 'Agente detetive', DetectiveOptions,
                             DetectiveField),
+    form_field:select_field(scenario, 'Cenário', ScenarioOptions, ScenarioField),
     form_field:submit_button('Criar e executar partida', Submit),
     state_alert(State, AlertHtml),
     page:reply_page(Request, 'Nova partida', [
         Heading,
         AlertHtml,
         form([method(post), action('/matches/new'), class('max-w-lg')], [
-            ThiefField, DetectiveField, Submit
+            ThiefField, DetectiveField, ScenarioField, Submit
         ])
     ]).
+
+scenario_options(Options) :-
+    match_runner:available_scenarios(Scenarios),
+    maplist(scenario_option, Scenarios, Options).
+
+scenario_option(scenario(Value, Label), opt(Value, Label)).
 
 state_alert(State, Html) :-
     get_dict(error, State, Message),
