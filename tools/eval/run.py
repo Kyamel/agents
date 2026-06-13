@@ -287,7 +287,7 @@ def parse_robbery(text: str) -> dict:
     }
 
 
-def parse_initial_state(state: str) -> dict:
+def parse_initial_state(state: str) -> dict[str, object]:
     if not state.startswith("gSt("):
         return {}
     args = split_top_level(state[4:-1])
@@ -295,7 +295,7 @@ def parse_initial_state(state: str) -> dict:
         return {}
     thief = args[0]
     detective = args[1]
-    setup = {"max_turns": int(args[6]) if args[6].isdigit() else 0}
+    setup: dict[str, object] = {"max_turns": int(args[6]) if args[6].isdigit() else 0}
     thief_match = re.match(r"^thief\(loc\(([^)]+)\),([^,]+),aparencia\((\[.*\])\),([^,]+),", thief)
     if thief_match:
         setup["thief_start"] = thief_match.group(1)
