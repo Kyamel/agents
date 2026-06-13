@@ -8,7 +8,8 @@ __pycache__/
 *.pyc
 
 src/config.pl
-!agents/agented.pl
-!agents/agentel.pl
 tools/eval/results/*
 !tools/eval/results/.gitkeep
+scenarios/*
+!scenarios/cenario1.prolog
+!scenarios/mapa1.prolog
