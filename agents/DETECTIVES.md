@@ -7,6 +7,7 @@ engine atual, sem alterar `src/engine/Interactor.prolog`.
 | --- | --- | --- |
 | `randomd.pl` | Aleatório geral | Baseline com ações variadas |
 | `blockerd.pl` | Bloqueio agressivo | Se o ladrão sobrevive a cidades fechadas invisíveis |
+| `neighborblockd.pl` | Bloqueio de vizinhos | Se o ladrão escapa quando o detetive explora o delay fechando as saídas prováveis |
 | `shortestd.pl` | Predição de menor caminho | Se o ladrão é previsível por BFS/ordem gulosa de coleta |
 | `warrantd.pl` | Mandato e pistas | Se a aparência/disfarce evita identificação |
 | `chaserd.pl` | Perseguição por eventos | Se o ladrão foge bem após revelar uma cidade |
@@ -20,7 +21,7 @@ Exemplo de avaliação:
 python3 tools/eval/run_eval.py \
   -n 50 \
   -t agents/thief.pl agents/thiefnew.pl \
-  -d agents/randomd.pl agents/blockerd.pl agents/shortestd.pl agents/warrantd.pl agents/chaserd.pl agents/huntd.pl agents/guardd.pl agents/balancedd.pl \
+  -d agents/randomd.pl agents/blockerd.pl agents/neighborblockd.pl agents/shortestd.pl agents/warrantd.pl agents/chaserd.pl agents/huntd.pl agents/guardd.pl agents/balancedd.pl \
   --scenario src/engine/cenario1.prolog
 ```
 
