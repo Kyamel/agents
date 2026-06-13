@@ -3,8 +3,8 @@
   ]).
 
 :- use_module(library(http/http_dispatch)).
-:- use_module('../../components/layout/page').
-:- use_module('../../components/ui/button_link').
+:- use_module('../../components/page').
+:- use_module('../../components/button_link').
 
 :- http_handler(root(.), index_page, [method(get)]).
 

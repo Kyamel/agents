@@ -4,10 +4,10 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_parameters)).
 :- use_module('../../engine/registry').
-:- use_module('../../components/layout/page').
-:- use_module('../../components/ui/alert').
-:- use_module('../../components/ui/form_field').
-:- use_module('../../components/ui/page_section').
+:- use_module('../../components/page').
+:- use_module('../../components/alert').
+:- use_module('../../components/form_field').
+:- use_module('../../components/page_section').
 :- use_module('../security/web_session').
 
 :- http_handler(root(agents/new), handler, [methods([get, post])]).

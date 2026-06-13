@@ -5,9 +5,9 @@
 :- use_module(library(http/json)).
 :- use_module(library(apply)).
 :- use_module('../../db/sqlite_store').
-:- use_module('../../components/layout/page').
-:- use_module('../../components/cards/match_card').
-:- use_module('../../components/ui/page_section').
+:- use_module('../../components/page').
+:- use_module('../../components/match_card').
+:- use_module('../../components/page_section').
 
 % Prefix em /matches/ para capturar /matches/<id>. /matches/new tem handler
 % proprio (mais especifico) e ganha por especificidade.

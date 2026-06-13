@@ -6,10 +6,10 @@
 :- use_module(library(apply)).
 :- use_module('../../db/sqlite_store').
 :- use_module('../../engine/match_runner').
-:- use_module('../../components/layout/page').
-:- use_module('../../components/ui/alert').
-:- use_module('../../components/ui/form_field').
-:- use_module('../../components/ui/page_section').
+:- use_module('../../components/page').
+:- use_module('../../components/alert').
+:- use_module('../../components/form_field').
+:- use_module('../../components/page_section').
 :- use_module('../security/web_session').
 
 :- http_handler(root(matches/new), handler, [methods([get, post])]).

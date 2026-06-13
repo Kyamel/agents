@@ -4,10 +4,10 @@
 :- use_module(library(http/html_write)).
 :- use_module(library(apply)).
 :- use_module('../../db/sqlite_store').
-:- use_module('../../components/layout/page').
-:- use_module('../../components/cards/agent_card').
-:- use_module('../../components/ui/button_link').
-:- use_module('../../components/ui/page_section').
+:- use_module('../../components/page').
+:- use_module('../../components/agent_card').
+:- use_module('../../components/button_link').
+:- use_module('../../components/page_section').
 :- use_module('../security/web_session').
 
 :- http_handler(root(agents), handler, [method(get)]).

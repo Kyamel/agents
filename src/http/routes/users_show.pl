@@ -3,8 +3,8 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/html_write)).
 :- use_module('../../db/sqlite_store').
-:- use_module('../../components/layout/page').
-:- use_module('../../components/ui/alert').
+:- use_module('../../components/page').
+:- use_module('../../components/alert').
 
 % Prefix em /users/ para capturar /users/<id>. Nao existe /users (lista).
 :- http_handler('/users/', handler, [method(get), prefix]).

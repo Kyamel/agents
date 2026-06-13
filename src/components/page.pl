@@ -4,7 +4,7 @@
 ]).
 
 :- use_module(library(http/html_write)).
-:- use_module('../../http/security/web_session').
+:- use_module('../http/security/web_session').
 
 %!  tailwind_config(-Script) is det.
 %

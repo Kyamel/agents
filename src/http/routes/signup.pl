@@ -2,9 +2,9 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_parameters)).
-:- use_module('../../components/layout/page').
-:- use_module('../../components/ui/form_field').
-:- use_module('../../components/ui/alert').
+:- use_module('../../components/page').
+:- use_module('../../components/form_field').
+:- use_module('../../components/alert').
 :- use_module('../auth_orchestrator').
 :- use_module('../security/rate_limit').
 
