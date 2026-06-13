@@ -20,7 +20,6 @@
 
 :- dynamic interactor_loaded/0.
 :- dynamic engine_dir_fact/1.
-:- dynamic loaded_agent_file/1.
 
 % Resolve o diretorio do engine em tempo de carga, antes que `source_file/2`
 % se torne indisponivel ou ambiguo.
@@ -166,19 +165,26 @@ to_atom(Value, Atom) :- string(Value), atom_string(Atom, Value).
 
 disguise_count(Q) :- config:engine_disguises(Q).
 
-% A engine carrega os agentes com use_module/1, que importa os predicados do
-% agente (ladrao_action/3, detetive_action/3, ...) para o modulo `user`. Trocar
-% de agente entre partidas faria o use_module do novo agente colidir com o
-% anterior ("No permission to import ... already imported from ..."). Por isso
-% descarregamos os arquivos da partida anterior antes de carregar os novos: o
-% unload remove os modulos e seus imports em `user`, e o use_module da engine
-% reimporta os predicados do agente atual. Tambem zera o estado dinamico interno
-% de cada agente (ex.: known_edge/2), garantindo partidas independentes.
-prepare_agent_modules(ThiefPath, DetectivePath) :-
-    forall(retract(loaded_agent_file(Old)),
-           catch(unload_file(Old), _, true)),
-    assertz(loaded_agent_file(ThiefPath)),
-    assertz(loaded_agent_file(DetectivePath)).
+% Predicados que todo agente exporta e que a engine chama sem qualificacao de
+% modulo (logo, resolvidos em `user`).
+agent_predicate(ladrao_preload/7).
+agent_predicate(ladrao_action/3).
+agent_predicate(detetive_preload/5).
+agent_predicate(detetive_action/3).
+
+% A engine carrega os agentes com use_module/1, que importa esses predicados
+% para o modulo `user`. Como o processo do servidor roda varias partidas no
+% mesmo `user`, trocar de detetive (ou ladrao) entre partidas faz o use_module
+% do novo agente colidir com o anterior:
+%   "No permission to import detetive_action/3 into user (already imported ...)".
+% Antes de cada partida removemos de `user` os imports dos predicados de agente,
+% para que o use_module da engine reimporte os predicados do agente atual sem
+% conflito. (Nao usamos unload_file/1: ele deixa o import em `user` pendurado
+% apontando para o modulo removido e o use_module seguinte nao o reimporta.)
+% O estado dinamico interno de cada agente e reiniciado pelo proprio preload.
+prepare_agent_modules(_ThiefPath, _DetectivePath) :-
+    forall(agent_predicate(Name/Arity),
+           catch(abolish(user:Name/Arity), _, true)).
 
 % A engine acumula facts dinamicos entre partidas (roubado/2, fechado/1,
 % pistas/3) e cada cenario consultado deixa cidade/conectado/item/tesouro
