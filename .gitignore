@@ -8,7 +8,6 @@ __pycache__/
 *.pyc
 
 src/config.pl
-agents/*
 !agents/agented.pl
 !agents/agentel.pl
 tools/eval/results/*
