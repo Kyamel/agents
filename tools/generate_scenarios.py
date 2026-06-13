@@ -207,7 +207,7 @@ def generate(dim: int) -> str:
 
 def main() -> int:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    for dim in (3, 4, 5, 6, 7, 8, 9):
+    for dim in (3, 4, 5, 6, 7):
         path = OUT_DIR / f"metro_3_{dim}.prolog"
         path.write_text(generate(dim), encoding="utf-8")
         print(path)
