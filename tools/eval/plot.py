@@ -24,8 +24,8 @@ def import_plot_libs():
     try:
         import matplotlib.pyplot as plt
         import matplotlib.ticker as mticker
-        import pandas as pd
-        import seaborn as sns
+        import pandas as pd  # type: ignore[import-untyped]
+        import seaborn as sns  # type: ignore[import-untyped]
     except ModuleNotFoundError as exc:
         missing = exc.name or "pandas/matplotlib/seaborn"
         print(

@@ -20,6 +20,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import mean
+from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -287,6 +288,9 @@ def parse_robbery(text: str) -> dict:
     }
 
 
+Row = dict[str, Any]
+
+
 def parse_initial_state(state: str) -> dict[str, object]:
     if not state.startswith("gSt("):
         return {}
@@ -541,16 +545,16 @@ def loss_reason(winner: str, thief_logs: list[dict], detective_logs: list[dict])
 
 
 def articulation_points(cities: list[str], edges: list[tuple[str, str]]) -> set[str]:
-    graph = {city: set() for city in cities}
+    graph: dict[str, set[str]] = {city: set() for city in cities}
     for a, b in edges:
         graph.setdefault(a, set()).add(b)
         graph.setdefault(b, set()).add(a)
 
     time = 0
-    disc = {}
-    low = {}
-    parent = {}
-    points = set()
+    disc: dict[str, int] = {}
+    low: dict[str, int] = {}
+    parent: dict[str, str] = {}
+    points: set[str] = set()
 
     def dfs(u: str) -> None:
         nonlocal time
@@ -576,13 +580,13 @@ def articulation_points(cities: list[str], edges: list[tuple[str, str]]) -> set[
     return points
 
 
-def summarize(rows: list[dict]) -> list[dict]:
-    grouped = defaultdict(list)
+def summarize(rows: list[Row]) -> list[Row]:
+    grouped: defaultdict[tuple[Any, Any, Any], list[Row]] = defaultdict(list)
     for row in rows:
         grouped[(row["thief_agent"], row["detective_agent"], row["scenario"])].append(row)
         grouped[(row["thief_agent"], "ALL", row["scenario"])].append(row)
 
-    summary = []
+    summary: list[Row] = []
     for (thief, detective, scenario), group in grouped.items():
         scores = [float(row["score"]) for row in group]
         summary.append({
@@ -607,12 +611,12 @@ def summarize(rows: list[dict]) -> list[dict]:
     return summary
 
 
-def best_worst(rows: list[dict]) -> list[dict]:
-    grouped = defaultdict(list)
+def best_worst(rows: list[Row]) -> list[Row]:
+    grouped: defaultdict[tuple[Any, Any, Any], list[Row]] = defaultdict(list)
     for row in rows:
         grouped[(row["thief_agent"], row["detective_agent"], row["scenario"])].append(row)
         grouped[(row["thief_agent"], "ALL", row["scenario"])].append(row)
-    output = []
+    output: list[Row] = []
     for (thief, detective, scenario), group in grouped.items():
         best = dict(max(group, key=lambda row: float(row["score"])))
         worst = dict(min(group, key=lambda row: float(row["score"])))
