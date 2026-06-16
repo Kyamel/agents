@@ -20,6 +20,7 @@
 :- use_module('./routes/matches_list').
 :- use_module('./routes/matches_new').
 :- use_module('./routes/matches_show').
+:- use_module('./routes/matches_map').
 :- use_module('./routes/users_show').
 
 % Rotas API

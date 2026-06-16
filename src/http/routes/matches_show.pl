@@ -1,4 +1,6 @@
-:- module(route_matches_show, []).
+:- module(route_matches_show, [
+    render_map/2
+]).
 
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/html_write)).
@@ -25,10 +27,6 @@ handler(Request) :-
     handle_path(Path, Request).
 
 handle_path(Path, Request) :-
-    extract_map_id(Path, Id),
-    !,
-    render_map(Request, Id).
-handle_path(Path, Request) :-
     extract_id(Path, Id),
     !,
     load_and_render(Request, Id).
@@ -38,16 +36,8 @@ handle_path(_, Request) :-
 extract_id(Path, Id) :-
     atom_concat('/matches/', Id, Path),
     Id \== '',
-    Id \== new.
-
-%!  extract_map_id(+Path, -Id) is semidet.
-%
-%   Casa /matches/<id>/map (visualizacao interativa). Precisa ser testado antes
-%   de extract_id/2, que aceitaria "<id>/map" como id.
-extract_map_id(Path, Id) :-
-    atom_concat('/matches/', Rest, Path),
-    atom_concat(Id, '/map', Rest),
-    Id \== ''.
+    Id \== new,
+    \+ sub_atom(Id, _, _, _, '/').
 
 % =============================
 % Logica (DB)
@@ -111,14 +101,13 @@ render_detail(Request, Match, ThiefName, DetectiveName, Replay) :-
     replay_field(Replay, events, [], Events),
     replay_field(Replay, setup, _{}, Setup),
     page_section:back_link('/matches', 'Voltar para partidas', BackLink),
-    stat_card('Ladrao', ThiefName, ThiefCard),
+    stat_card('Ladrão', ThiefName, ThiefCard),
     stat_card('Detetive', DetectiveName, DetectiveCard),
     winner_card(Match.winner, WinnerCard),
     setup_section(Setup, SetupHtml),
     events_section(Events, EventsHtml),
     turns_table(Turns, TableHtml),
-    atom_concat('/matches/', Match.id, MatchPath),
-    atom_concat(MatchPath, '/map', MapLink),
+    atom_concat('/map/', Match.id, MapLink),
     button_link:button_link(MapLink, 'Visualizar mapa', MapButton),
     page:reply_page(Request, 'Detalhe da partida', [
         BackLink,
@@ -199,7 +188,7 @@ status_meta(_Other, 'Status desconhecido',
     'rounded-xl bg-slate-900 p-4 border border-slate-700 text-slate-200').
 
 % =============================
-% Mapa interativo da partida (/matches/<id>/map)
+% Mapa interativo da partida (/map/<id>)
 % =============================
 
 render_map(Request, Id) :-
@@ -354,10 +343,10 @@ setup_section(Setup, Html) :-
     fact('Limite de turnos', MaxTurns, F3),
     fact('Inicio do ladrao', ThiefStart, F4),
     fact('Inicio do detetive', DetectiveStart, F5),
-    fact('Disfarces disponiveis', Disguises, F6),
+    fact('Disfarces disponíveis', Disguises, F6),
     appearance_chips(Setup, Chips),
     Html = div([class('rounded-xl bg-slate-900 p-4 border border-slate-800 mb-8')], [
-        h2([class('font-semibold mb-4')], 'Configuracao da partida'),
+        h2([class('font-semibold mb-4')], 'Configuração da partida'),
         div([class('grid sm:grid-cols-3 gap-x-6 gap-y-4 text-sm')],
             [F1, F2, F3, F4, F5, F6]),
         div([class('mt-5')], [
@@ -476,9 +465,9 @@ turns_table(Turns, Html) :-
             thead([class('bg-slate-900 text-slate-400')], [
                 tr([], [
                     th([class('text-left px-3 py-2')], 'Turno'),
-                    th([class('text-left px-3 py-2')], 'Acao ladrao'),
-                    th([class('text-left px-3 py-2')], 'Pos. ladrao'),
-                    th([class('text-left px-3 py-2')], 'Acao detetive'),
+                    th([class('text-left px-3 py-2')], 'Ação ladrão'),
+                    th([class('text-left px-3 py-2')], 'Pos. ladrão'),
+                    th([class('text-left px-3 py-2')], 'Ação detetive'),
                     th([class('text-left px-3 py-2')], 'Pos. detetive')
                 ])
             ]),
