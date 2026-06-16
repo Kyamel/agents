@@ -207,18 +207,22 @@ proximo_passo(Origem, Destino, Proxima) :-
     caminho_mais_curto(Origem, Destino, [Origem, Proxima | _]).
 
 caminho_mais_curto(Origem, Destino, Caminho) :-
-    setof(L-P,
-        ( caminho_simples(Origem, Destino, [Origem], P),
-          length(P, L)
-        ),
-        [_-Caminho | _]).
+    bfs([[Origem]], Destino, CaminhoInvertido),
+    reverse(CaminhoInvertido, Caminho).
 
-caminho_simples(Destino, Destino, Visitados, Caminho) :-
-    reverse(Visitados, Caminho).
-caminho_simples(Atual, Destino, Visitados, Caminho) :-
-    known_edge(Atual, Vizinho),
-    \+ member(Vizinho, Visitados),
-    caminho_simples(Vizinho, Destino, [Vizinho | Visitados], Caminho).
+bfs([[Destino | Resto] | _], Destino, [Destino | Resto]) :-
+    !.
+bfs([CaminhoAtual | OutrosCaminhos], Destino, Caminho) :-
+    estender_caminho(CaminhoAtual, NovosCaminhos),
+    append(OutrosCaminhos, NovosCaminhos, FilaAtualizada),
+    bfs(FilaAtualizada, Destino, Caminho).
+
+estender_caminho([Atual | Visitados], NovosCaminhos) :-
+    findall([Vizinho, Atual | Visitados],
+        ( known_edge(Atual, Vizinho),
+          \+ member(Vizinho, [Atual | Visitados])
+        ),
+        NovosCaminhos).
 
 melhor_patrulha(Cidade, Proxima) :-
     setof(Score-Vizinho,
