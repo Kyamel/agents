@@ -5,7 +5,7 @@
 :- use_module('../../components/page').
 :- use_module('../../components/form_field').
 :- use_module('../../components/alert').
-:- use_module('../auth_orchestrator').
+:- use_module('../../auth/account').
 :- use_module('../security/web_session').
 :- use_module('../security/rate_limit').
 
@@ -44,7 +44,7 @@ process_login(Request, Email, Password) :-
     handle_outcome(Outcome, Request, Email).
 
 safe_login(Email, Password, Outcome) :-
-    catch(auth_orchestrator:login(Email, Password, Outcome),
+    catch(account:login(Email, Password, Outcome),
           _,
           Outcome = failed).
 
@@ -54,9 +54,9 @@ handle_outcome(invalid_credentials, Request, Email) :-
     render_error(Request, Email, "Email ou senha invalidos.").
 handle_outcome(email_not_verified, Request, Email) :-
     render_error(Request, Email,
-        "Seu email ainda nao foi verificado. Confira sua caixa de entrada.").
+        "Seu email ainda não foi verificado. Confira sua caixa de entrada.").
 handle_outcome(failed, Request, Email) :-
-    render_error(Request, Email, "Nao foi possivel entrar. Tente novamente.").
+    render_error(Request, Email, "Não foi possivel entrar. Tente novamente.").
 
 notice_alert("signup_ok", Html) :-
     !,
@@ -95,7 +95,7 @@ render_form(Request, Email, AlertHtml) :-
                 EmailField, PasswordField, Submit
             ]),
             p([class('text-slate-400 text-sm mt-4')], [
-                'Nao tem conta? ',
+                'Não possui conta? ',
                 FooterLink
             ])
         ])

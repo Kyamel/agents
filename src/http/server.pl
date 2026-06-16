@@ -13,6 +13,7 @@
 :- use_module('./routes/signup').
 :- use_module('./routes/login').
 :- use_module('./routes/logout').
+:- use_module('./routes/auth_verify').
 :- use_module('./routes/agents_list').
 :- use_module('./routes/agents_new').
 :- use_module('./routes/agents_delete').
@@ -30,6 +31,7 @@
 :- use_module('./routes/api/agents_show').
 :- use_module('./routes/api/matches_list').
 :- use_module('./routes/api/matches_show').
+:- use_module('./routes/api/users_show').
 :- use_module('./routes/api/jobs_list').
 :- use_module('./routes/api/jobs_show').
 

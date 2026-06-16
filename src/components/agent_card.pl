@@ -63,9 +63,10 @@ actions(Agent, CurrentUser, Html) :-
             'hx-confirm'('Excluir esse agente? As partidas ja jogadas continuam disponiveis.'),
             'hx-target'(TargetSel),
             'hx-swap'('outerHTML'),
-            class('text-xs font-medium text-red-400 hover:text-red-300 \c
-                   focus:outline-none focus:ring-2 focus:ring-red-500/40 \c
-                   rounded px-2 py-1')
+            class('rounded-lg bg-red-950 px-3 py-1.5 text-xs font-semibold \c
+                   text-red-200 border border-red-900 hover:bg-red-900 \c
+                   hover:border-red-700 focus:outline-none focus:ring-2 \c
+                   focus:ring-red-500/40')
         ], 'Excluir')
     ]).
 actions(_, _, '').

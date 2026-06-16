@@ -117,9 +117,9 @@ footer_link(Href, Label, Html) :-
 nav(anon, Nav) :-
     !,
     Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2 text-sm')], [
-        a([href('/'), class('font-bold text-base mr-2')], 'Scotland Yard'),
-        a([href('/agents'), class('text-slate-300 hover:text-white')], 'Agentes'),
-        a([href('/matches'), class('text-slate-300 hover:text-white')], 'Partidas'),
+        a([href('/'), class('font-bold text-base mr-2 hover:underline underline-offset-2')], 'Scotland Yard'),
+        a([href('/agents'), class('text-ufop-400 hover:underline underline-offset-2')], 'Agentes'),
+        a([href('/matches'), class('text-ufop-400 hover:underline underline-offset-2')], 'Partidas'),
         div([class('ml-auto flex items-center gap-3')], [
             a([href('/login'), class('text-slate-300 hover:text-white')], 'Entrar'),
             a([href('/signup'),
@@ -128,14 +128,17 @@ nav(anon, Nav) :-
         ])
     ]).
 nav(User, Nav) :-
+    format(atom(ProfileHref), '/users/~w', [User.id]),
     Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2 text-sm')], [
-        a([href('/'), class('font-bold text-base mr-2')], 'Scotland Yard'),
-        a([href('/agents'), class('text-slate-300 hover:text-white')], 'Agentes'),
-        a([href('/matches'), class('text-slate-300 hover:text-white')], 'Partidas'),
-        a([href('/agents/new'), class('text-slate-300 hover:text-white')], 'Enviar agente'),
-        a([href('/matches/new'), class('text-slate-300 hover:text-white')], 'Nova partida'),
+        a([href('/'), class('font-bold text-base mr-2 hover:underline underline-offset-2')], 'Scotland Yard'),
+        a([href('/agents'), class('text-ufop-400 hover:underline underline-offset-2')], 'Agentes'),
+        a([href('/matches'), class('text-ufop-400 hover:underline underline-offset-2')], 'Partidas'),
+        %a([href('/agents/new'), class('text-slate-300 hover:text-white')], 'Enviar agente'),
+        %a([href('/matches/new'), class('text-slate-300 hover:text-white')], 'Nova partida'),
         div([class('ml-auto flex items-center gap-3')], [
-            span([class('text-slate-500 hidden sm:inline')], User.email),
+            a([href(ProfileHref),
+               class('text-slate-500 hidden sm:inline hover:underline underline-offset-2')],
+              User.email),
             form([method(post), action('/logout')], [
                 button([type(submit),
                         class('rounded-lg bg-slate-800 px-3 py-1.5 hover:bg-slate-700')],

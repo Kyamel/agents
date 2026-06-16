@@ -1,7 +1,7 @@
 :- module(sqlite_store, [
     init/0,
 
-    create_user/4,
+    create_user/5,
     find_user_by_email/2,
     find_user_by_id/2,
     mark_user_verified/1,
@@ -141,6 +141,7 @@ sqlite_connection_ready(Alias) :-
 migrate :-
     sql_exec("CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
+        username TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         is_verified INTEGER NOT NULL DEFAULT 0,
@@ -179,7 +180,15 @@ migrate :-
         started_at TEXT,
         finished_at TEXT
     );"),
+    migrate_users_columns,
     migrate_matches_columns.
+
+%!  migrate_users_columns is det.
+%
+%   Adiciona colunas novas de usuario em bancos criados antes do perfil ter
+%   nome de usuario.
+migrate_users_columns :-
+    catch(sql_exec("ALTER TABLE users ADD COLUMN username TEXT;"), _, true).
 
 %!  migrate_matches_columns is det.
 %
@@ -200,21 +209,22 @@ sql_exec(SQL) :-
     conn_alias(Alias),
     findall(Row, prosqlite:sqlite_query(Alias, SQL, Row), _Rows).
 
-%!  create_user(+Email, +PasswordHash, -UserId, -CreatedAt) is det.
+%!  create_user(+Username, +Email, +PasswordHash, -UserId, -CreatedAt) is det.
 %
 %   Cria usuário e retorna identificador e timestamp de criação.
-create_user(Email, PasswordHash, UserId, CreatedAt) :-
+create_user(Username, Email, PasswordHash, UserId, CreatedAt) :-
     ensure_connected,
     uuid(UserUuid),
     atom_string(UserUuid, UserId),
     timestamp_iso(CreatedAt),
+    sql_quote(Username, QUsername),
     sql_quote(Email, QEmail),
     sql_quote(PasswordHash, QPwd),
     sql_quote(UserId, QId),
     sql_quote(CreatedAt, QCreated),
     format(string(SQL),
-           "INSERT INTO users(id, email, password_hash, is_verified, created_at) VALUES(~s, ~s, ~s, 0, ~s);",
-           [QId, QEmail, QPwd, QCreated]),
+           "INSERT INTO users(id, username, email, password_hash, is_verified, created_at) VALUES(~s, ~s, ~s, ~s, 0, ~s);",
+           [QId, QUsername, QEmail, QPwd, QCreated]),
     sql_exec(SQL).
 
 %!  find_user_by_email(+Email, -User) is semidet.
@@ -224,7 +234,7 @@ find_user_by_email(Email, User) :-
     ensure_connected,
     sql_quote(Email, QEmail),
     format(string(SQL),
-           "SELECT id, email, password_hash, is_verified, created_at FROM users WHERE email = ~s LIMIT 1;",
+           "SELECT id, username, email, password_hash, is_verified, created_at FROM users WHERE email = ~s LIMIT 1;",
            [QEmail]),
     user_from_query(SQL, User).
 
@@ -235,7 +245,7 @@ find_user_by_id(UserId, User) :-
     ensure_connected,
     sql_quote(UserId, QUserId),
     format(string(SQL),
-           "SELECT id, email, password_hash, is_verified, created_at FROM users WHERE id = ~s LIMIT 1;",
+           "SELECT id, username, email, password_hash, is_verified, created_at FROM users WHERE id = ~s LIMIT 1;",
            [QUserId]),
     user_from_query(SQL, User).
 
@@ -244,15 +254,24 @@ find_user_by_id(UserId, User) :-
 %   Materializa um usuário (dict) a partir de query SQL.
 user_from_query(SQL, User) :-
     conn_alias(Alias),
-    once(prosqlite:sqlite_query(Alias, SQL, row(Id, E, Hash, VerifiedInt, CreatedAt))),
+    once(prosqlite:sqlite_query(Alias, SQL, row(Id, Username0, E, Hash, VerifiedInt, CreatedAt))),
     bool_int(BoolVerified, VerifiedInt),
+    user_username(Username0, E, Username),
     User = _{
         id: Id,
+        username: Username,
         email: E,
         password_hash: Hash,
         is_verified: BoolVerified,
         created_at: CreatedAt
     }.
+
+user_username(Username0, Email, Username) :-
+    norm_optional(Username0, Username1),
+    ( Username1 == ""
+    -> Username = Email
+    ;  Username = Username1
+    ).
 
 %!  mark_user_verified(+UserId) is det.
 %

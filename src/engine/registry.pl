@@ -48,6 +48,8 @@ validate_role(Role) :-
 %   menos um caractere alfanumerico. Centralizado aqui para as rotas web e API
 %   validarem com a mesma regra.
 valid_agent_name(Name) :-
+    string_length(Name, Len),
+    Len =< 60,
     string_codes(Name, Codes),
     forall(member(C, Codes), slug_code(C)),
     once((member(A, Codes), alnum_code(A))).

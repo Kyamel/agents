@@ -1,6 +1,7 @@
 :- module(form_field, [
     text_field/5,
     slug_field/4,
+    slug_field/5,
     textarea_field/4,
     select_field/4,
     submit_button/2
@@ -35,17 +36,25 @@ text_field(Name, Label, Type, Value, Html) :-
 %   Forca o formato durante a digitacao e valida o padrao no envio, para nao
 %   ser preciso normalizar nada no servidor.
 slug_field(Name, Label, Value, Html) :-
+    slug_field(Name, Label, Value, [], Html).
+
+%!  slug_field(+Name, +Label, +Value, +ExtraAttrs, -Html) is det.
+%
+%   Versao de slug_field/4 com atributos adicionais para o input.
+slug_field(Name, Label, Value, ExtraAttrs, Html) :-
     input_class(InputClass),
     label_class(LabelClass),
+    append([
+        type(text), name(Name), id(Name), value(Value), class(InputClass),
+        pattern('[a-z0-9-]+'),
+        placeholder('meu-agente'),
+        title('Use apenas minusculas, numeros e hifens (ex.: meu-agente).'),
+        autocapitalize(none), autocomplete(off), spellcheck(false),
+        oninput('this.value=this.value.toLowerCase().replace(/[^a-z0-9]+/g,\'-\').slice(0,60)')
+    ], ExtraAttrs, Attrs),
     Html = div([class('mb-4')], [
         label([for(Name), class(LabelClass)], Label),
-        input([type(text), name(Name), id(Name), value(Value), class(InputClass),
-               pattern('[a-z0-9-]+'),
-               placeholder('meu-agente'),
-               title('Use apenas minusculas, numeros e hifens (ex.: meu-agente).'),
-               autocapitalize(none), autocomplete(off), spellcheck(false),
-               oninput('this.value=this.value.toLowerCase().replace(/[^a-z0-9]+/g,\'-\')')
-              ])
+        input(Attrs)
     ]).
 
 %!  textarea_field(+Name, +Label, +Value, -Html) is det.

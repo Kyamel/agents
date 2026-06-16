@@ -50,7 +50,8 @@ process_post(Request, User, Values) :-
     !,
     render_form(Request, User,
         Values.put(error, "Nome invalido: use apenas minusculas, numeros e \c
-                           hifens (ex.: meu-agente).")).
+                           hifens, com no maximo 60 caracteres \c
+                           (ex.: meu-agente).")).
 process_post(Request, User, Values) :-
     to_id_string(User.id, UserId),
     try_register(UserId, Values, Result),
@@ -114,7 +115,7 @@ render_form(Request, _User, State) :-
         'Ladrao deve exportar ladrao_action/3 e ladrao_preload/7. Detetive deve exportar detetive_action/3 e detetive_preload/5.',
         Heading
     ),
-    form_field:slug_field(name, 'Nome do agente', Name, NameField),
+    form_field:slug_field(name, 'Nome do agente', Name, [maxlength(60)], NameField),
     form_field:select_field(role, 'Papel',
         [opt("thief", 'Ladrao'), opt("detective", 'Detetive')], RoleField),
     form_field:textarea_field(source, 'Codigo Prolog', Source, SourceField),
