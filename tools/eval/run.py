@@ -550,6 +550,8 @@ def articulation_points(cities: list[str], edges: list[tuple[str, str]]) -> set[
         graph.setdefault(a, set()).add(b)
         graph.setdefault(b, set()).add(a)
 
+    sys.setrecursionlimit(max(sys.getrecursionlimit(), len(graph) * 2 + 100))
+
     time = 0
     disc: dict[str, int] = {}
     low: dict[str, int] = {}

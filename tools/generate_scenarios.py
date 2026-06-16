@@ -108,6 +108,7 @@ def generate(dim: int) -> str:
     item_positions = dict(zip(all_items, spread_coords(dim, len(all_items), salt=dim)))
 
     lines: list[str] = []
+    max_turns = 90 + dim * 55
     lines.extend([
         "% =========================================================",
         f"%  METRO 3^{dim}",
@@ -120,6 +121,8 @@ def generate(dim: int) -> str:
         ":- dynamic item/3.",
         ":- dynamic tesouro/3.",
         ":- dynamic roubado/2.",
+        "",
+        f"max_turnos({max_turns}).",
         "",
         "% =========================================================",
         "% SUSPEITOS",
@@ -135,29 +138,6 @@ def generate(dim: int) -> str:
             lines.append(f"        {attr}{comma}")
         lines.append("    ])).")
         lines.append("")
-
-    lines.extend([
-        "% =========================================================",
-        "% CIDADES",
-        "% =========================================================",
-        "",
-    ])
-    for coord in coords:
-        lines.append(f"cidade({city(dim, coord)}).")
-
-    lines.extend([
-        "",
-        "% =========================================================",
-        "% CONEXOES",
-        "% =========================================================",
-        "",
-    ])
-    for coord in coords:
-        for axis in range(dim):
-            if coord[axis] < 2:
-                other = list(coord)
-                other[axis] += 1
-                lines.append(f"conectado({city(dim, coord)},{city(dim, tuple(other))}).")
 
     lines.extend([
         "",
@@ -193,15 +173,29 @@ def generate(dim: int) -> str:
                 lines.append("    []).")
                 lines.append("")
 
-    max_turns = 90 + dim * 55
     lines.extend([
         "% =========================================================",
-        "% LIMITE DE TURNOS",
+        "% CIDADES",
         "% =========================================================",
         "",
-        f"max_turnos({max_turns}).",
+    ])
+    for coord in coords:
+        lines.append(f"cidade({city(dim, coord)}).")
+
+    lines.extend([
+        "",
+        "% =========================================================",
+        "% CONEXOES",
+        "% =========================================================",
         "",
     ])
+    for coord in coords:
+        for axis in range(dim):
+            if coord[axis] < 2:
+                other = list(coord)
+                other[axis] += 1
+                lines.append(f"conectado({city(dim, coord)},{city(dim, tuple(other))}).")
+
     return "\n".join(lines)
 
 

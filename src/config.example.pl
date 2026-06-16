@@ -51,10 +51,10 @@ agent_max_source_bytes(65536).
 
 % Diretorio onde ficam os arquivos .prolog de cenario. Usado para listar os
 % cenarios disponiveis ao criar uma partida. Relativo a raiz do projeto.
-scenario_dir("./scenarios").
+scenario_dir("./maps").
 
 % Cenario padrao carregado pela engine: caminho do arquivo .prolog.
-engine_scenario("./scenarios/mapa1.prolog").
+engine_scenario("./maps/mapa1.prolog").
 
 % Quantidade de disfarces disponiveis ao ladrao.
 engine_disguises(3).
