@@ -2,6 +2,7 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module('../../../components/api_endpoint').
+:- use_module('../../security/authz').
 :- use_module('../../json_request').
 :- use_module('../../../db/sqlite_store').
 :- use_module('../../../engine/match_runner').
@@ -17,6 +18,7 @@ dispatch(get, _Request) :-
     sqlite_store:list_matches(Matches),
     reply_json(200, _{matches: Matches}).
 dispatch(post, Request) :-
+    authz:require_bearer_token(Request, _UserId),
     catch(create_match(Request, Status, Payload),
           Error,
           create_error(Error, Status, Payload)),
