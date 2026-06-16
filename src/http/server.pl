@@ -7,7 +7,7 @@
 :- use_module(library(http/http_cors)).
 :- use_module('../config').
 
-% Rotas web (uma rota por arquivo, flat)
+% Rotas web
 :- use_module('./routes/static').
 :- use_module('./routes/index').
 :- use_module('./routes/signup').
@@ -21,7 +21,7 @@
 :- use_module('./routes/matches_show').
 :- use_module('./routes/users_show').
 
-% Rotas API (JSON, flat)
+% Rotas API
 :- use_module('./routes/api/health').
 :- use_module('./routes/api/auth_signup').
 :- use_module('./routes/api/auth_login').
@@ -44,8 +44,7 @@
 %   `src/config.pl` para o rate limiter honrar os headers X-Forwarded-*.
 start :-
     config:http_port(HttpPort),
-    http_server(http_dispatch, [port(HttpPort)]),
-    format('HTTP listening on :~w~n', [HttpPort]).
+    http_server(http_dispatch, [port(HttpPort)]).
 
 %!  options_handler(+Request) is det.
 %

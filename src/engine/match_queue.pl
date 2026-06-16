@@ -78,13 +78,18 @@ recover_pending :-
 
 requeue_match(Match) :-
     MatchId = Match.id,
-    ( Match.status == "running"
-    -> catch(sqlite_store:update_match_status(MatchId, "queued"), _, true)
-    ;  true
-    ),
+    reset_running_status(Match, MatchId),
     register_job(MatchId, Match.thief_agent_id, Match.detective_agent_id,
                  Match.scenario, "queued"),
     thread_send_message(match_jobs, run(MatchId)).
+
+% Uma partida que estava `running` num restart volta para `queued` (vai recomecar
+% do zero); as ja `queued` ficam como estao.
+reset_running_status(Match, MatchId) :-
+    Match.status == "running",
+    !,
+    catch(sqlite_store:update_match_status(MatchId, "queued"), _, true).
+reset_running_status(_Match, _MatchId).
 
 % =============================
 % Enqueue (chamado pela rota)
@@ -147,10 +152,17 @@ run_subprocess(MatchId, ScenarioArg, Qdis, ThiefPath, DetectivePath, OutFile, St
         [process(Pid), stdout(null), stderr(null)]),
     set_job_pid(MatchId, Pid),
     config:match_timeout_seconds(Timeout),
-    ( process_wait(Pid, ExitStatus, [timeout(Timeout)])
-    -> wait_result(Pid, ExitStatus, Status)
-    ;  Status = error
-    ).
+    await_process(Pid, Timeout, Status).
+
+%!  await_process(+Pid, +Timeout, -Status) is det.
+%
+%   Espera o subprocesso; traduz a saida via wait_result/3. Se o proprio
+%   process_wait falhar, reporta `error`.
+await_process(Pid, Timeout, Status) :-
+    process_wait(Pid, ExitStatus, [timeout(Timeout)]),
+    !,
+    wait_result(Pid, ExitStatus, Status).
+await_process(_Pid, _Timeout, error).
 
 %!  wait_result(+Pid, +ExitStatus, -Status) is det.
 %
@@ -165,11 +177,15 @@ wait_result(_Pid, _Other, error).
 
 kill_process(Pid) :-
     catch(process_kill(Pid, term), _, true),
-    ( process_wait(Pid, _, [timeout(5)])
-    -> true
-    ;  catch(process_kill(Pid, kill), _, true),
-       catch(process_wait(Pid, _, []), _, true)
-    ).
+    finish_after_term(Pid).
+
+finish_after_term(Pid) :-
+    catch(process_wait(Pid, _, [timeout(5)]), _, fail),
+    !.
+
+finish_after_term(Pid) :-
+    catch(process_kill(Pid, kill), _, true),
+    catch(process_wait(Pid, _, []), _, true).
 
 %!  finish_job(+MatchId, +Status, +OutFile) is det.
 finish_job(MatchId, exit(0), OutFile) :-
@@ -200,8 +216,14 @@ read_result(OutFile, Winner, ReplayJson) :-
     atom_json_dict(ReplayJson, Replay, [width(0)]).
 
 cleanup(MatchId, OutFile) :-
-    catch(( exists_file(OutFile) -> delete_file(OutFile) ; true ), _, true),
+    delete_if_exists(OutFile),
     forget_job(MatchId).
+
+delete_if_exists(File) :-
+    exists_file(File),
+    !,
+    catch(delete_file(File), _, true).
+delete_if_exists(_File).
 
 %!  fail_job(+MatchId, +Status, +Reason) is det.
 fail_job(MatchId, Status, Reason) :-
@@ -238,12 +260,16 @@ set_job_pid(MatchId, Pid) :-
     update_job(MatchId, _{pid: Pid}).
 
 update_job(MatchId, Patch) :-
-    with_mutex(match_queue_jobs,
-        ( retract(job(MatchId, Old))
-        -> New = Old.put(Patch),
-           assertz(job(MatchId, New))
-        ;  true
-        )).
+    with_mutex(match_queue_jobs, apply_job_patch(MatchId, Patch)).
+
+% Funde o Patch no job, se ele ainda existir; se ja foi removido (terminou),
+% nao faz nada. Chamado sempre sob o mutex match_queue_jobs.
+apply_job_patch(MatchId, Patch) :-
+    retract(job(MatchId, Old)),
+    !,
+    New = Old.put(Patch),
+    assertz(job(MatchId, New)).
+apply_job_patch(_MatchId, _Patch).
 
 forget_job(MatchId) :-
     with_mutex(match_queue_jobs, retractall(job(MatchId, _))).
@@ -284,10 +310,12 @@ public_job(Dict, Public) :-
 % Tempo decorrido conta a partir do inicio da execucao quando ja rodando; antes
 % disso (na fila), conta a espera desde a criacao.
 elapsed_ref(Dict, Ref) :-
-    ( number(Dict.started_at)
-    -> Ref = Dict.started_at
-    ;  Ref = Dict.created_at
-    ).
+    Started = Dict.started_at,
+    number(Started),
+    !,
+    Ref = Started.
+elapsed_ref(Dict, Ref) :-
+    Ref = Dict.created_at.
 
 % =============================
 % Caminhos

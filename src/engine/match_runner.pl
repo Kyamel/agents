@@ -3,6 +3,7 @@
     valid_scenario/1,
     scenario_engine_arg/2,
     scenario_text/2,
+    scenario_graph/3,
     disguise_count/1
 ]).
 
@@ -88,6 +89,54 @@ scenario_text(Scenario, Label) :-
 %   resolvido com directory_file_path/3 a partir da raiz do projeto.
 strip_leading_dot(Path, Rel) :-
     ( atom_concat('./', Rel, Path) -> true ; Rel = Path ).
+
+%!  scenario_graph(+Scenario, -Cities, -Edges) is semidet.
+%
+%   Extrai o grafo do cenario (lista de cidades e de arestas) lendo os fatos
+%   `cidade/1` e `conectado/2` do arquivo .prolog, SEM consultar/executar nada
+%   (apenas `read_term/3`), portanto sem efeito colateral no estado global. As
+%   arestas sao normalizadas como pares ordenados `[Lo,Hi]` e deduplicadas (o
+%   grafo e tratado como nao-direcionado, como a engine faz em `validar/3`).
+%   Falha se o cenario for invalido ou o arquivo nao existir/parsear.
+scenario_graph(Scenario, Cities, Edges) :-
+    scenario_file(Scenario, File),
+    exists_file(File),
+    catch(read_scenario_terms(File, Terms), _, fail),
+    findall(City, member(cidade(City), Terms), Cities0),
+    sort(Cities0, Cities),
+    findall(Edge,
+            ( member(conectado(A, B), Terms), sort_pair(A, B, Edge) ),
+            Edges0),
+    sort(Edges0, Edges).
+
+%!  scenario_file(+Scenario, -File) is det.
+%
+%   Resolve o caminho absoluto do arquivo .prolog do cenario (mantendo a
+%   extensao, ao contrario de scenario_engine_arg/2).
+scenario_file(Scenario, File) :-
+    to_atom(Scenario, PathAtom),
+    strip_leading_dot(PathAtom, Rel),
+    project_root(Root),
+    directory_file_path(Root, Rel, File).
+
+%!  read_scenario_terms(+File, -Terms) is det.
+read_scenario_terms(File, Terms) :-
+    setup_call_cleanup(
+        open(File, read, In, [encoding(utf8)]),
+        read_terms(In, Terms),
+        close(In)).
+
+read_terms(In, Terms) :-
+    read_term(In, Term, []),
+    ( Term == end_of_file
+    ->  Terms = []
+    ;   Terms = [Term|Rest],
+        read_terms(In, Rest)
+    ).
+
+%!  sort_pair(+A, +B, -Pair) is det.
+sort_pair(A, B, [A, B]) :- A @=< B, !.
+sort_pair(A, B, [B, A]).
 
 %!  to_atom(+Value, -Atom) is det.
 %
