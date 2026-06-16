@@ -236,22 +236,27 @@ proximo_passo(Origem, Destino, ProximaCidade) :-
 %   Busca em largura no grafo conhecido. Cada elemento da fila e um caminho
 %   invertido, para ser barato adicionar vizinhos durante a expansao.
 caminho_mais_curto(Origem, Destino, Caminho) :-
-    bfs([[Origem]], Destino, CaminhoInvertido),
+    bfs([[Origem]], [Origem], Destino, CaminhoInvertido),
     reverse(CaminhoInvertido, Caminho).
 
-bfs([[Destino | Resto] | _], Destino, [Destino | Resto]) :-
+bfs([[Destino | Resto] | _], _Visitados, Destino, [Destino | Resto]) :-
     !.
-bfs([CaminhoAtual | OutrosCaminhos], Destino, Caminho) :-
-    estender_caminho(CaminhoAtual, NovosCaminhos),
+bfs([CaminhoAtual | OutrosCaminhos], Visitados, Destino, Caminho) :-
+    estender_caminho(CaminhoAtual, Visitados, NovosCaminhos, NovosVizinhos),
+    append(Visitados, NovosVizinhos, VisitadosAtualizado),
     append(OutrosCaminhos, NovosCaminhos, FilaAtualizada),
-    bfs(FilaAtualizada, Destino, Caminho).
+    bfs(FilaAtualizada, VisitadosAtualizado, Destino, Caminho).
 
-%!  estender_caminho(+Caminho, -NovosCaminhos) is det.
+%!  estender_caminho(+Caminho, +JaVistos, -NovosCaminhos, -NovosVizinhos) is det.
 %
-%   Gera caminhos novos a partir do ultimo no, evitando ciclos.
-estender_caminho([Atual | Visitados], NovosCaminhos) :-
-    findall([Vizinho, Atual | Visitados],
+%   Gera caminhos novos a partir do ultimo no, ignorando vizinhos ja vistos
+%   globalmente (em qualquer caminho da fila), nao so no caminho atual.
+estender_caminho([Atual | Visitados], JaVistos, NovosCaminhos, NovosVizinhos) :-
+    findall(Vizinho,
         ( aresta_conhecida(Atual, Vizinho),
-          \+ member(Vizinho, [Atual | Visitados])
+          \+ memberchk(Vizinho, JaVistos)
         ),
+        NovosVizinhos),
+    findall([Vizinho, Atual | Visitados],
+        member(Vizinho, NovosVizinhos),
         NovosCaminhos).

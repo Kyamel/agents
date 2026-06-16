@@ -324,26 +324,62 @@ proximo_passo_seguro(Origem, Destino, ProximaCidade) :-
 %
 %   Enumera caminhos simples e ordena pelo custo. Em mapas pequenos isso e
 %   suficiente e permite considerar risco, nao apenas distancia.
+%   Busca de custo uniforme (Dijkstra): expande sempre o caminho de menor
+%   custo acumulado. Como o custo de cada cidade e fixo e positivo, o primeiro
+%   caminho a alcancar o destino ja e o de menor risco, sem precisar enumerar
+%   todos os caminhos simples.
 caminho_melhor(Origem, Destino, Caminho, Score) :-
-    setof(S-P,
-        ( caminho_simples(Origem, Destino, [Origem], P),
-          score_caminho(P, S)
-        ),
-        [Score-Caminho | _]).
+    ucs([0-[Origem]], [], Destino, CaminhoInvertido, Score),
+    reverse(CaminhoInvertido, Caminho).
 
+ucs([Custo-[Destino | Resto] | _], _Fechados, Destino, [Destino | Resto], Custo) :-
+    !.
+ucs([_Custo-[Atual | _] | Resto], Fechados, Destino, Caminho, Score) :-
+    memberchk(Atual, Fechados),
+    !,
+    ucs(Resto, Fechados, Destino, Caminho, Score).
+ucs([Custo-[Atual | Visitados] | Resto], Fechados, Destino, Caminho, Score) :-
+    findall(Custo2-[Vizinho, Atual | Visitados],
+        ( aresta_conhecida(Atual, Vizinho),
+          \+ memberchk(Vizinho, Fechados),
+          custo_cidade(Vizinho, IncCusto),
+          Custo2 is Custo + IncCusto
+        ),
+        NovosCaminhos),
+    append(Resto, NovosCaminhos, FilaBruta),
+    keysort(FilaBruta, FilaOrdenada),
+    ucs(FilaOrdenada, [Atual | Fechados], Destino, Caminho, Score).
+
+%!  custo_cidade(+Cidade, -Custo) is det.
+%
+%   Custo incremental de entrar numa cidade: o mesmo peso usado por
+%   score_caminho/2 (12 por passo mais a penalidade de risco da cidade).
+custo_cidade(Cidade, Custo) :-
+    penalidade_cidade(Cidade, Penalidade),
+    Custo is 12 + Penalidade.
+
+%   Menor caminho puro (BFS) para quando so a distancia importa.
 caminho_mais_curto_simples(Origem, Destino, Caminho) :-
-    setof(L-P,
-        ( caminho_simples(Origem, Destino, [Origem], P),
-          length(P, L)
-        ),
-        [_-Caminho | _]).
+    bfs([[Origem]], [Origem], Destino, CaminhoInvertido),
+    reverse(CaminhoInvertido, Caminho).
 
-caminho_simples(Destino, Destino, VisitadosInvertidos, Caminho) :-
-    reverse(VisitadosInvertidos, Caminho).
-caminho_simples(Atual, Destino, Visitados, Caminho) :-
-    aresta_conhecida(Atual, Vizinho),
-    \+ member(Vizinho, Visitados),
-    caminho_simples(Vizinho, Destino, [Vizinho | Visitados], Caminho).
+bfs([[Destino | Resto] | _], _Visitados, Destino, [Destino | Resto]) :-
+    !.
+bfs([CaminhoAtual | OutrosCaminhos], Visitados, Destino, Caminho) :-
+    estender_caminho(CaminhoAtual, Visitados, NovosCaminhos, NovosVizinhos),
+    append(Visitados, NovosVizinhos, VisitadosAtualizado),
+    append(OutrosCaminhos, NovosCaminhos, FilaAtualizada),
+    bfs(FilaAtualizada, VisitadosAtualizado, Destino, Caminho).
+
+estender_caminho([Atual | Visitados], JaVistos, NovosCaminhos, NovosVizinhos) :-
+    findall(Vizinho,
+        ( aresta_conhecida(Atual, Vizinho),
+          \+ memberchk(Vizinho, JaVistos)
+        ),
+        NovosVizinhos),
+    findall([Vizinho, Atual | Visitados],
+        member(Vizinho, NovosVizinhos),
+        NovosCaminhos).
 
 score_caminho([_Origem | Resto], Score) :-
     length(Resto, Passos),

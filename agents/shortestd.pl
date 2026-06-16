@@ -207,21 +207,25 @@ proximo_passo(Origem, Destino, Proxima) :-
     caminho_mais_curto(Origem, Destino, [Origem, Proxima | _]).
 
 caminho_mais_curto(Origem, Destino, Caminho) :-
-    bfs([[Origem]], Destino, CaminhoInvertido),
+    bfs([[Origem]], [Origem], Destino, CaminhoInvertido),
     reverse(CaminhoInvertido, Caminho).
 
-bfs([[Destino | Resto] | _], Destino, [Destino | Resto]) :-
+bfs([[Destino | Resto] | _], _Visitados, Destino, [Destino | Resto]) :-
     !.
-bfs([CaminhoAtual | OutrosCaminhos], Destino, Caminho) :-
-    estender_caminho(CaminhoAtual, NovosCaminhos),
+bfs([CaminhoAtual | OutrosCaminhos], Visitados, Destino, Caminho) :-
+    estender_caminho(CaminhoAtual, Visitados, NovosCaminhos, NovosVizinhos),
+    append(Visitados, NovosVizinhos, VisitadosAtualizado),
     append(OutrosCaminhos, NovosCaminhos, FilaAtualizada),
-    bfs(FilaAtualizada, Destino, Caminho).
+    bfs(FilaAtualizada, VisitadosAtualizado, Destino, Caminho).
 
-estender_caminho([Atual | Visitados], NovosCaminhos) :-
-    findall([Vizinho, Atual | Visitados],
+estender_caminho([Atual | Visitados], JaVistos, NovosCaminhos, NovosVizinhos) :-
+    findall(Vizinho,
         ( known_edge(Atual, Vizinho),
-          \+ member(Vizinho, [Atual | Visitados])
+          \+ memberchk(Vizinho, JaVistos)
         ),
+        NovosVizinhos),
+    findall([Vizinho, Atual | Visitados],
+        member(Vizinho, NovosVizinhos),
         NovosCaminhos).
 
 melhor_patrulha(Cidade, Proxima) :-

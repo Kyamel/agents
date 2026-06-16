@@ -71,18 +71,26 @@ proximo_passo(Origem, Destino, Proxima) :-
     caminho_mais_curto(Origem, Destino, [Origem, Proxima | _]).
 
 caminho_mais_curto(Origem, Destino, Caminho) :-
-    setof(L-P,
-        ( caminho_simples(Origem, Destino, [Origem], P),
-          length(P, L)
-        ),
-        [_-Caminho | _]).
+    bfs([[Origem]], [Origem], Destino, CaminhoInvertido),
+    reverse(CaminhoInvertido, Caminho).
 
-caminho_simples(Destino, Destino, Visitados, Caminho) :-
-    reverse(Visitados, Caminho).
-caminho_simples(Atual, Destino, Visitados, Caminho) :-
-    known_edge(Atual, Vizinho),
-    \+ member(Vizinho, Visitados),
-    caminho_simples(Vizinho, Destino, [Vizinho | Visitados], Caminho).
+bfs([[Destino | Resto] | _], _Visitados, Destino, [Destino | Resto]) :-
+    !.
+bfs([CaminhoAtual | OutrosCaminhos], Visitados, Destino, Caminho) :-
+    estender_caminho(CaminhoAtual, Visitados, NovosCaminhos, NovosVizinhos),
+    append(Visitados, NovosVizinhos, VisitadosAtualizado),
+    append(OutrosCaminhos, NovosCaminhos, FilaAtualizada),
+    bfs(FilaAtualizada, VisitadosAtualizado, Destino, Caminho).
+
+estender_caminho([Atual | Visitados], JaVistos, NovosCaminhos, NovosVizinhos) :-
+    findall(Vizinho,
+        ( known_edge(Atual, Vizinho),
+          \+ memberchk(Vizinho, JaVistos)
+        ),
+        NovosVizinhos),
+    findall([Vizinho, Atual | Visitados],
+        member(Vizinho, NovosVizinhos),
+        NovosCaminhos).
 
 grau(Cidade, Grau) :-
     findall(V, known_edge(Cidade, V), Vs),
