@@ -1,0 +1,628 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Scotland Yard Agents API",
+    "version": "1.0.0",
+    "description": "API JSON para cadastro, autenticação, envio de agentes Prolog e criação/consulta de partidas."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8081",
+      "description": "Desenvolvimento local"
+    }
+  ],
+  "tags": [
+    { "name": "Auth" },
+    { "name": "Agents" },
+    { "name": "Matches" },
+    { "name": "Users" },
+    { "name": "Jobs" },
+    { "name": "Health" }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Verifica se o serviço está ativo",
+        "responses": {
+          "200": {
+            "description": "Serviço ativo",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/signup": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Cria uma conta",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SignupRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conta criada",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SignupResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "409": {
+            "description": "Email já cadastrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": { "error": "email_already_exists" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Autentica usuário e devolve token Bearer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login realizado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LoginResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": {
+            "description": "Email ainda não verificado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": { "error": "email_not_verified" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Verifica email usando token",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Email verificado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VerifyResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Token inválido ou expirado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": { "error": "invalid_or_expired_token" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents": {
+      "get": {
+        "tags": ["Agents"],
+        "summary": "Lista agentes cadastrados",
+        "responses": {
+          "200": {
+            "description": "Lista de agentes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agents": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Agent" }
+                    }
+                  },
+                  "required": ["agents"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Agents"],
+        "summary": "Envia um agente Prolog",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateAgentRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agente criado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateAgentResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": {
+            "description": "Usuário não encontrado ou email não verificado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": { "error": "email_not_verified_or_user_not_found" }
+              }
+            }
+          },
+          "422": { "$ref": "#/components/responses/UnprocessableEntity" }
+        }
+      }
+    },
+    "/api/v1/agents/{id}": {
+      "get": {
+        "tags": ["Agents"],
+        "summary": "Consulta um agente",
+        "parameters": [
+          { "$ref": "#/components/parameters/IdPath" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agente encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agent": { "$ref": "#/components/schemas/Agent" }
+                  },
+                  "required": ["agent"]
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/matches": {
+      "get": {
+        "tags": ["Matches"],
+        "summary": "Lista partidas",
+        "responses": {
+          "200": {
+            "description": "Lista de partidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "matches": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Match" }
+                    }
+                  },
+                  "required": ["matches"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Matches"],
+        "summary": "Cria e enfileira uma partida",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateMatchRequest" }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Partida enfileirada",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateMatchResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "422": { "$ref": "#/components/responses/UnprocessableEntity" }
+        }
+      }
+    },
+    "/api/v1/matches/{id}": {
+      "get": {
+        "tags": ["Matches"],
+        "summary": "Consulta uma partida",
+        "parameters": [
+          { "$ref": "#/components/parameters/IdPath" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Partida encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "match": { "$ref": "#/components/schemas/MatchWithReplay" }
+                  },
+                  "required": ["match"]
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Consulta perfil público com estatísticas",
+        "parameters": [
+          { "$ref": "#/components/parameters/IdPath" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Perfil encontrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserProfileResponse" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/jobs": {
+      "get": {
+        "tags": ["Jobs"],
+        "summary": "Lista jobs de partidas em execução",
+        "responses": {
+          "200": {
+            "description": "Lista de jobs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jobs": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Job" }
+                    }
+                  },
+                  "required": ["jobs"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{id}": {
+      "get": {
+        "tags": ["Jobs"],
+        "summary": "Consulta o status de um job por id da partida",
+        "parameters": [
+          { "$ref": "#/components/parameters/IdPath" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "job": { "$ref": "#/components/schemas/Job" }
+                  },
+                  "required": ["job"]
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "parameters": {
+      "IdPath": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Corpo ou parâmetros inválidos",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Token ausente ou inválido",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": { "error": "unauthorized" }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Recurso não encontrado",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "UnprocessableEntity": {
+        "description": "Dados válidos em JSON, mas recusados pela regra de negócio",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        },
+        "required": ["error"]
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "ok" },
+          "service": { "type": "string", "example": "agents-battle-api" }
+        },
+        "required": ["status", "service"]
+      },
+      "SignupRequest": {
+        "type": "object",
+        "properties": {
+          "username": { "type": "string", "example": "Lucas" },
+          "email": { "type": "string", "format": "email", "example": "lucas@example.com" },
+          "password": { "type": "string", "format": "password", "example": "secret123" }
+        },
+        "required": ["username", "email", "password"]
+      },
+      "SignupResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "created" },
+          "user_id": { "type": "string" },
+          "username": { "type": "string" },
+          "email_delivery": { "type": "string", "enum": ["sent", "console", "failed"] },
+          "message": { "type": "string" }
+        },
+        "required": ["status", "user_id", "username", "email_delivery", "message"]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "format": "password" }
+        },
+        "required": ["email", "password"]
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "ok" },
+          "token": { "type": "string" },
+          "user_id": { "type": "string" },
+          "expires_at": { "type": "string", "format": "date-time" }
+        },
+        "required": ["status", "token", "user_id", "expires_at"]
+      },
+      "VerifyResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "verified" },
+          "user_id": { "type": "string" }
+        },
+        "required": ["status", "user_id"]
+      },
+      "Agent": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "owner_user_id": { "type": "string" },
+          "name": { "type": "string", "maxLength": 60, "example": "meu-agente" },
+          "role": { "type": "string", "enum": ["thief", "detective"] },
+          "created_at": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "owner_user_id", "name", "role", "created_at"]
+      },
+      "CreateAgentRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "maxLength": 60, "pattern": "^[a-z0-9-]+$", "example": "meu-agente" },
+          "role": { "type": "string", "enum": ["thief", "detective"] },
+          "source": { "type": "string", "example": ":- module(meu_agente, [])." }
+        },
+        "required": ["name", "role", "source"]
+      },
+      "CreateAgentResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "created" },
+          "agent": { "$ref": "#/components/schemas/Agent" }
+        },
+        "required": ["status", "agent"]
+      },
+      "CreateMatchRequest": {
+        "type": "object",
+        "properties": {
+          "thief_agent_id": { "type": "string" },
+          "detective_agent_id": { "type": "string" },
+          "scenario": { "type": "string", "description": "Opcional; usa o cenário padrão quando ausente." }
+        },
+        "required": ["thief_agent_id", "detective_agent_id"]
+      },
+      "CreateMatchResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "queued" },
+          "match_id": { "type": "string" }
+        },
+        "required": ["status", "match_id"]
+      },
+      "Match": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "thief_agent_id": { "type": "string" },
+          "detective_agent_id": { "type": "string" },
+          "scenario": { "type": "string" },
+          "winner": { "type": "string", "enum": ["thief", "detective", "draw", ""] },
+          "replay_json": { "type": "string" },
+          "status": { "type": "string", "enum": ["queued", "running", "done", "timeout", "error"] },
+          "created_at": { "type": "string", "format": "date-time" },
+          "started_at": { "type": "string" },
+          "finished_at": { "type": "string" }
+        },
+        "required": ["id", "thief_agent_id", "detective_agent_id", "winner", "status", "created_at"]
+      },
+      "MatchWithReplay": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Match" },
+          {
+            "type": "object",
+            "properties": {
+              "replay": { "type": "object", "additionalProperties": true }
+            }
+          }
+        ]
+      },
+      "Stats": {
+        "type": "object",
+        "properties": {
+          "wins": { "type": "integer", "minimum": 0 },
+          "losses": { "type": "integer", "minimum": 0 },
+          "draws": { "type": "integer", "minimum": 0 }
+        },
+        "required": ["wins", "losses", "draws"]
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "username": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "is_verified": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "username", "email", "is_verified", "created_at"]
+      },
+      "AgentWithStats": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Agent" },
+          {
+            "type": "object",
+            "properties": {
+              "stats": { "$ref": "#/components/schemas/Stats" }
+            },
+            "required": ["stats"]
+          }
+        ]
+      },
+      "UserProfileResponse": {
+        "type": "object",
+        "properties": {
+          "user": { "$ref": "#/components/schemas/User" },
+          "stats": { "$ref": "#/components/schemas/Stats" },
+          "agents": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AgentWithStats" }
+          }
+        },
+        "required": ["user", "stats", "agents"]
+      },
+      "Job": {
+        "type": "object",
+        "properties": {
+          "match_id": { "type": "string" },
+          "status": { "type": "string" },
+          "elapsed_seconds": {
+            "oneOf": [
+              { "type": "number" },
+              { "type": "null" }
+            ]
+          },
+          "pid": {
+            "oneOf": [
+              { "type": "integer" },
+              { "type": "null" }
+            ]
+          },
+          "thief_id": { "type": "string" },
+          "detective_id": { "type": "string" },
+          "scenario": { "type": "string" }
+        },
+        "required": ["match_id", "status"]
+      }
+    }
+  }
+}

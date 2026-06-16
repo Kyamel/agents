@@ -173,10 +173,10 @@ action_class(Turn, StatusKey, 'px-3 py-2 text-rose-400') :-
 action_class(_Turn, _StatusKey, 'px-3 py-2').
 
 render_not_found(Request) :-
-    page:reply_page(Request, 'Partida nao encontrada', [
-        h1([class('text-2xl font-bold mb-2')], 'Partida nao encontrada'),
+    page:reply_page(Request, 'Partida não encontrada', [
+        h1([class('text-2xl font-bold mb-2')], 'Partida não encontrada'),
         p([class('text-slate-400 mb-6')],
-          'Nao existe partida com esse identificador.'),
+          'Não existe partida com esse identificador.'),
         a([href('/matches'), class('text-ufop-400 hover:underline')],
           'Voltar para partidas')
     ]).

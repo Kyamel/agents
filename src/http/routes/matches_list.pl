@@ -38,7 +38,7 @@ render(Request, User, Matches, PageMeta) :-
     page:reply_page(Request, 'Partidas', [
         TopBar,
         p([class('text-slate-400 mb-6')],
-          'Historico de partidas. Também disponivel em /api/v1/matches.'),
+          'Histórico de partidas. Também disponivel em /api/v1/matches.'),
         ListHtml,
         Pagination
     ]).

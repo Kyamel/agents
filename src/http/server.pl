@@ -10,6 +10,7 @@
 % Rotas web
 :- use_module('./routes/static').
 :- use_module('./routes/index').
+:- use_module('./routes/docs').
 :- use_module('./routes/signup').
 :- use_module('./routes/login').
 :- use_module('./routes/logout').
