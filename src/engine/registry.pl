@@ -1,5 +1,6 @@
 :- module(agent_registry, [
-    register_agent_source/5
+    register_agent_source/5,
+    valid_agent_name/1
 ]).
 
 :- use_module(library(error)).
@@ -40,3 +41,19 @@ validate_role("thief").
 validate_role("detective").
 validate_role(Role) :-
     domain_error(role, Role).
+
+%!  valid_agent_name(+Name) is semidet.
+%
+%   Nome de agente deve ser um slug ASCII: minusculas, digitos e hifens, com ao
+%   menos um caractere alfanumerico. Centralizado aqui para as rotas web e API
+%   validarem com a mesma regra.
+valid_agent_name(Name) :-
+    string_codes(Name, Codes),
+    forall(member(C, Codes), slug_code(C)),
+    once((member(A, Codes), alnum_code(A))).
+
+slug_code(0'-) :- !.
+slug_code(C) :- alnum_code(C).
+
+alnum_code(C) :- C >= 0'a, C =< 0'z, !.
+alnum_code(C) :- C >= 0'0, C =< 0'9.

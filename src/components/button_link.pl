@@ -1,5 +1,6 @@
 :- module(button_link, [
-    button_link/3
+    button_link/3,
+    auth_button_link/4
   ]).
 
 %!  button_link(+Href, +Label, -Html) is det.
@@ -13,4 +14,12 @@ button_link(Href, Label, Html) :-
         ],
         Label
     ).
+
+%!  auth_button_link(+User, +Href, +Label, -Html) is det.
+%
+%   Botão-link visível apenas para usuários autenticados; some (string vazia)
+%   para visitantes anônimos. Usado nos CTAs das telas de listagem.
+auth_button_link(anon, _Href, _Label, '') :- !.
+auth_button_link(_User, Href, Label, Html) :-
+    button_link(Href, Label, Html).
 

@@ -1,9 +1,7 @@
 :- module(api_agents_list, []).
 
 :- use_module(library(http/http_dispatch)).
-:- use_module(library(http/http_json)).
-:- use_module(library(http/http_cors)).
-:- use_module('../../security/rate_limit').
+:- use_module('../../../components/api_endpoint').
 :- use_module('../../security/authz').
 :- use_module('../../json_request').
 :- use_module('../../../db/sqlite_store').
@@ -11,29 +9,18 @@
 
 :- http_handler(root(api/v1/agents), handler, [methods([get, post, options])]).
 
-% =============================
-% Handler
-% =============================
-
 handler(Request) :-
-    cors_enable(Request, [methods([get, post, options])]),
-    rate_limit:enforce_ip_rate_limit(Request),
-    memberchk(method(Method), Request),
-    dispatch(Method, Request).
+    api_handle(Request, [get, post, options], dispatch).
 
-dispatch(options, _) :-
-    format("Content-type: text/plain~n~n").
 dispatch(get, _Request) :-
     sqlite_store:list_agents(Agents),
-    reply(200, _{agents: Agents}).
+    reply_json(200, _{agents: Agents}).
 dispatch(post, Request) :-
     authz:require_bearer_token(Request, UserId),
     catch(create_agent(UserId, Request, Status, Payload),
           Error,
           create_error(Error, Status, Payload)),
-    reply(Status, Payload).
-dispatch(_, _) :-
-    reply(405, _{error: "method_not_allowed"}).
+    reply_json(Status, Payload).
 
 % =============================
 % Logica (validacao + DB)
@@ -50,30 +37,19 @@ create_agent(UserId, Request, Status, Payload) :-
     create_validated(UserId, Name, Role, Source, Status, Payload).
 
 create_validated(_UserId, Name, _Role, _Source, 422, _{error: "invalid_agent_name"}) :-
-    \+ valid_name(Name),
+    \+ agent_registry:valid_agent_name(Name),
     !.
 create_validated(UserId, Name, Role, Source, 201, _{status: "created", agent: Agent}) :-
     id_string(UserId, UserIdStr),
     agent_registry:register_agent_source(UserIdStr, Name, Role, Source, Agent).
 
-%!  valid_name(+Name) is semidet.
-%
-%   Nome deve ser um slug ASCII: minusculas, digitos e hifens, com ao menos
-%   um caractere alfanumerico.
-valid_name(Name) :-
-    string_codes(Name, Codes),
-    forall(member(C, Codes), slug_code(C)),
-    once((member(A, Codes), alnum_code(A))).
-
-slug_code(0'-) :- !.
-slug_code(C) :- alnum_code(C).
-
-alnum_code(C) :- C >= 0'a, C =< 0'z, !.
-alnum_code(C) :- C >= 0'0, C =< 0'9.
-
 %!  create_error(+Error, -Status, -Payload) is det.
 %
-%   Traduz erros de validacao do registro para respostas HTTP limpas.
+%   Traduz erros do registro para respostas HTTP. Erros de corpo invalido ja
+%   sao `http_reply(bad_request(...))` (400) e seguem direto para o framework.
+create_error(http_reply(Reply), _, _) :-
+    !,
+    throw(http_reply(Reply)).
 create_error(error(domain_error(role, _), _), 422,
              _{error: "invalid_role"}) :- !.
 create_error(Error, 500, _{error: "internal_error"}) :-
@@ -86,10 +62,3 @@ verified_user(UserId) :-
 id_string(Id, Id) :- string(Id), !.
 id_string(Id, Str) :- atom(Id), !, atom_string(Id, Str).
 id_string(Id, Str) :- term_string(Id, Str).
-
-% =============================
-% Resposta (JSON)
-% =============================
-
-reply(Status, Payload) :-
-    reply_json_dict(Payload, [status(Status)]).

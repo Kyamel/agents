@@ -1,9 +1,7 @@
 :- module(api_jobs_show, []).
 
 :- use_module(library(http/http_dispatch)).
-:- use_module(library(http/http_json)).
-:- use_module(library(http/http_cors)).
-:- use_module('../../security/rate_limit').
+:- use_module('../../../components/api_endpoint').
 :- use_module('../../../engine/match_queue').
 :- use_module('../../../db/sqlite_store').
 
@@ -13,26 +11,19 @@
 :- http_handler('/api/v1/jobs/', handler, [methods([get, options]), prefix]).
 
 handler(Request) :-
-    cors_enable(Request, [methods([get, options])]),
-    rate_limit:enforce_ip_rate_limit(Request),
-    memberchk(method(Method), Request),
-    memberchk(path(Path), Request),
-    dispatch(Method, Path).
+    api_handle(Request, [get, options], dispatch).
 
-dispatch(options, _) :-
-    format("Content-type: text/plain~n~n").
-dispatch(get, Path) :-
+dispatch(get, Request) :-
+    memberchk(path(Path), Request),
     handle_get(Path).
-dispatch(_, _) :-
-    reply_json_dict(_{error: "method_not_allowed"}, [status(405)]).
 
 handle_get(Path) :-
     extract_id(Path, Id),
     !,
     load_job(Id, Status, Payload),
-    reply_json_dict(Payload, [status(Status)]).
+    reply_json(Status, Payload).
 handle_get(_) :-
-    reply_json_dict(_{error: "not_found"}, [status(404)]).
+    reply_json(404, _{error: "not_found"}).
 
 extract_id(Path, Id) :-
     atom_concat('/api/v1/jobs/', Id, Path),

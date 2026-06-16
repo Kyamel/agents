@@ -1,75 +1,81 @@
 :- module(api_matches_list, []).
 
 :- use_module(library(http/http_dispatch)).
-:- use_module(library(http/http_json)).
-:- use_module(library(http/http_cors)).
-:- use_module('../../security/rate_limit').
+:- use_module('../../../components/api_endpoint').
 :- use_module('../../json_request').
 :- use_module('../../../db/sqlite_store').
 :- use_module('../../../engine/match_runner').
+:- use_module('../../../engine/match_queue').
+:- use_module('../../../config').
 
 :- http_handler(root(api/v1/matches), handler, [methods([get, post, options])]).
 
-% =============================
-% Handler
-% =============================
-
 handler(Request) :-
-    cors_enable(Request, [methods([get, post, options])]),
-    rate_limit:enforce_ip_rate_limit(Request),
-    memberchk(method(Method), Request),
-    dispatch(Method, Request).
+    api_handle(Request, [get, post, options], dispatch).
 
-dispatch(options, _) :-
-    format("Content-type: text/plain~n~n").
 dispatch(get, _Request) :-
     sqlite_store:list_matches(Matches),
-    reply(200, _{matches: Matches}).
+    reply_json(200, _{matches: Matches}).
 dispatch(post, Request) :-
-    create_match(Request, Payload),
-    reply(201, Payload).
-dispatch(_, _) :-
-    reply(405, _{error: "method_not_allowed"}).
+    catch(create_match(Request, Status, Payload),
+          Error,
+          create_error(Error, Status, Payload)),
+    reply_json(Status, Payload).
 
 % =============================
-% Logica (validacao + execucao + DB)
+% Logica (validacao + enfileiramento)
 % =============================
+%
+% A partida nao roda na request: ela e enfileirada e executada em background num
+% subprocesso (ver engine/match_queue). A resposta e 202 com o id da partida; o
+% progresso e consultado em GET /api/v1/jobs/<id> e o resultado em
+% GET /api/v1/matches/<id>.
 
-create_match(Request, Payload) :-
+create_match(Request, Status, Payload) :-
     json_request:read_json_body(Request, Body),
     json_request:require_string(Body, thief_agent_id, ThiefId),
     json_request:require_string(Body, detective_agent_id, DetectiveId),
-    ensure_agent_exists(ThiefId, thief, Thief),
-    ensure_agent_exists(DetectiveId, detective, Detective),
-    ensure_roles(Thief, Detective),
-    match_runner:run_match(Thief, Detective, MatchResult, ReplayJson),
-    sqlite_store:save_match(ThiefId, DetectiveId, MatchResult.winner, ReplayJson, MatchId),
-    Payload = _{
-        status: "finished",
-        match_id: MatchId,
-        match: MatchResult
-    }.
+    scenario_of(Body, Scenario),
+    validate_and_enqueue(ThiefId, DetectiveId, Scenario, Status, Payload).
 
-ensure_agent_exists(AgentId, _, Agent) :-
-    sqlite_store:get_agent(AgentId, Agent),
+validate_and_enqueue(ThiefId, _, _, 404, _{error: "thief_agent_not_found"}) :-
+    \+ sqlite_store:get_agent(ThiefId, _),
     !.
-ensure_agent_exists(_, RoleLabel, _) :-
-    role_not_found_error(RoleLabel, Message),
-    throw(http_reply(not_found(_{error: Message}))).
+validate_and_enqueue(_, DetectiveId, _, 404, _{error: "detective_agent_not_found"}) :-
+    \+ sqlite_store:get_agent(DetectiveId, _),
+    !.
+validate_and_enqueue(_, _, Scenario, 422, _{error: "invalid_scenario"}) :-
+    \+ match_runner:valid_scenario(Scenario),
+    !.
+validate_and_enqueue(ThiefId, DetectiveId, Scenario, Status, Payload) :-
+    sqlite_store:get_agent(ThiefId, Thief),
+    sqlite_store:get_agent(DetectiveId, Detective),
+    enqueue_if_roles_ok(ThiefId, DetectiveId, Thief, Detective, Scenario, Status, Payload).
 
-role_not_found_error(thief, "thief_agent_not_found").
-role_not_found_error(detective, "detective_agent_not_found").
+enqueue_if_roles_ok(_, _, Thief, Detective, _, 422, _{error: "invalid_agent_roles"}) :-
+    \+ valid_roles(Thief, Detective),
+    !.
+enqueue_if_roles_ok(ThiefId, DetectiveId, _, _, Scenario, 202,
+                    _{status: "queued", match_id: MatchId}) :-
+    match_queue:enqueue_match(ThiefId, DetectiveId, Scenario, MatchId).
 
-ensure_roles(Thief, Detective) :-
+valid_roles(Thief, Detective) :-
     Thief.role == "thief",
-    Detective.role == "detective",
+    Detective.role == "detective".
+
+%!  scenario_of(+Body, -Scenario) is det.
+%
+%   Cenario opcional no corpo; cai no padrao configurado quando ausente.
+scenario_of(Body, Scenario) :-
+    get_dict(scenario, Body, Scenario),
+    string(Scenario),
+    Scenario \== "",
     !.
-ensure_roles(_, _) :-
-    throw(http_reply(bad_request(_{error: "invalid_agent_roles"}))).
+scenario_of(_Body, Scenario) :-
+    config:engine_scenario(Scenario).
 
-% =============================
-% Resposta (JSON)
-% =============================
-
-reply(Status, Payload) :-
-    reply_json_dict(Payload, [status(Status)]).
+create_error(http_reply(Reply), _, _) :-
+    !,
+    throw(http_reply(Reply)).
+create_error(Error, 500, _{error: "internal_error"}) :-
+    print_message(error, Error).

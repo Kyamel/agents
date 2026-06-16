@@ -2,11 +2,11 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/html_write)).
-:- use_module(library(apply)).
 :- use_module('../../db/sqlite_store').
 :- use_module('../../components/page').
 :- use_module('../../components/match_card').
 :- use_module('../../components/button_link').
+:- use_module('../../components/card_list').
 :- use_module('../../components/page_section').
 :- use_module('../security/web_session').
 
@@ -26,8 +26,9 @@ handler(Request) :-
 % =============================
 
 render(Request, User, Matches) :-
-    matches_list_html(Matches, ListHtml),
-    new_match_cta(User, Cta),
+    card_grid(Matches, match_card:match_card, 'grid gap-4',
+              'Nenhuma partida registrada ainda.', ListHtml),
+    button_link:auth_button_link(User, '/matches/new', 'Nova partida', Cta),
     page_section:top_bar('Partidas', Cta, TopBar),
     page:reply_page(Request, 'Partidas', [
         TopBar,
@@ -35,13 +36,3 @@ render(Request, User, Matches) :-
           'Historico de partidas. Tambem disponivel na API em /api/v1/matches.'),
         ListHtml
     ]).
-
-new_match_cta(anon, '') :- !.
-new_match_cta(_, Html) :-
-    button_link:button_link('/matches/new', 'Nova partida', Html).
-
-matches_list_html([], Html) :-
-    !,
-    page_section:empty_state('Nenhuma partida registrada ainda.', Html).
-matches_list_html(Matches, div([class('grid gap-4')], Cards)) :-
-    maplist(match_card:match_card, Matches, Cards).

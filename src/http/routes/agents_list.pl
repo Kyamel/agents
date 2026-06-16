@@ -2,11 +2,11 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/html_write)).
-:- use_module(library(apply)).
 :- use_module('../../db/sqlite_store').
 :- use_module('../../components/page').
 :- use_module('../../components/agent_card').
 :- use_module('../../components/button_link').
+:- use_module('../../components/card_list').
 :- use_module('../../components/page_section').
 :- use_module('../security/web_session').
 
@@ -44,8 +44,9 @@ owner_email(_, "").
 % =============================
 
 render(Request, User, Agents) :-
-    agents_list_html(Agents, User, ListHtml),
-    upload_cta(User, Cta),
+    card_grid(Agents, render_card(User), 'grid sm:grid-cols-2 gap-4',
+              'Nenhum agente cadastrado ainda.', ListHtml),
+    button_link:auth_button_link(User, '/agents/new', 'Enviar agente', Cta),
     page_section:top_bar('Agentes', Cta, TopBar),
     page:reply_page(Request, 'Agentes', [
         TopBar,
@@ -54,15 +55,5 @@ render(Request, User, Agents) :-
         ListHtml
     ]).
 
-upload_cta(anon, '') :- !.
-upload_cta(_, Html) :-
-    button_link:button_link('/agents/new', 'Enviar agente', Html).
-
-agents_list_html([], _, Html) :-
-    !,
-    page_section:empty_state('Nenhum agente cadastrado ainda.', Html).
-agents_list_html(Agents, User, div([class('grid sm:grid-cols-2 gap-4')], Cards)) :-
-    maplist(card_for(User), Agents, Cards).
-
-card_for(User, Agent, Card) :-
+render_card(User, Agent, Card) :-
     agent_card:agent_card(Agent, User, Card).

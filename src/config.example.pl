@@ -60,9 +60,17 @@ engine_scenario("./scenarios/mapa1.prolog").
 engine_disguises(3).
 
 % Tamanho do pool de execucao de partidas. Cada partida roda num subprocesso
-% swipl proprio; este e o numero maximo rodando em paralelo. `auto` =
-% max(1, cpu_count - 1), deixando um nucleo para o servidor.
-match_max_workers(auto).
+% swipl proprio; este e o numero maximo rodando em paralelo.
+match_max_workers(N) :-
+    W is 8,
+    max_workers(W, N).
+
+max_workers(W, N):-
+    integer(W),
+    W >= 1,
+    !,
+    current_prolog_flag(cpu_count, C),
+    N is max(W, C - 1).
 
 % Tempo maximo (segundos) de uma partida antes de ser interrompida. 21600 = 6h.
 match_timeout_seconds(21600).
