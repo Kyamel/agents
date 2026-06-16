@@ -24,7 +24,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_SCENARIO = ROOT / "src/engine/cenario1.prolog"
+DEFAULT_SCENARIO = ROOT / "maps/cenario1.prolog"
 DEFAULT_DETECTIVES = [ROOT / "agents/randomd.pl"]
 DEFAULT_OUT = ROOT / "tools/eval/results"
 
