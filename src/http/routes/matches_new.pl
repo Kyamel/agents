@@ -6,6 +6,7 @@
 :- use_module(library(apply)).
 :- use_module('../../db/sqlite_store').
 :- use_module('../../engine/match_runner').
+:- use_module('../../engine/match_queue').
 :- use_module('../../components/page').
 :- use_module('../../components/alert').
 :- use_module('../../components/form_field').
@@ -77,15 +78,16 @@ execute_match(ThiefId, DetectiveId, Thief, Detective, Scenario, Outcome) :-
         match_error_outcome(ThiefId, DetectiveId, Error, Outcome)
     ).
 
-run_and_save(ThiefId, DetectiveId, Thief, Detective, Scenario, ok(MatchId)) :-
-    match_runner:run_match(Thief, Detective, Scenario, Result, ReplayJson),
-    sqlite_store:save_match(ThiefId, DetectiveId, Result.winner, ReplayJson, MatchId).
+% Apenas ENFILEIRA a partida: cria a linha pendente, devolve o id e redireciona.
+% A execucao acontece em background, num subprocesso, gerida por match_queue.
+run_and_save(ThiefId, DetectiveId, _Thief, _Detective, Scenario, ok(MatchId)) :-
+    match_queue:enqueue_match(ThiefId, DetectiveId, Scenario, MatchId).
 
 match_error_outcome(ThiefId, DetectiveId, Error, error(Message)) :-
     format(user_error,
-           '[match] erro ladrao=~w detective=~w: ~q~n',
+           '[match] erro ao enfileirar ladrao=~w detective=~w: ~q~n',
            [ThiefId, DetectiveId, Error]),
-    format(string(Message), "Falha ao executar a partida: ~w", [Error]).
+    format(string(Message), "Falha ao criar a partida: ~w", [Error]).
 
 agent_has_role(Agent, Role) :-
     agent_role_atom(Agent, RoleAtom),
@@ -132,7 +134,8 @@ render_form_fields(Request, State, Thieves, Detectives) :-
     scenario_options(ScenarioOptions),
     page_section:page_heading(
         'Nova partida',
-        'A partida e executada na hora e o replay fica disponivel ao final.',
+        'A partida entra na fila e roda em background; acompanhe o progresso na \c
+         pagina da partida.',
         Heading
     ),
     form_field:select_field(thief_agent_id, 'Agente ladrao', ThiefOptions, ThiefField),

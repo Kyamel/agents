@@ -30,6 +30,8 @@
 :- use_module('./routes/api/agents_show').
 :- use_module('./routes/api/matches_list').
 :- use_module('./routes/api/matches_show').
+:- use_module('./routes/api/jobs_list').
+:- use_module('./routes/api/jobs_show').
 
 
 :- set_setting(http:cors, []).

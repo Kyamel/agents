@@ -19,6 +19,11 @@
     update_agent_source/2,
 
     save_match/5,
+    create_pending_match/4,
+    update_match_status/2,
+    finalize_match/3,
+    mark_match_failed/2,
+    list_matches_by_status/2,
     get_match/2,
     list_matches/1
 ]).
@@ -166,10 +171,27 @@ migrate :-
         id TEXT PRIMARY KEY,
         thief_agent_id TEXT NOT NULL,
         detective_agent_id TEXT NOT NULL,
-        winner TEXT NOT NULL,
-        replay_json TEXT NOT NULL,
-        created_at TEXT NOT NULL
-    );").
+        scenario TEXT,
+        winner TEXT,
+        replay_json TEXT,
+        status TEXT,
+        created_at TEXT NOT NULL,
+        started_at TEXT,
+        finished_at TEXT
+    );"),
+    migrate_matches_columns.
+
+%!  migrate_matches_columns is det.
+%
+%   Adiciona as colunas do fluxo assincrono (subprocessos + fila) em bancos
+%   antigos, criados antes da Fase 1, quando `matches` so tinha o resultado
+%   final. `ALTER TABLE ... ADD COLUMN` falha se a coluna ja existe, dai o
+%   `catch` para manter a migracao idempotente.
+migrate_matches_columns :-
+    forall(member(Def, ["scenario TEXT", "status TEXT",
+                        "started_at TEXT", "finished_at TEXT"]),
+           ( format(string(SQL), "ALTER TABLE matches ADD COLUMN ~s;", [Def]),
+             catch(sql_exec(SQL), _, true) )).
 
 %!  sql_exec(+SQL) is det.
 %
@@ -418,6 +440,89 @@ save_match(ThiefAgentId, DetectiveAgentId, Winner, ReplayJson, MatchId) :-
       [QId, QT, QD, QW, QR, QC]),
     sql_exec(SQL).
 
+%!  create_pending_match(+ThiefAgentId, +DetectiveAgentId, +Scenario, -MatchId) is det.
+%
+%   Cria a linha da partida JA no enfileiramento, com `status='queued'` e sem
+%   resultado. O `winner`/`replay_json` sao preenchidos por `finalize_match/3`
+%   quando o subprocesso termina. O MatchId e um atomo (chave usada tambem como
+%   id de job em memoria e na URL /matches/<id>).
+create_pending_match(ThiefAgentId, DetectiveAgentId, Scenario, MatchId) :-
+    ensure_connected,
+    uuid(MatchId),
+    timestamp_iso(CreatedAt),
+    sql_quote(MatchId, QId),
+    sql_quote(ThiefAgentId, QT),
+    sql_quote(DetectiveAgentId, QD),
+    sql_quote(Scenario, QS),
+    sql_quote(CreatedAt, QC),
+    format(string(SQL),
+      "INSERT INTO matches(id, thief_agent_id, detective_agent_id, scenario, winner, replay_json, status, created_at, started_at, finished_at) VALUES(~s, ~s, ~s, ~s, '', '', 'queued', ~s, NULL, NULL);",
+      [QId, QT, QD, QS, QC]),
+    sql_exec(SQL).
+
+%!  update_match_status(+MatchId, +Status) is det.
+%
+%   Atualiza o status da partida. Ao passar para `running`, grava `started_at`.
+update_match_status(MatchId, Status) :-
+    ensure_connected,
+    sql_quote(MatchId, QId),
+    sql_quote(Status, QStatus),
+    ( Status == "running"
+    ->  timestamp_iso(Now),
+        sql_quote(Now, QNow),
+        format(string(SQL),
+               "UPDATE matches SET status = ~s, started_at = ~s WHERE id = ~s;",
+               [QStatus, QNow, QId])
+    ;   format(string(SQL),
+               "UPDATE matches SET status = ~s WHERE id = ~s;",
+               [QStatus, QId])
+    ),
+    sql_exec(SQL).
+
+%!  finalize_match(+MatchId, +Winner, +ReplayJson) is det.
+%
+%   Grava o resultado final (winner + replay), marca `status='done'` e
+%   `finished_at`.
+finalize_match(MatchId, Winner, ReplayJson) :-
+    ensure_connected,
+    timestamp_iso(Now),
+    sql_quote(MatchId, QId),
+    sql_quote(Winner, QW),
+    sql_quote(ReplayJson, QR),
+    sql_quote(Now, QF),
+    format(string(SQL),
+      "UPDATE matches SET winner = ~s, replay_json = ~s, status = 'done', finished_at = ~s WHERE id = ~s;",
+      [QW, QR, QF, QId]),
+    sql_exec(SQL).
+
+%!  mark_match_failed(+MatchId, +Status) is det.
+%
+%   Marca uma partida como `error` ou `timeout` e grava `finished_at`.
+mark_match_failed(MatchId, Status) :-
+    ensure_connected,
+    timestamp_iso(Now),
+    sql_quote(MatchId, QId),
+    sql_quote(Status, QStatus),
+    sql_quote(Now, QF),
+    format(string(SQL),
+      "UPDATE matches SET status = ~s, finished_at = ~s WHERE id = ~s;",
+      [QStatus, QF, QId]),
+    sql_exec(SQL).
+
+%!  list_matches_by_status(+Statuses, -Matches) is det.
+%
+%   Lista partidas cujo status esta em `Statuses` (lista de strings), em ordem
+%   crescente de criacao. Usado para re-enfileirar pendentes apos restart.
+list_matches_by_status(Statuses, Matches) :-
+    ensure_connected,
+    conn_alias(Alias),
+    maplist(sql_quote, Statuses, Quoted),
+    atomic_list_concat(Quoted, ',', InList),
+    format(string(SQL),
+      "SELECT id, thief_agent_id, detective_agent_id, scenario, winner, replay_json, status, created_at, started_at, finished_at FROM matches WHERE status IN (~w) ORDER BY created_at ASC;",
+      [InList]),
+    findall(Match, ( prosqlite:sqlite_query(Alias, SQL, Row), match_row_dict(Row, Match) ), Matches).
+
 %!  get_match(+MatchId, -Match) is semidet.
 %
 %   Busca uma partida por ID.
@@ -425,18 +530,11 @@ get_match(MatchId, Match) :-
     ensure_connected,
     sql_quote(MatchId, QId),
     format(string(SQL),
-      "SELECT id, thief_agent_id, detective_agent_id, winner, replay_json, created_at FROM matches WHERE id = ~s LIMIT 1;",
+      "SELECT id, thief_agent_id, detective_agent_id, scenario, winner, replay_json, status, created_at, started_at, finished_at FROM matches WHERE id = ~s LIMIT 1;",
       [QId]),
     conn_alias(Alias),
-    once(prosqlite:sqlite_query(Alias, SQL, row(Id, Thief, Detective, Winner, Replay, CreatedAt))),
-    Match = _{
-        id: Id,
-        thief_agent_id: Thief,
-        detective_agent_id: Detective,
-        winner: Winner,
-        replay_json: Replay,
-        created_at: CreatedAt
-    }.
+    once(prosqlite:sqlite_query(Alias, SQL, Row)),
+    match_row_dict(Row, Match).
 
 %!  list_matches(-Matches) is det.
 %
@@ -444,18 +542,51 @@ get_match(MatchId, Match) :-
 list_matches(Matches) :-
     ensure_connected,
     conn_alias(Alias),
-    findall(_{
+    findall(Match,
+      ( prosqlite:sqlite_query(Alias,
+          "SELECT id, thief_agent_id, detective_agent_id, scenario, winner, replay_json, status, created_at, started_at, finished_at FROM matches ORDER BY created_at DESC;",
+          Row),
+        match_row_dict(Row, Match) ),
+      Matches).
+
+%!  match_row_dict(+Row, -Match) is det.
+%
+%   Materializa o dict de uma partida a partir da linha SQL. Normaliza colunas
+%   que podem vir NULL (partidas antigas, anteriores ao fluxo assincrono) ou
+%   como atomo (driver prosqlite): `status` ausente vira "done" (partida ja
+%   concluida no modelo antigo), demais textos opcionais viram "".
+match_row_dict(row(Id, Thief, Detective, Scenario, Winner, Replay, Status,
+                   CreatedAt, StartedAt, FinishedAt),
+               Match) :-
+    norm_status(Status, StatusT),
+    norm_optional(Scenario, ScenarioT),
+    norm_optional(StartedAt, StartedT),
+    norm_optional(FinishedAt, FinishedT),
+    Match = _{
         id: Id,
         thief_agent_id: Thief,
         detective_agent_id: Detective,
+        scenario: ScenarioT,
         winner: Winner,
         replay_json: Replay,
-        created_at: CreatedAt
-    },
-    prosqlite:sqlite_query(Alias,
-      "SELECT id, thief_agent_id, detective_agent_id, winner, replay_json, created_at FROM matches ORDER BY created_at DESC;",
-      row(Id, Thief, Detective, Winner, Replay, CreatedAt)),
-    Matches).
+        status: StatusT,
+        created_at: CreatedAt,
+        started_at: StartedT,
+        finished_at: FinishedT
+    }.
+
+%!  norm_status(+Raw, -Status) is det.
+norm_status(Raw, "done") :- ( Raw == '$null$' ; Raw == '' ; Raw == "" ), !.
+norm_status(Raw, Status) :- to_text(Raw, Status).
+
+%!  norm_optional(+Raw, -Text) is det.
+norm_optional(Raw, "") :- Raw == '$null$', !.
+norm_optional(Raw, Text) :- to_text(Raw, Text).
+
+%!  to_text(+Raw, -String) is det.
+to_text(Raw, Raw) :- string(Raw), !.
+to_text(Raw, S) :- atom(Raw), !, atom_string(Raw, S).
+to_text(Raw, S) :- format(string(S), "~w", [Raw]).
 
 %!  bool_int(?Bool, ?Int) is nondet.
 %

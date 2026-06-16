@@ -5,6 +5,7 @@
 
 :- use_module('./db/sqlite_store').
 :- use_module('./http/server').
+:- use_module('./engine/match_queue').
 
 %!  main is det.
 %
@@ -13,7 +14,8 @@
 %   continua disponivel. A configuracao fica em `src/config.pl`.
 main :-
     sqlite_store:init,
-    server:start.
+    server:start,
+    match_queue:start_pool.
 
 %!  main_foreground is det.
 %
