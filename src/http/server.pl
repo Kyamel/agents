@@ -50,9 +50,7 @@ start :-
     config:http_port(HttpPort),
     http_server(http_dispatch, [port(HttpPort)]).
 
-%!  options_handler(+Request) is det.
-%
-%   Responde preflight CORS para qualquer rota registrada.
+% Responde preflight CORS para qualquer rota registrada.
 options_handler(Request) :-
     cors_enable(Request, [methods([get, post, put, delete, options])]),
     format('~n').

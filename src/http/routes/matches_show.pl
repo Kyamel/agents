@@ -4,9 +4,8 @@
 :- use_module(library(http/html_write)).
 :- use_module(library(http/json)).
 :- use_module(library(apply)).
-:- use_module('../../db/sqlite_store').
-:- use_module('../../engine/match_queue').
-:- use_module('../../engine/match_runner').
+:- use_module('../../db/db').
+:- use_module('../../engine/engine').
 :- use_module('../../components/page').
 :- use_module('../../components/match_card').
 :- use_module('../../components/match_detail').
@@ -43,7 +42,7 @@ extract_id(Path, Id) :-
 % =============================
 
 load_and_render(Request, Id) :-
-    sqlite_store:get_match(Id, Match),
+    db:get_match(Id, Match),
     !,
     render_for_status(Request, Id, Match).
 load_and_render(Request, _) :-
@@ -57,7 +56,7 @@ render_for_status(Request, _Id, Match) :-
     !,
     render_done(Request, Match).
 render_for_status(Request, Id, Match) :-
-    match_queue:job_info(Id, Info),
+    engine:job_info(Id, Info),
     !,
     render_progress(Request, Match, Info.status, Info.elapsed_seconds).
 render_for_status(Request, _Id, Match) :-
@@ -70,22 +69,18 @@ render_done(Request, Match) :-
     render_detail(Request, Match, ThiefName, DetectiveName, Replay).
 
 agent_display_name(AgentId, Name) :-
-    sqlite_store:get_agent(AgentId, Agent),
+    db:get_agent(AgentId, Agent),
     !,
     Name = Agent.name.
 agent_display_name(AgentId, AgentId).
 
-%!  replay_data(+ReplayJson, -Replay) is det.
-%
-%   Decodifica o replay para o dict `{turns, events, setup, ...}`. Cai num
-%   dict vazio se o JSON estiver ausente ou corrompido.
+% Decodifica o replay; dict vazio se o JSON faltar ou estiver corrompido.
 replay_data(ReplayJson, Replay) :-
     catch(atom_json_dict(ReplayJson, Replay, []), _, fail),
     is_dict(Replay),
     !.
 replay_data(_, _{}).
 
-%!  replay_field(+Replay, +Key, +Default, -Value) is det.
 replay_field(Replay, Key, _Default, Value) :-
     get_dict(Key, Replay, Value),
     !.
@@ -126,11 +121,8 @@ render_detail(Request, Match, ThiefName, DetectiveName, Replay) :-
 % Pagina de partida em andamento / falha
 % =============================
 
-%!  render_progress(+Request, +Match, +Status, +Elapsed) is det.
-%
-%   Painel para partidas que ainda nao concluiram (na fila/executando) ou que
-%   falharam (timeout/erro). A pagina nao recarrega sozinha: ha um link
-%   "Atualizar" para o usuario consultar o estado quando quiser.
+% Painel para partidas nao concluidas (fila/execucao) ou que falharam
+% (timeout/erro). Nao recarrega sozinha: ha um link "Atualizar".
 render_progress(Request, Match, Status, Elapsed) :-
     agent_display_name(Match.thief_agent_id, ThiefName),
     agent_display_name(Match.detective_agent_id, DetectiveName),
@@ -155,14 +147,12 @@ render_progress(Request, Match, Status, Elapsed) :-
         ])
     ]).
 
-%!  elapsed_text(+Elapsed, -Text) is det.
 elapsed_text(Elapsed, Text) :-
     number(Elapsed),
     !,
     format(string(Text), "~w s", [Elapsed]).
 elapsed_text(_Elapsed, "-").
 
-%!  status_banner(+Status, -Html) is det.
 status_banner(Status, Html) :-
     status_meta(Status, Title, Hint, Class),
     Html = div([class(Class)], [

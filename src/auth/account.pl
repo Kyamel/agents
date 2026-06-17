@@ -6,7 +6,7 @@
 ]).
 
 :- use_module('../config').
-:- use_module('../db/sqlite_store').
+:- use_module('../db/db').
 :- use_module('./password').
 :- use_module('./verify_email', []).
 :- use_module('./session_token', []).
@@ -22,15 +22,15 @@ signup(Username, EmailRaw, Password, Outcome) :-
     do_signup(Username, Email, Password, Outcome).
 
 do_signup(_, Email, _, email_exists) :-
-    sqlite_store:find_user_by_email(Email, _),
+    db:find_user_by_email(Email, _),
     !.
 do_signup(Username, Email, Password, created(UserId, MailStatus)) :-
     password:hash_password(Password, PasswordHash),
-    sqlite_store:create_user(Username, Email, PasswordHash, UserId, _CreatedAt),
+    db:create_user(Username, Email, PasswordHash, UserId, _CreatedAt),
     verify_email:issue_verification_token(UserId, PlainToken, TokenHash),
     config:email_verify_ttl_minutes(TtlMin),
     verify_email:expiry_iso(TtlMin, ExpiresAt),
-    sqlite_store:save_email_verification(TokenHash, UserId, ExpiresAt, ExpiresAt),
+    db:save_email_verification(TokenHash, UserId, ExpiresAt, ExpiresAt),
     config:app_base_url(BaseUrl),
     format(string(VerifyUrl), '~s/auth/verify?token=~s', [BaseUrl, PlainToken]),
     mail:send_verification_email(Email, VerifyUrl, MailStatus).
@@ -45,7 +45,7 @@ login(EmailRaw, Password, Outcome) :-
     authenticate(UserOrAnon, Password, Outcome).
 
 find_user_or_anon(Email, User) :-
-    sqlite_store:find_user_by_email(Email, User),
+    db:find_user_by_email(Email, User),
     !.
 find_user_or_anon(_, anon).
 
@@ -60,15 +60,12 @@ authenticate(User, _, ok(Token, UserId, ExpiresAt)) :-
     UserId = User.id,
     issue_session(UserId, Token, ExpiresAt).
 
-%!  issue_session(+UserId, -Token, -ExpiresAt) is det.
-%
-%   Emite e persiste um token de sessao para o usuario.
 issue_session(UserId, Token, ExpiresAt) :-
     config:auth_session_ttl_minutes(TtlMin),
     session_token:issue_session_token(Token, TokenHash),
     session_token:expiry_iso(TtlMin, ExpiresAt),
     session_token:now_iso(CreatedAt),
-    sqlite_store:save_auth_session(TokenHash, UserId, ExpiresAt, CreatedAt).
+    db:save_auth_session(TokenHash, UserId, ExpiresAt, CreatedAt).
 
 %!  verify_email_token(+PlainToken, -Outcome) is det.
 %
@@ -79,7 +76,7 @@ verify_email_token(PlainToken, Outcome) :-
     consume_and_mark(TokenHash, Outcome).
 
 consume_and_mark(TokenHash, verified(UserId)) :-
-    sqlite_store:consume_email_verification(TokenHash, UserId),
+    db:consume_email_verification(TokenHash, UserId),
     !,
-    sqlite_store:mark_user_verified(UserId).
+    db:mark_user_verified(UserId).
 consume_and_mark(_, invalid_or_expired_token).

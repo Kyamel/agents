@@ -17,9 +17,7 @@ send_verification_email(ToEmail, VerifyUrl, Status) :-
     config:mail_transport(Transport),
     deliver(Transport, ToEmail, VerifyUrl, Status).
 
-%!  send_verification_email(+ToEmail, +VerifyUrl, -Response) is det.
-%
-%   Envia email transacional de verificação via API do Resend.
+% Envia o email transacional via API do Resend.
 resend_client(ToEmail, VerifyUrl, Response) :-
     config:resend_api_key(ApiKey),
     config:resend_from(From),
@@ -43,7 +41,6 @@ resend_client(ToEmail, VerifyUrl, Response) :-
         ]
     ).
 
-%!  deliver(+Transport, +ToEmail, +VerifyUrl, -Status) is det.
 deliver(console, ToEmail, VerifyUrl, console) :-
     print_console_link(ToEmail, VerifyUrl).
 deliver(resend, ToEmail, VerifyUrl, sent) :-
@@ -57,9 +54,6 @@ deliver(Other, ToEmail, VerifyUrl, console) :-
            '[mail] transport desconhecido "~w"; caindo para console~n', [Other]),
     print_console_link(ToEmail, VerifyUrl).
 
-%!  print_console_link(+ToEmail, +VerifyUrl) is det.
-%
-%   Imprime o link de verificacao no stderr de forma visivel para o dev.
 print_console_link(ToEmail, VerifyUrl) :-
     format(user_error, '~n', []),
     format(user_error, '==============================================================~n', []),

@@ -7,43 +7,31 @@
     send_logout_redirect/1
 ]).
 
-:- use_module('../../db/sqlite_store').
-:- use_module('../../auth/session_token').
+:- use_module('../../db/db').
+:- use_module('../../auth/auth').
 
-%!  session_cookie_name(-Name) is det.
-%
-%   Nome do cookie usado para sessoes da interface web.
 session_cookie_name(agents_session).
 
-%!  current_user(+Request, -User) is semidet.
-%
-%   Resolve o usuario logado a partir do cookie de sessao da requisicao.
+% Resolve o usuario logado a partir do cookie de sessao da requisicao.
 current_user(Request, User) :-
     session_token_from_request(Request, Token),
-    session_token:token_hash(Token, TokenHash),
-    sqlite_store:find_user_id_by_session_token_hash(TokenHash, UserId),
-    sqlite_store:find_user_by_id(UserId, User).
+    auth:token_hash(Token, TokenHash),
+    db:find_user_id_by_session_token_hash(TokenHash, UserId),
+    db:find_user_by_id(UserId, User).
 
-%!  current_user_or_anon(+Request, -User) is det.
-%
-%   Igual a current_user/2, mas devolve o atomo `anon` quando nao ha sessao.
 current_user_or_anon(Request, User) :-
     current_user(Request, User),
     !.
 current_user_or_anon(_Request, anon).
 
-%!  require_user(+Request, -User) is det.
-%
-%   Garante uma sessao valida; caso contrario redireciona para o login.
+% Garante uma sessao valida; senao redireciona para o login.
 require_user(Request, User) :-
     current_user(Request, User),
     !.
 require_user(_Request, _User) :-
     throw(http_reply(see_other('/login?notice=login_required'))).
 
-%!  session_token_from_request(+Request, -Token) is semidet.
-%
-%   Extrai o token de sessao em texto puro do cabecalho Cookie.
+% Token em texto puro vindo do cabecalho Cookie.
 session_token_from_request(Request, Token) :-
     memberchk(cookie(Cookies), Request),
     session_cookie_name(Name),
@@ -51,9 +39,6 @@ session_token_from_request(Request, Token) :-
     cookie_value_string(Value, Token),
     Token \== "".
 
-%!  cookie_value_string(+Value, -Str) is det.
-%
-%   Normaliza o valor de um cookie para string.
 cookie_value_string(Value, Value) :-
     string(Value),
     !.
@@ -64,19 +49,15 @@ cookie_value_string(Value, Str) :-
 cookie_value_string(Value, Str) :-
     term_string(Value, Str).
 
-%!  revoke_web_session(+Request) is det.
-%
-%   Revoga (best-effort) a sessao associada ao cookie da requisicao.
+% Best-effort: ignora falha/ausencia de sessao.
 revoke_web_session(Request) :-
     session_token_from_request(Request, Token),
     !,
-    session_token:token_hash(Token, TokenHash),
-    catch(sqlite_store:revoke_auth_session(TokenHash), _, true).
+    auth:token_hash(Token, TokenHash),
+    catch(db:revoke_auth_session(TokenHash), _, true).
 revoke_web_session(_Request).
 
-%!  send_session_redirect(+Token, +Location) is det.
-%
-%   Emite resposta 303 que grava o cookie de sessao e redireciona.
+% 303 que grava o cookie de sessao (HttpOnly) e redireciona.
 send_session_redirect(Token, Location) :-
     session_cookie_name(Name),
     format("Status: 303 See Other~n"),
@@ -85,9 +66,7 @@ send_session_redirect(Token, Location) :-
     format("Content-Type: text/html; charset=UTF-8~n~n"),
     format("<p>Redirecionando...</p>~n").
 
-%!  send_logout_redirect(+Location) is det.
-%
-%   Emite resposta 303 que apaga o cookie de sessao e redireciona.
+% 303 que apaga o cookie de sessao (Max-Age=0) e redireciona.
 send_logout_redirect(Location) :-
     session_cookie_name(Name),
     format("Status: 303 See Other~n"),

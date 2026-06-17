@@ -4,9 +4,8 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_parameters)).
 :- use_module(library(apply)).
-:- use_module('../../db/sqlite_store').
-:- use_module('../../engine/match_runner').
-:- use_module('../../engine/match_queue').
+:- use_module('../../db/db').
+:- use_module('../../engine/engine').
 :- use_module('../../components/page').
 :- use_module('../../components/alert').
 :- use_module('../../components/form_field').
@@ -49,17 +48,17 @@ finish(error(Message), Request, ThiefId, DetectiveId) :-
 run_new_match("", _, _, error("Selecione um ladrao e um detetive.")) :- !.
 run_new_match(_, "", _, error("Selecione um ladrao e um detetive.")) :- !.
 run_new_match(_, _, Scenario, error("Cenário invalido.")) :-
-    \+ match_runner:valid_scenario(Scenario),
+    \+ engine:valid_scenario(Scenario),
     !.
 run_new_match(ThiefId, _, _, error("Agente ladrao nao encontrado.")) :-
-    \+ sqlite_store:get_agent(ThiefId, _),
+    \+ db:get_agent(ThiefId, _),
     !.
 run_new_match(_, DetectiveId, _, error("Agente detetive nao encontrado.")) :-
-    \+ sqlite_store:get_agent(DetectiveId, _),
+    \+ db:get_agent(DetectiveId, _),
     !.
 run_new_match(ThiefId, DetectiveId, Scenario, Outcome) :-
-    sqlite_store:get_agent(ThiefId, Thief),
-    sqlite_store:get_agent(DetectiveId, Detective),
+    db:get_agent(ThiefId, Thief),
+    db:get_agent(DetectiveId, Detective),
     check_roles_and_run(Thief, Detective, ThiefId, DetectiveId, Scenario, Outcome).
 
 check_roles_and_run(Thief, Detective, ThiefId, DetectiveId, Scenario, Outcome) :-
@@ -81,7 +80,7 @@ execute_match(ThiefId, DetectiveId, Thief, Detective, Scenario, Outcome) :-
 % Apenas ENFILEIRA a partida: cria a linha pendente, devolve o id e redireciona.
 % A execucao acontece em background, num subprocesso, gerida por match_queue.
 run_and_save(ThiefId, DetectiveId, _Thief, _Detective, Scenario, ok(MatchId)) :-
-    match_queue:enqueue_match(ThiefId, DetectiveId, Scenario, MatchId).
+    engine:enqueue_match(ThiefId, DetectiveId, Scenario, MatchId).
 
 match_error_outcome(ThiefId, DetectiveId, Error, error(Message)) :-
     format(user_error,
@@ -107,7 +106,7 @@ agent_has_role_(Role, Agent) :- agent_has_role(Agent, Role).
 % =============================
 
 render_form(Request, State) :-
-    sqlite_store:list_agents(Agents),
+    db:list_agents(Agents),
     include(agent_has_role_(thief), Agents, Thieves),
     include(agent_has_role_(detective), Agents, Detectives),
     render_form_for(Thieves, Detectives, Request, State).
@@ -153,7 +152,7 @@ render_form_fields(Request, State, Thieves, Detectives) :-
     ]).
 
 scenario_options(Options) :-
-    match_runner:available_scenarios(Scenarios),
+    engine:available_scenarios(Scenarios),
     maplist(scenario_option, Scenarios, Options).
 
 scenario_option(scenario(Value, Label), opt(Value, Label)).

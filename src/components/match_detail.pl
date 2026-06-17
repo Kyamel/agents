@@ -12,9 +12,6 @@
 :- use_module(page).
 :- use_module(page_section).
 
-%!  setup_section(+Setup, -Html) is det.
-%
-%   Painel com os metadados iniciais da partida extraidos da engine.
 setup_section(Setup, Html) :-
     field_text(Setup, scenario, Scenario),
     field_text(Setup, target, Target),
@@ -56,9 +53,6 @@ appearance_chips(_Setup, [span([class('text-slate-500 text-sm')], '-')]).
 chip(Text, span([class('inline-block rounded-full bg-slate-800 text-slate-300 \c
                         px-3 py-1 text-xs')], Text)).
 
-%!  events_section(+Events, -Html) is det.
-%
-%   Linha do tempo dos eventos relevantes (roubos) capturados na partida.
 events_section([], Html) :-
     !,
     Html = div([class('mb-8')], [
@@ -100,9 +94,7 @@ revealed_text(Event, Text) :-
     format(string(Text), "Pistas reveladas: ~w", [Joined]).
 revealed_text(_Event, "Sem novas pistas.").
 
-%!  field_text(+Dict, +Key, -Text) is det.
-%
-%   Le um campo do dict como texto exibivel, com traco como fallback.
+% Campo do dict como texto exibivel, com traco como fallback.
 field_text(Dict, Key, Text) :-
     get_dict(Key, Dict, Value),
     !,

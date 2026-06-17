@@ -3,7 +3,7 @@
 :- use_module(library(http/html_write)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_parameters)).
-:- use_module('../../engine/registry').
+:- use_module('../../engine/engine').
 :- use_module('../../components/page').
 :- use_module('../../components/alert').
 :- use_module('../../components/form_field').
@@ -46,7 +46,7 @@ process_post(Request, User, Values) :-
     render_form(Request, User,
         Values.put(error, "Preencha todos os campos do formulario.")).
 process_post(Request, User, Values) :-
-    \+ agent_registry:valid_agent_name(Values.name),
+    \+ engine:valid_agent_name(Values.name),
     !,
     render_form(Request, User,
         Values.put(error, "Nome invalido: use apenas minusculas, numeros e \c
@@ -75,7 +75,7 @@ try_register(UserId, V, Result) :-
           register_error(Error, Result)).
 
 register_or_fail(UserId, V, ok) :-
-    agent_registry:register_agent_source(UserId, V.name, V.role, V.source, _),
+    engine:register_agent_source(UserId, V.name, V.role, V.source, _),
     !.
 register_or_fail(_, _,
     error("Nao foi possivel registrar o agente \c

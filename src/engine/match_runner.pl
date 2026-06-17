@@ -27,9 +27,6 @@ project_root(Root) :-
     directory_file_path(SrcDir, engine, EngineDir),
     directory_file_path(Root, src, SrcDir).
 
-%!  disguise_count(-Q) is det.
-%
-%   Quantidade de disfarces disponiveis ao ladrao (config).
 disguise_count(Q) :- config:engine_disguises(Q).
 
 %!  available_scenarios(-Scenarios) is det.
@@ -55,10 +52,7 @@ available_scenarios(Scenarios) :-
             Unsorted),
     sort(2, @=<, Unsorted, Scenarios).
 
-%!  valid_scenario(+Value) is semidet.
-%
-%   Verdadeiro se `Value` corresponde a um cenario disponivel em `scenario_dir`.
-%   Usado para validar a escolha vinda do formulario antes de executar.
+% Valida a escolha vinda do formulario contra os cenarios disponiveis.
 valid_scenario(Value) :-
     available_scenarios(Scenarios),
     memberchk(scenario(Value, _), Scenarios).
@@ -73,20 +67,13 @@ scenario_engine_arg(Scenario, Arg) :-
     project_root(Root),
     directory_file_path(Root, RelNoExt, Arg).
 
-%!  scenario_text(+Scenario, -Label) is det.
-%
-%   Nome amigavel do cenario para a UI/JSON: o nome do arquivo sem o diretorio
-%   nem a extensao ".prolog" (ex.: "./scenarios/mapa1.prolog" -> "mapa1").
+% Nome amigavel p/ UI/JSON: "./scenarios/mapa1.prolog" -> "mapa1".
 scenario_text(Scenario, Label) :-
     to_atom(Scenario, PathAtom),
     file_base_name(PathAtom, Base),
     ( file_name_extension(Name, prolog, Base) -> true ; Name = Base ),
     atom_string(Name, Label).
 
-%!  strip_leading_dot(+Path, -Rel) is det.
-%
-%   Remove o prefixo "./" de um caminho, se houver, para que possa ser
-%   resolvido com directory_file_path/3 a partir da raiz do projeto.
 strip_leading_dot(Path, Rel) :-
     ( atom_concat('./', Rel, Path) -> true ; Rel = Path ).
 
@@ -109,17 +96,14 @@ scenario_graph(Scenario, Cities, Edges) :-
             Edges0),
     sort(Edges0, Edges).
 
-%!  scenario_file(+Scenario, -File) is det.
-%
-%   Resolve o caminho absoluto do arquivo .prolog do cenario (mantendo a
-%   extensao, ao contrario de scenario_engine_arg/2).
+% Caminho absoluto do .prolog do cenario, mantendo a extensao (ao contrario
+% de scenario_engine_arg/2).
 scenario_file(Scenario, File) :-
     to_atom(Scenario, PathAtom),
     strip_leading_dot(PathAtom, Rel),
     project_root(Root),
     directory_file_path(Root, Rel, File).
 
-%!  read_scenario_terms(+File, -Terms) is det.
 read_scenario_terms(File, Terms) :-
     setup_call_cleanup(
         open(File, read, In, [encoding(utf8)]),
@@ -134,12 +118,8 @@ read_terms(In, Terms) :-
         read_terms(In, Rest)
     ).
 
-%!  sort_pair(+A, +B, -Pair) is det.
 sort_pair(A, B, [A, B]) :- A @=< B, !.
 sort_pair(A, B, [B, A]).
 
-%!  to_atom(+Value, -Atom) is det.
-%
-%   Normaliza string ou atomo para atomo.
 to_atom(Value, Value) :- atom(Value), !.
 to_atom(Value, Atom) :- string(Value), atom_string(Atom, Value).

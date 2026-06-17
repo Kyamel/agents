@@ -2,7 +2,7 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module('../../../components/api_endpoint').
-:- use_module('../../../db/sqlite_store').
+:- use_module('../../../db/db').
 
 % Prefix em /api/v1/agents/ para capturar o ID. /api/v1/agents (sem barra) tem
 % handler proprio (lista) e ganha pela especificidade.
@@ -33,7 +33,7 @@ extract_id(Path, Id) :-
 % =============================
 
 load_agent(Id, 200, _{agent: Public}) :-
-    sqlite_store:get_agent(Id, Agent),
+    db:get_agent(Id, Agent),
     !,
     strip_source(Agent, Public).
 load_agent(_, 404, _{error: "agent_not_found"}).

@@ -3,7 +3,7 @@
 :- use_module(library(apply)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/html_write)).
-:- use_module('../../db/sqlite_store').
+:- use_module('../../db/db').
 :- use_module('../../components/page').
 
 % Prefix em /users/ para capturar /users/<id>. Nao existe /users (lista).
@@ -30,7 +30,7 @@ extract_id(Path, Id) :-
 % =============================
 
 load_and_render(Request, Id) :-
-    sqlite_store:find_user_by_id(Id, User),
+    db:find_user_by_id(Id, User),
     !,
     load_profile(User, Profile),
     render_profile(Request, User, Profile).
@@ -38,9 +38,9 @@ load_and_render(Request, _) :-
     render_not_found(Request).
 
 load_profile(User, Profile) :-
-    sqlite_store:list_agents(AllAgents),
+    db:list_agents(AllAgents),
     include(owner_is(User.id), AllAgents, Agents),
-    sqlite_store:list_matches(Matches),
+    db:list_matches(Matches),
     maplist(agent_profile(Matches), Agents, AgentProfiles),
     aggregate_stats(AgentProfiles, GlobalStats),
     Profile = _{

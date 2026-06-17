@@ -11,15 +11,10 @@
 :- dynamic bucket/4.
 % bucket(IP, WindowStartEpochSec, Count, WindowSec).
 
-%!  reset_rate_limit_state is det.
-%
-%   Limpa todo o estado em memória de rate-limit.
 reset_rate_limit_state :-
     retractall(bucket(_, _, _, _)).
 
-%!  enforce_ip_rate_limit(+Request) is det.
-%
-%   Consome um token do bucket associado ao IP da requisição.
+% Consome um token do bucket (janela deslizante) associado ao IP da requisicao.
 enforce_ip_rate_limit(Request) :-
     config:rate_limit_window_seconds(WindowSec),
     config:rate_limit_max(MaxPerWindow),
@@ -27,9 +22,7 @@ enforce_ip_rate_limit(Request) :-
     now_epoch_sec(Now),
     take_token(IP, Now, WindowSec, MaxPerWindow).
 
-%!  request_ip(+Request, -IP) is det.
-%
-%   Extrai IP do `x-forwarded-for` (quando habilitado) ou do peer da conexão.
+% IP do `x-forwarded-for` (so se trust_proxy) ou do peer da conexao.
 request_ip(Request, IP) :-
     config:trust_proxy(true),
     memberchk(x_forwarded_for(Xff), Request),
@@ -44,22 +37,13 @@ request_ip(Request, IP) :-
     term_string(Peer, IP).
 request_ip(_, "unknown").
 
-%!  now_epoch_sec(-Now) is det.
-%
-%   Devolve timestamp atual em segundos Unix.
 now_epoch_sec(Now) :-
     get_time(T),
     Now is floor(T).
 
-%!  take_token(+IP, +Now, +WindowSec, +MaxPerWindow) is det.
-%
-%   Aplica lógica de rate-limit sob mutex para um IP.
 take_token(IP, Now, WindowSec, MaxPerWindow) :-
     with_mutex(rate_limit, take_token_locked(IP, Now, WindowSec, MaxPerWindow)).
 
-%!  take_token_locked(+IP, +Now, +WindowSec, +MaxPerWindow) is det.
-%
-%   Atualiza bucket do IP e lança erro HTTP 429 quando excede limite.
 take_token_locked(IP, Now, WindowSec, MaxPerWindow) :-
     retract(bucket(IP, WindowStart, Count, WindowSec)),
     !,
@@ -67,9 +51,7 @@ take_token_locked(IP, Now, WindowSec, MaxPerWindow) :-
 take_token_locked(IP, Now, WindowSec, _MaxPerWindow) :-
     assertz(bucket(IP, Now, 1, WindowSec)).
 
-%!  update_bucket(+IP, +Now, +WindowStart, +WindowSec, +Count, +MaxPerWindow) is det.
-%
-%   Reaproveita a janela atual ou a reinicia quando ela expirou.
+% Reaproveita a janela atual ou a reinicia quando expirou.
 update_bucket(IP, Now, WindowStart, WindowSec, Count, MaxPerWindow) :-
     Now - WindowStart < WindowSec,
     !,
@@ -77,9 +59,7 @@ update_bucket(IP, Now, WindowStart, WindowSec, Count, MaxPerWindow) :-
 update_bucket(IP, Now, _WindowStart, WindowSec, _Count, _MaxPerWindow) :-
     assertz(bucket(IP, Now, 1, WindowSec)).
 
-%!  count_request(+IP, +WindowStart, +WindowSec, +Count, +MaxPerWindow) is det.
-%
-%   Incrementa o contador da janela ou rejeita com HTTP 429 ao exceder.
+% Incrementa o contador da janela ou rejeita com HTTP 429 ao exceder.
 count_request(IP, WindowStart, WindowSec, Count, MaxPerWindow) :-
     Count < MaxPerWindow,
     !,

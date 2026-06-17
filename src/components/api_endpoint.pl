@@ -23,7 +23,6 @@
 
 :- meta_predicate api_handle(+, +, 2).
 
-%!  api_handle(+Request, +Methods, :Dispatch) is det.
 api_handle(Request, Methods, Dispatch) :-
     cors_enable(Request, [methods(Methods)]),
     rate_limit:enforce_ip_rate_limit(Request),
@@ -41,8 +40,5 @@ route_method(Method, Request, Dispatch) :-
 route_method(_Method, _Request, _Dispatch) :-
     reply_json(405, _{error: "method_not_allowed"}).
 
-%!  reply_json(+Status, +Payload) is det.
-%
-%   Responde `Payload` (dict) como JSON com o codigo HTTP `Status`.
 reply_json(Status, Payload) :-
     reply_json_dict(Payload, [status(Status)]).

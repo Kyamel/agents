@@ -9,19 +9,10 @@
 
 :- use_module(library(apply)).
 
-%!  input_class(-Class) is det.
-%
-%   Classe Tailwind base para inputs de formulario.
 input_class('w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-ufop-500').
 
-%!  label_class(-Class) is det.
-%
-%   Classe Tailwind para rotulos de campo.
 label_class('block text-sm font-medium text-slate-300 mb-1').
 
-%!  text_field(+Name, +Label, +Type, +Value, -Html) is det.
-%
-%   Campo de texto rotulado (`Type` pode ser `text`, `email`, `password`...).
 text_field(Name, Label, Type, Value, Html) :-
     input_class(InputClass),
     label_class(LabelClass),
@@ -30,17 +21,11 @@ text_field(Name, Label, Type, Value, Html) :-
         input([type(Type), name(Name), id(Name), value(Value), class(InputClass)])
     ]).
 
-%!  slug_field(+Name, +Label, +Value, -Html) is det.
-%
-%   Campo de texto que so aceita slug ASCII (minusculas, numeros e hifens).
-%   Forca o formato durante a digitacao e valida o padrao no envio, para nao
-%   ser preciso normalizar nada no servidor.
 slug_field(Name, Label, Value, Html) :-
     slug_field(Name, Label, Value, [], Html).
 
-%!  slug_field(+Name, +Label, +Value, +ExtraAttrs, -Html) is det.
-%
-%   Versao de slug_field/4 com atributos adicionais para o input.
+% Forca slug ASCII (minusculas/numeros/hifens) durante a digitacao e valida o
+% padrao no envio, para nao precisar normalizar no servidor.
 slug_field(Name, Label, Value, ExtraAttrs, Html) :-
     input_class(InputClass),
     label_class(LabelClass),
@@ -57,9 +42,6 @@ slug_field(Name, Label, Value, ExtraAttrs, Html) :-
         input(Attrs)
     ]).
 
-%!  textarea_field(+Name, +Label, +Value, -Html) is det.
-%
-%   Campo de texto multilinha rotulado, em fonte monoespacada.
 textarea_field(Name, Label, Value, Html) :-
     input_class(BaseClass),
     label_class(LabelClass),
@@ -69,9 +51,7 @@ textarea_field(Name, Label, Value, Html) :-
         textarea([name(Name), id(Name), rows(14), class(InputClass)], Value)
     ]).
 
-%!  select_field(+Name, +Label, +Options, -Html) is det.
-%
-%   Campo de selecao rotulado. `Options` e uma lista de `opt(Value, Label)`.
+% Options e uma lista de opt(Value, Label).
 select_field(Name, Label, Options, Html) :-
     input_class(InputClass),
     label_class(LabelClass),
@@ -81,14 +61,8 @@ select_field(Name, Label, Options, Html) :-
         select([name(Name), id(Name), class(InputClass)], OptionEls)
     ]).
 
-%!  option_html(+Opt, -Html) is det.
-%
-%   Converte `opt(Value, Label)` em um elemento `<option>`.
 option_html(opt(Value, Label), option([value(Value)], Label)).
 
-%!  submit_button(+Label, -Html) is det.
-%
-%   Botao primario de envio de formulario, ocupando a largura disponivel.
 submit_button(Label, Html) :-
     Html = button(
         [ type(submit),

@@ -4,10 +4,8 @@
 
 :- use_module(library(dcg/basics)).
 
-% Validação mínima (não substitui isolamento em processo separado).
-%!  validate_agent_source(+SourceText) is det.
-%
-%   Rejeita padrões perigosos no código enviado por agentes.
+% Validação mínima: rejeita padrões perigosos no código enviado por agentes.
+% NÃO substitui isolamento em processo separado.
 validate_agent_source(SourceText) :-
     must_be(string, SourceText),
     blocked_pattern("initialization(", SourceText),
@@ -17,9 +15,6 @@ validate_agent_source(SourceText) :-
     blocked_pattern("shell(", SourceText),
     blocked_pattern("consult(", SourceText).
 
-%!  blocked_pattern(+Pattern, +SourceText) is det.
-%
-%   Lança erro de permissão quando `Pattern` aparece no código-fonte.
 blocked_pattern(Pattern, SourceText) :-
     sub_string(SourceText, _, _, _, Pattern),
     !,

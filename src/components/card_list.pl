@@ -17,9 +17,6 @@
 
 :- meta_predicate card_grid(+, 2, +, +, -).
 
-%!  card_grid(+Items, :Render, +GridClass, +EmptyText, -Html) is det.
-%
-%   `Render` é chamado como `call(Render, Item, Card)` para cada item.
 card_grid([], _Render, _GridClass, EmptyText, Html) :-
     !,
     page_section:empty_state(EmptyText, Html).

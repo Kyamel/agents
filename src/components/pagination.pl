@@ -3,9 +3,7 @@
     pagination_nav/3
 ]).
 
-%!  paginate(+Items, +PerPage, +RequestedPage, -PageItems, -Meta) is det.
-%
-%   Recorta uma lista para a pagina solicitada e devolve metadados para a UI.
+% Recorta a lista para a pagina pedida e devolve os metadados para a UI.
 paginate(Items, PerPage, RequestedPage, PageItems, Meta) :-
     length(Items, TotalItems),
     TotalPages is max(1, ceiling(TotalItems / PerPage)),
@@ -33,9 +31,7 @@ take(N, [Item|Items], [Item|Rest]) :-
     N1 is N - 1,
     take(N1, Items, Rest).
 
-%!  pagination_nav(+BasePath, +Meta, -Html) is det.
-%
-%   Navegacao simples de pagina anterior/proxima usando query param `page`.
+% Navegacao anterior/proxima via query param `page`.
 pagination_nav(_BasePath, Meta, '') :-
     Meta.total_pages =< 1,
     !.

@@ -2,7 +2,7 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module('../../../components/api_endpoint').
-:- use_module('../../../engine/match_queue').
+:- use_module('../../../engine/engine').
 
 % Lista os jobs de partida ATIVOS (na fila + executando), com tempo decorrido.
 % Partidas ja concluidas/falhas saem deste registro em memoria; o estado final
@@ -13,5 +13,5 @@ handler(Request) :-
     api_handle(Request, [get, options], dispatch).
 
 dispatch(get, _Request) :-
-    match_queue:job_snapshot(Jobs),
+    engine:job_snapshot(Jobs),
     reply_json(200, _{jobs: Jobs}).

@@ -3,9 +3,6 @@
     winner_label/3
 ]).
 
-%!  match_card(+Match, -Html) is det.
-%
-%   Renderiza o cartao de uma partida, com link para o detalhe.
 match_card(Match, Html) :-
     Id = Match.id,
     atom_concat('/matches/', Id, Href),
@@ -33,18 +30,13 @@ match_card(Match, Html) :-
         p([class('text-slate-600 text-xs mt-2 truncate')], ['Criada em ', Match.created_at])
     ]).
 
-%!  winner_label(+Winner, -Text, -BadgeClass) is det.
-%
-%   Mapeia o vencedor de uma partida para rotulo e classe de destaque.
+% Vencedor -> rotulo + classe da etiqueta. Reutilizado por match_detail.
 winner_label(thief, 'Vitoria do ladrao', Class) :- !, badge_class(amber, Class).
 winner_label("thief", 'Vitoria do ladrao', Class) :- !, badge_class(amber, Class).
 winner_label(detective, 'Vitoria do detetive', Class) :- !, badge_class(emerald, Class).
 winner_label("detective", 'Vitoria do detetive', Class) :- !, badge_class(emerald, Class).
 winner_label(_, 'Empate', Class) :- badge_class(slate, Class).
 
-%!  badge_class(+Tone, -Class) is det.
-%
-%   Resolve as classes Tailwind para a etiqueta de resultado.
 badge_class(amber,
     'rounded-full bg-amber-950 text-amber-300 text-xs px-2.5 py-1 whitespace-nowrap').
 badge_class(emerald,

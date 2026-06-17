@@ -3,8 +3,8 @@
 :- use_module(library(apply)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/json)).
-:- use_module('../../db/sqlite_store').
-:- use_module('../../engine/match_runner').
+:- use_module('../../db/db').
+:- use_module('../../engine/engine').
 :- use_module('../../components/page').
 :- use_module('../../components/match_detail', [render_not_found/1]).
 :- use_module('../../components/page_section').
@@ -24,22 +24,18 @@ extract_id(Path, Id) :-
     Id \== ''.
 
 agent_display_name(AgentId, Name) :-
-    sqlite_store:get_agent(AgentId, Agent),
+    db:get_agent(AgentId, Agent),
     !,
     Name = Agent.name.
 agent_display_name(AgentId, AgentId).
 
-%!  replay_data(+ReplayJson, -Replay) is det.
-%
-%   Decodifica o replay para o dict `{turns, events, setup, ...}`. Cai num
-%   dict vazio se o JSON estiver ausente ou corrompido.
+% Decodifica o replay; dict vazio se o JSON faltar ou estiver corrompido.
 replay_data(ReplayJson, Replay) :-
     catch(atom_json_dict(ReplayJson, Replay, []), _, fail),
     is_dict(Replay),
     !.
 replay_data(_, _{}).
 
-%!  replay_field(+Replay, +Key, +Default, -Value) is det.
 replay_field(Replay, Key, _Default, Value) :-
     get_dict(Key, Replay, Value),
     !.
@@ -50,17 +46,14 @@ replay_field(_Replay, _Key, Default, Default).
 % =============================
 
 render_map(Request, Id) :-
-    sqlite_store:get_match(Id, Match),
+    db:get_match(Id, Match),
     !,
     render_map_page(Request, Match).
 render_map(Request, _Id) :-
     render_not_found(Request).
 
-%!  render_map_page(+Request, +Match) is det.
-%
-%   Pagina de visualizacao interativa: serializa o grafo do cenario e as
-%   posicoes turno-a-turno como JSON e delega o desenho/animacao ao asset
-%   estatico /assets/match_map.js.
+% Serializa o grafo do cenario e as posicoes turno-a-turno como JSON e delega
+% o desenho/animacao ao asset estatico /assets/match_map.js.
 render_map_page(Request, Match) :-
     replay_data(Match.replay_json, Replay),
     replay_field(Replay, setup, _{}, Setup),
@@ -102,24 +95,18 @@ render_map_page(Request, Match) :-
         script([src('/assets/match_map.js')], [])
     ]).
 
-%!  graph_for(+Scenario, -Cities, -Edges) is det.
-%
-%   Grafo do cenario, ou listas vazias se o cenario for desconhecido/ilegivel
-%   (ex.: partidas antigas sem o caminho do cenario).
+% Grafo do cenario, ou listas vazias se for desconhecido/ilegivel (ex.:
+% partidas antigas sem o caminho do cenario).
 graph_for(Scenario, Cities, Edges) :-
-    catch(match_runner:scenario_graph(Scenario, Cities, Edges), _, fail),
+    catch(engine:scenario_graph(Scenario, Cities, Edges), _, fail),
     !.
 graph_for(_Scenario, [], []).
 
-%!  map_start(+Setup, -Thief, -Detective) is det.
 map_start(Setup, Thief, Detective) :-
     ( get_dict(thief_start, Setup, Thief0) -> Thief = Thief0 ; Thief = null ),
     ( get_dict(detective_start, Setup, Det0) -> Detective = Det0 ; Detective = null ).
 
-%!  map_turn_frame(+Turn, -Frame) is det.
-%
-%   Projeta o dict de um turno do replay para o frame consumido pelo JS: numero
-%   do turno, posicoes (ou "-" quando o agente nao moveu) e o texto das acoes.
+% Projeta o turno do replay para o frame consumido pelo JS.
 map_turn_frame(Turn, Frame) :-
     get_dict(turn, Turn, N),
     get_dict(thief_position, Turn, ThiefPos),
@@ -134,10 +121,7 @@ map_turn_frame(Turn, Frame) :-
         detective_action: DetAction
     }.
 
-%!  map_controls(-Html) is det.
-%
-%   Barra de controle: reproduzir/pausar, slider de turnos, rotulo do turno e
-%   intervalo (ms) do modo automatico. O JS liga tudo pelos ids `mm-*`.
+% Controles play/slider/intervalo; o JS liga tudo pelos ids `mm-*`.
 map_controls(Html) :-
     Html = div([class('rounded-xl bg-slate-900 border border-slate-800 p-4 mb-4 \c
                        flex flex-wrap items-center gap-3')], [
@@ -159,7 +143,6 @@ map_controls(Html) :-
         ])
     ]).
 
-%!  map_legend(-Html) is det.
 map_legend(div([class('flex items-center gap-5 mb-4 text-sm')], [
         span([class('flex items-center gap-2')], [
             span([class('inline-block w-3 h-3 rounded-full bg-amber-400')], []),
@@ -171,7 +154,6 @@ map_legend(div([class('flex items-center gap-5 mb-4 text-sm')], [
         ])
     ])).
 
-%!  map_info_card(+Id, +Accent, +Label) is det.
 map_info_card(Id, Accent, Label, Html) :-
     accent_text_class(Accent, AccentClass),
     Html = div([class('rounded-xl bg-slate-900 border border-slate-800 p-4')], [

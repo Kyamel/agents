@@ -3,7 +3,7 @@
 :- use_module(library(apply)).
 :- use_module(library(http/http_dispatch)).
 :- use_module('../../../components/api_endpoint').
-:- use_module('../../../db/sqlite_store').
+:- use_module('../../../db/db').
 
 :- http_handler('/api/v1/users/', handler,
                 [methods([get, options]), prefix]).
@@ -32,12 +32,12 @@ extract_id(Path, Id) :-
 % =============================
 
 load_profile(Id, 200, _{user: PublicUser, stats: GlobalStats, agents: Agents}) :-
-    sqlite_store:find_user_by_id(Id, User),
+    db:find_user_by_id(Id, User),
     !,
     public_user(User, PublicUser),
-    sqlite_store:list_agents(AllAgents),
+    db:list_agents(AllAgents),
     include(owner_is(User.id), AllAgents, UserAgents),
-    sqlite_store:list_matches(Matches),
+    db:list_matches(Matches),
     maplist(agent_with_stats(Matches), UserAgents, Agents),
     aggregate_stats(Agents, GlobalStats).
 load_profile(_, 404, _{error: "user_not_found"}).

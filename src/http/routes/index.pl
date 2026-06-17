@@ -8,9 +8,6 @@
 
 :- http_handler(root(.), index_page, [method(get)]).
 
-%!  index_page(+Request) is det.
-%
-%   Renderiza a pagina inicial, apresentando a plataforma e os primeiros passos.
 index_page(Request) :-
     button_link:button_link('/agents', 'Ver agentes', AgentsButton),
     button_link:button_link('/matches', 'Ver partidas', MatchesButton),
@@ -33,9 +30,6 @@ index_page(Request) :-
         div([class('grid sm:grid-cols-3 gap-4')], [Step1, Step2, Step3])
     ]).
 
-%!  info_card(+Href, +Title, +Text, -Html) is det.
-%
-%   Cartao informativo usado na secao de primeiros passos.
 info_card(Href, Title, Text, Html) :-
     Html = div([class('rounded-xl bg-slate-900 p-5 border border-slate-800 hover:border-slate-600 transition')], [
         h3([class('font-semibold mb-1')], [

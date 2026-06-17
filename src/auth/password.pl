@@ -5,14 +5,9 @@
 
 :- use_module(library(crypto)).
 
-%!  hash_password(+Plain, -Hash) is det.
-%
-%   Gera hash seguro de senha em texto puro.
 hash_password(Plain, Hash) :-
     crypto_password_hash(Plain, Hash).
 
-%!  verify_password(+Plain, +Hash) is semidet.
-%
-%   Verifica senha em texto puro contra hash armazenado.
+% Com Hash ligado, crypto_password_hash/2 valida a senha contra ele.
 verify_password(Plain, Hash) :-
     crypto_password_hash(Plain, Hash).

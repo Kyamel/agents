@@ -3,7 +3,7 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/http_parameters)).
-:- use_module('../../db/sqlite_store').
+:- use_module('../../db/db').
 :- use_module('../../components/page').
 :- use_module('../../components/match_card').
 :- use_module('../../components/button_link').
@@ -21,7 +21,7 @@
 handler(Request) :-
     web_session:current_user_or_anon(Request, User),
     http_parameters(Request, [page(Page, [integer, default(1)])]),
-    sqlite_store:list_matches(Matches),
+    db:list_matches(Matches),
     pagination:paginate(Matches, 20, Page, PageMatches, PageMeta),
     render(Request, User, PageMatches, PageMeta).
 

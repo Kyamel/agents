@@ -4,8 +4,8 @@
 :- use_module('../../../components/api_endpoint').
 :- use_module('../../security/authz').
 :- use_module('../../json_request').
-:- use_module('../../../db/sqlite_store').
-:- use_module('../../../engine/registry').
+:- use_module('../../../db/db').
+:- use_module('../../../engine/engine').
 
 :- http_handler(root(api/v1/agents), handler, [methods([get, post, options])]).
 
@@ -13,7 +13,7 @@ handler(Request) :-
     api_handle(Request, [get, post, options], dispatch).
 
 dispatch(get, _Request) :-
-    sqlite_store:list_agents(Agents),
+    db:list_agents(Agents),
     reply_json(200, _{agents: Agents}).
 dispatch(post, Request) :-
     authz:require_bearer_token(Request, UserId),
@@ -37,16 +37,14 @@ create_agent(UserId, Request, Status, Payload) :-
     create_validated(UserId, Name, Role, Source, Status, Payload).
 
 create_validated(_UserId, Name, _Role, _Source, 422, _{error: "invalid_agent_name"}) :-
-    \+ agent_registry:valid_agent_name(Name),
+    \+ engine:valid_agent_name(Name),
     !.
 create_validated(UserId, Name, Role, Source, 201, _{status: "created", agent: Agent}) :-
     id_string(UserId, UserIdStr),
-    agent_registry:register_agent_source(UserIdStr, Name, Role, Source, Agent).
+    engine:register_agent_source(UserIdStr, Name, Role, Source, Agent).
 
-%!  create_error(+Error, -Status, -Payload) is det.
-%
-%   Traduz erros do registro para respostas HTTP. Erros de corpo invalido ja
-%   sao `http_reply(bad_request(...))` (400) e seguem direto para o framework.
+% Traduz erros do registro para respostas HTTP. Corpo invalido ja vem como
+% http_reply(bad_request(...)) (400) e segue direto para o framework.
 create_error(http_reply(Reply), _, _) :-
     !,
     throw(http_reply(Reply)).
@@ -56,7 +54,7 @@ create_error(Error, 500, _{error: "internal_error"}) :-
     print_message(error, Error).
 
 verified_user(UserId) :-
-    sqlite_store:find_user_by_id(UserId, User),
+    db:find_user_by_id(UserId, User),
     User.is_verified == true.
 
 id_string(Id, Id) :- string(Id), !.

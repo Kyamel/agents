@@ -5,7 +5,7 @@
 :- use_module('../../components/page').
 :- use_module('../../components/form_field').
 :- use_module('../../components/alert').
-:- use_module('../../auth/account').
+:- use_module('../../auth/auth').
 :- use_module('../security/rate_limit').
 
 :- http_handler(root(signup), handler, [methods([get, post])]).
@@ -56,7 +56,7 @@ process_signup(Request, Username, Email, Password, _) :-
     handle_outcome(Outcome, Request, Username, Email).
 
 safe_signup(Username, Email, Password, Outcome) :-
-    catch(account:signup(Username, Email, Password, Outcome),
+    catch(auth:signup(Username, Email, Password, Outcome),
           Error,
           log_and_fail(Email, Error, Outcome)).
 

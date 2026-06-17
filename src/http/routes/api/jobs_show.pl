@@ -2,8 +2,8 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module('../../../components/api_endpoint').
-:- use_module('../../../engine/match_queue').
-:- use_module('../../../db/sqlite_store').
+:- use_module('../../../engine/engine').
+:- use_module('../../../db/db').
 
 % Detalhe de um job pelo id da partida. Se o job ainda esta ativo, devolve o
 % estado em memoria (com elapsed_seconds em tempo real); se ja terminou, cai no
@@ -30,18 +30,15 @@ extract_id(Path, Id) :-
     Id \== ''.
 
 load_job(Id, 200, _{job: Info}) :-
-    match_queue:job_info(Id, Info),
+    engine:job_info(Id, Info),
     !.
 load_job(Id, 200, _{job: Info}) :-
-    sqlite_store:get_match(Id, Match),
+    db:get_match(Id, Match),
     !,
     match_to_job(Match, Info).
 load_job(_, 404, _{error: "job_not_found"}).
 
-%!  match_to_job(+Match, -Job) is det.
-%
-%   Representa uma partida ja finalizada no mesmo formato de um job ativo, para
-%   que o cliente possa consultar o id ate o estado final aparecer.
+% Partida finalizada no mesmo formato de um job ativo (elapsed/pid nulos).
 match_to_job(Match, _{
     match_id: Match.id,
     status: Match.status,

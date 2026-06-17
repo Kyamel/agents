@@ -1,8 +1,8 @@
 :- module(route_agents_delete, []).
 
 :- use_module(library(http/http_dispatch)).
-:- use_module('../../db/sqlite_store').
-:- use_module('../../engine/agent_cache').
+:- use_module('../../db/db').
+:- use_module('../../engine/engine').
 :- use_module('../security/web_session').
 
 % Prefix em /agents/ para capturar /agents/<id>. Restrito a DELETE para nao
@@ -35,11 +35,11 @@ extract_id(Path, Id) :-
     Id \== new.
 
 process_delete(User, Id) :-
-    sqlite_store:get_agent(Id, Agent),
+    db:get_agent(Id, Agent),
     !,
     ensure_owner(User, Agent),
-    sqlite_store:delete_agent(Id),
-    agent_cache:forget_agent(Id),
+    db:delete_agent(Id),
+    engine:forget_agent(Id),
     reply_empty.
 process_delete(_, _) :-
     reply_not_found.

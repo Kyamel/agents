@@ -3,7 +3,7 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/http_parameters)).
-:- use_module('../../db/sqlite_store').
+:- use_module('../../db/db').
 :- use_module('../../components/page').
 :- use_module('../../components/agent_card').
 :- use_module('../../components/button_link').
@@ -21,7 +21,7 @@
 handler(Request) :-
     web_session:current_user_or_anon(Request, User),
     http_parameters(Request, [page(Page, [integer, default(1)])]),
-    sqlite_store:list_agents(Agents),
+    db:list_agents(Agents),
     augment_with_owner(Agents, AgentsRich),
     pagination:paginate(AgentsRich, 20, Page, PageAgents, PageMeta),
     render(Request, User, PageAgents, PageMeta).
@@ -38,7 +38,7 @@ augment_with_owner([A|As], [A2|As2]) :-
     augment_with_owner(As, As2).
 
 owner_email(A, Email) :-
-    sqlite_store:find_user_by_id(A.owner_user_id, Owner),
+    db:find_user_by_id(A.owner_user_id, Owner),
     !,
     Email = Owner.email.
 owner_email(_, "").

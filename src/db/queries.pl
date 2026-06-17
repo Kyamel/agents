@@ -1,6 +1,4 @@
-:- module(sqlite_store, [
-    init/0,
-
+:- module(db_queries, [
     create_user/5,
     find_user_by_email/2,
     find_user_by_id/2,
@@ -28,190 +26,9 @@
     list_matches/1
 ]).
 
-:- use_module(library(error)).
-:- use_module(library(filesex)).
-:- use_module(library(prolog_pack)).
 :- use_module(library(uuid)).
-:- use_module('../config').
+:- use_module(connection).
 
-%!  conn_alias(-Alias) is det.
-%
-%   Alias lógico usado para a conexão SQLite compartilhada.
-conn_alias(agents_db).
-
-%!  init is det.
-%
-%   Inicializa dependência `prosqlite`, conexão e migrações de schema.
-init :-
-    ensure_prosqlite,
-    ensure_connected,
-    migrate.
-
-%!  ensure_prosqlite is det.
-%
-%   Garante que o pacote `prosqlite` está disponível para uso.
-ensure_prosqlite :-
-    ensure_local_prosqlite_pack,
-    ensure_prosqlite_loaded,
-    require_prosqlite.
-
-%!  require_prosqlite is semidet.
-%
-%   Confirma que `prosqlite` foi carregado; lança erro caso contrário.
-require_prosqlite :-
-    current_predicate(prosqlite:sqlite_connect/3),
-    !.
-require_prosqlite :-
-    throw(error(existence_error(package, prosqlite), _)).
-
-%!  ensure_prosqlite_loaded is det.
-%
-%   Carrega `library(prosqlite)` quando ainda não está no runtime.
-ensure_prosqlite_loaded :-
-    current_predicate(prosqlite:sqlite_connect/3),
-    !.
-ensure_prosqlite_loaded :-
-    catch(use_module(library(prosqlite), []), _, fail),
-    !.
-ensure_prosqlite_loaded :-
-    local_prosqlite_module_file(ModuleFile),
-    exists_file(ModuleFile),
-    use_module(ModuleFile, []).
-
-%!  ensure_local_prosqlite_pack is det.
-%
-%   Anexa pacote local `packs/prosqlite` quando presente.
-ensure_local_prosqlite_pack :-
-    current_predicate(prosqlite:sqlite_connect/3),
-    !.
-ensure_local_prosqlite_pack :-
-    local_prosqlite_pack_dir(PackDir),
-    exists_directory(PackDir),
-    !,
-    catch(pack_attach(PackDir, [duplicate(replace)]), _, true).
-ensure_local_prosqlite_pack.
-
-%!  local_prosqlite_pack_dir(-PackDir) is det.
-%
-%   Resolve caminho absoluto do pacote local `prosqlite`.
-local_prosqlite_pack_dir(PackDir) :-
-    source_file(sqlite_store:init, ThisFile),
-    file_directory_name(ThisFile, DbDir),
-    file_directory_name(DbDir, SrcDir),
-    file_directory_name(SrcDir, ProjectDir),
-    directory_file_path(ProjectDir, 'packs/prosqlite', PackDir).
-
-%!  local_prosqlite_module_file(-ModuleFile) is det.
-%
-%   Resolve caminho absoluto do módulo principal `prosqlite.pl`.
-local_prosqlite_module_file(ModuleFile) :-
-    local_prosqlite_pack_dir(PackDir),
-    directory_file_path(PackDir, 'prolog/prosqlite.pl', ModuleFile).
-
-%!  ensure_connected is det.
-%
-%   Abre conexão SQLite (se necessário) usando alias configurado.
-ensure_connected :-
-    ensure_prosqlite,
-    conn_alias(Alias),
-    ensure_connection_open(Alias).
-
-%!  ensure_connection_open(+Alias) is det.
-%
-%   Abre a conexão SQLite quando ainda não há uma pronta para o alias.
-ensure_connection_open(Alias) :-
-    sqlite_connection_ready(Alias),
-    !.
-ensure_connection_open(Alias) :-
-    config:db_path(DbPath),
-    file_directory_name(DbPath, Dir),
-    make_directory_path(Dir),
-    prosqlite:sqlite_connect(DbPath, Alias, [alias(Alias), exists(false), ext('')]).
-
-%!  sqlite_connection_ready(+Alias) is semidet.
-%
-%   Verifica se a conexão alias já está aberta.
-sqlite_connection_ready(Alias) :-
-    current_predicate(prosqlite:sqlite_current_connection/1),
-    prosqlite:sqlite_current_connection(Alias).
-
-%!  migrate is det.
-%
-%   Cria tabelas necessárias quando ainda não existem.
-migrate :-
-    sql_exec("CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        username TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        is_verified INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL
-    );"),
-    sql_exec("CREATE TABLE IF NOT EXISTS email_verifications (
-        token_hash TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        expires_at TEXT NOT NULL,
-        used_at TEXT
-    );"),
-    sql_exec("CREATE TABLE IF NOT EXISTS auth_sessions (
-        token_hash TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        expires_at TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        revoked_at TEXT
-    );"),
-    sql_exec("CREATE TABLE IF NOT EXISTS agents (
-        id TEXT PRIMARY KEY,
-        owner_user_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        role TEXT NOT NULL,
-        source_text TEXT NOT NULL,
-        created_at TEXT NOT NULL
-    );"),
-    sql_exec("CREATE TABLE IF NOT EXISTS matches (
-        id TEXT PRIMARY KEY,
-        thief_agent_id TEXT NOT NULL,
-        detective_agent_id TEXT NOT NULL,
-        scenario TEXT,
-        winner TEXT,
-        replay_json TEXT,
-        status TEXT,
-        created_at TEXT NOT NULL,
-        started_at TEXT,
-        finished_at TEXT
-    );"),
-    migrate_users_columns,
-    migrate_matches_columns.
-
-%!  migrate_users_columns is det.
-%
-%   Adiciona colunas novas de usuario em bancos criados antes do perfil ter
-%   nome de usuario.
-migrate_users_columns :-
-    catch(sql_exec("ALTER TABLE users ADD COLUMN username TEXT;"), _, true).
-
-%!  migrate_matches_columns is det.
-%
-%   Adiciona as colunas do fluxo assincrono (subprocessos + fila) em bancos
-%   antigos, criados antes da Fase 1, quando `matches` so tinha o resultado
-%   final. `ALTER TABLE ... ADD COLUMN` falha se a coluna ja existe, dai o
-%   `catch` para manter a migracao idempotente.
-migrate_matches_columns :-
-    forall(member(Def, ["scenario TEXT", "status TEXT",
-                        "started_at TEXT", "finished_at TEXT"]),
-           ( format(string(SQL), "ALTER TABLE matches ADD COLUMN ~s;", [Def]),
-             catch(sql_exec(SQL), _, true) )).
-
-%!  sql_exec(+SQL) is det.
-%
-%   Executa comando SQL descartando linhas de retorno.
-sql_exec(SQL) :-
-    conn_alias(Alias),
-    findall(Row, prosqlite:sqlite_query(Alias, SQL, Row), _Rows).
-
-%!  create_user(+Username, +Email, +PasswordHash, -UserId, -CreatedAt) is det.
-%
-%   Cria usuário e retorna identificador e timestamp de criação.
 create_user(Username, Email, PasswordHash, UserId, CreatedAt) :-
     ensure_connected,
     uuid(UserUuid),
@@ -227,9 +44,6 @@ create_user(Username, Email, PasswordHash, UserId, CreatedAt) :-
            [QId, QUsername, QEmail, QPwd, QCreated]),
     sql_exec(SQL).
 
-%!  find_user_by_email(+Email, -User) is semidet.
-%
-%   Busca usuário por email.
 find_user_by_email(Email, User) :-
     ensure_connected,
     sql_quote(Email, QEmail),
@@ -238,9 +52,6 @@ find_user_by_email(Email, User) :-
            [QEmail]),
     user_from_query(SQL, User).
 
-%!  find_user_by_id(+UserId, -User) is semidet.
-%
-%   Busca usuário por identificador.
 find_user_by_id(UserId, User) :-
     ensure_connected,
     sql_quote(UserId, QUserId),
@@ -249,9 +60,6 @@ find_user_by_id(UserId, User) :-
            [QUserId]),
     user_from_query(SQL, User).
 
-%!  user_from_query(+SQL, -User) is semidet.
-%
-%   Materializa um usuário (dict) a partir de query SQL.
 user_from_query(SQL, User) :-
     conn_alias(Alias),
     once(prosqlite:sqlite_query(Alias, SQL, row(Id, Username0, E, Hash, VerifiedInt, CreatedAt))),
@@ -266,6 +74,7 @@ user_from_query(SQL, User) :-
         created_at: CreatedAt
     }.
 
+% Usuarios criados antes da coluna `username` caem de volta para o email.
 user_username(Username0, Email, Username) :-
     norm_optional(Username0, Username1),
     ( Username1 == ""
@@ -273,18 +82,12 @@ user_username(Username0, Email, Username) :-
     ;  Username = Username1
     ).
 
-%!  mark_user_verified(+UserId) is det.
-%
-%   Marca usuário como verificado.
 mark_user_verified(UserId) :-
     ensure_connected,
     sql_quote(UserId, QUserId),
     format(string(SQL), "UPDATE users SET is_verified = 1 WHERE id = ~s;", [QUserId]),
     sql_exec(SQL).
 
-%!  save_email_verification(+TokenHash, +UserId, +ExpiresAt, +CreatedAt) is det.
-%
-%   Persiste token de verificação de email.
 save_email_verification(TokenHash, UserId, ExpiresAt, _CreatedAt) :-
     ensure_connected,
     sql_quote(TokenHash, QToken),
@@ -297,7 +100,8 @@ save_email_verification(TokenHash, UserId, ExpiresAt, _CreatedAt) :-
 
 %!  consume_email_verification(+TokenHash, -UserId) is semidet.
 %
-%   Consome token válido/ativo e retorna `UserId` associado.
+%   So consome o token se ele ainda nao foi usado e nao expirou; marca como
+%   usado na mesma chamada (uso unico).
 consume_email_verification(TokenHash, UserId) :-
     ensure_connected,
     sql_quote(TokenHash, QToken),
@@ -315,9 +119,6 @@ consume_email_verification(TokenHash, UserId) :-
            [QNow, QToken]),
     sql_exec(UpdateSQL).
 
-%!  save_auth_session(+TokenHash, +UserId, +ExpiresAt, +CreatedAt) is det.
-%
-%   Persiste sessão autenticada.
 save_auth_session(TokenHash, UserId, ExpiresAt, CreatedAt) :-
     ensure_connected,
     sql_quote(TokenHash, QToken),
@@ -331,7 +132,7 @@ save_auth_session(TokenHash, UserId, ExpiresAt, CreatedAt) :-
 
 %!  find_user_id_by_session_token_hash(+TokenHash, -UserId) is semidet.
 %
-%   Resolve usuário de sessão ativa (não revogada e não expirada).
+%   Resolve o usuario apenas de sessao ativa: nao revogada e nao expirada.
 find_user_id_by_session_token_hash(TokenHash, UserId) :-
     ensure_connected,
     sql_quote(TokenHash, QToken),
@@ -344,9 +145,6 @@ find_user_id_by_session_token_hash(TokenHash, UserId) :-
     timestamp_iso(Now),
     ExpiresAt @> Now.
 
-%!  revoke_auth_session(+TokenHash) is det.
-%
-%   Marca uma sessao como revogada, invalidando o token associado.
 revoke_auth_session(TokenHash) :-
     ensure_connected,
     sql_quote(TokenHash, QToken),
@@ -359,8 +157,8 @@ revoke_auth_session(TokenHash) :-
 
 %!  save_agent(+OwnerUserId, +Name, +Role, +SourceText, -AgentId) is det.
 %
-%   Persiste agente e retorna `AgentId`. O DB e o source-of-truth; o
-%   `source_text` eh o codigo Prolog completo do agente.
+%   O DB e o source-of-truth: `source_text` guarda o codigo Prolog completo do
+%   agente, materializado no cache do filesystem so na hora do match.
 save_agent(OwnerUserId, Name, Role, SourceText, AgentId) :-
     ensure_connected,
     uuid(Uuid),
@@ -377,10 +175,7 @@ save_agent(OwnerUserId, Name, Role, SourceText, AgentId) :-
         [QId, QOwner, QName, QRole, QSource, QCreated]),
     sql_exec(SQL).
 
-%!  get_agent(+AgentId, -Agent) is semidet.
-%
-%   Busca agente por ID, incluindo o `source_text` (necessario para
-%   materializar o agente no cache do filesystem antes do match).
+% Inclui `source_text` (diferente de list_agents/1) para materializar o cache.
 get_agent(AgentId, Agent) :-
     ensure_connected,
     sql_quote(AgentId, QAgentId),
@@ -398,10 +193,7 @@ get_agent(AgentId, Agent) :-
       created_at: CreatedAt
     }.
 
-%!  list_agents(-Agents) is det.
-%
-%   Lista agentes (metadados) em ordem decrescente de criacao. NAO inclui
-%   `source_text` para manter a listagem leve.
+% Metadados em ordem decrescente de criacao; sem `source_text` (listagem leve).
 list_agents(Agents) :-
     ensure_connected,
     conn_alias(Alias),
@@ -417,20 +209,14 @@ list_agents(Agents) :-
       row(Id, Owner, Name, Role, CreatedAt)),
     Agents).
 
-%!  delete_agent(+AgentId) is det.
-%
-%   Remove o agente do banco. O cache em disco eh responsabilidade do
-%   chamador (engine/agent_cache).
+% Remove so do banco; invalidar o cache em disco e do chamador (agent_cache).
 delete_agent(AgentId) :-
     ensure_connected,
     sql_quote(AgentId, QId),
     format(string(SQL), "DELETE FROM agents WHERE id = ~s;", [QId]),
     sql_exec(SQL).
 
-%!  update_agent_source(+AgentId, +SourceText) is det.
-%
-%   Atualiza o codigo do agente. O cache em disco fica obsoleto e deve
-%   ser invalidado/regravado pelo chamador na próxima execucao.
+% Deixa o cache em disco obsoleto; o chamador regrava na proxima execucao.
 update_agent_source(AgentId, SourceText) :-
     ensure_connected,
     sql_quote(AgentId, QId),
@@ -440,9 +226,6 @@ update_agent_source(AgentId, SourceText) :-
         [QSource, QId]),
     sql_exec(SQL).
 
-%!  save_match(+ThiefAgentId, +DetectiveAgentId, +Winner, +ReplayJson, -MatchId) is det.
-%
-%   Persiste uma partida executada e retorna `MatchId`.
 save_match(ThiefAgentId, DetectiveAgentId, Winner, ReplayJson, MatchId) :-
     ensure_connected,
     uuid(Uuid),
@@ -461,10 +244,10 @@ save_match(ThiefAgentId, DetectiveAgentId, Winner, ReplayJson, MatchId) :-
 
 %!  create_pending_match(+ThiefAgentId, +DetectiveAgentId, +Scenario, -MatchId) is det.
 %
-%   Cria a linha da partida JA no enfileiramento, com `status='queued'` e sem
-%   resultado. O `winner`/`replay_json` sao preenchidos por `finalize_match/3`
-%   quando o subprocesso termina. O MatchId e um atomo (chave usada tambem como
-%   id de job em memoria e na URL /matches/<id>).
+%   Cria a linha da partida JA no enfileiramento (`status='queued'`, sem
+%   resultado); `winner`/`replay_json` sao preenchidos por finalize_match/3
+%   quando o subprocesso termina. O MatchId e usado tambem como id de job em
+%   memoria e na URL /matches/<id>.
 create_pending_match(ThiefAgentId, DetectiveAgentId, Scenario, MatchId) :-
     ensure_connected,
     uuid(MatchId),
@@ -479,9 +262,7 @@ create_pending_match(ThiefAgentId, DetectiveAgentId, Scenario, MatchId) :-
       [QId, QT, QD, QS, QC]),
     sql_exec(SQL).
 
-%!  update_match_status(+MatchId, +Status) is det.
-%
-%   Atualiza o status da partida. Ao passar para `running`, grava `started_at`.
+% Ao passar para "running", grava tambem `started_at`.
 update_match_status(MatchId, Status) :-
     ensure_connected,
     sql_quote(MatchId, QId),
@@ -498,10 +279,6 @@ update_match_status(MatchId, Status) :-
     ),
     sql_exec(SQL).
 
-%!  finalize_match(+MatchId, +Winner, +ReplayJson) is det.
-%
-%   Grava o resultado final (winner + replay), marca `status='done'` e
-%   `finished_at`.
 finalize_match(MatchId, Winner, ReplayJson) :-
     ensure_connected,
     timestamp_iso(Now),
@@ -514,9 +291,6 @@ finalize_match(MatchId, Winner, ReplayJson) :-
       [QW, QR, QF, QId]),
     sql_exec(SQL).
 
-%!  mark_match_failed(+MatchId, +Status) is det.
-%
-%   Marca uma partida como `error` ou `timeout` e grava `finished_at`.
 mark_match_failed(MatchId, Status) :-
     ensure_connected,
     timestamp_iso(Now),
@@ -528,10 +302,7 @@ mark_match_failed(MatchId, Status) :-
       [QStatus, QF, QId]),
     sql_exec(SQL).
 
-%!  list_matches_by_status(+Statuses, -Matches) is det.
-%
-%   Lista partidas cujo status esta em `Statuses` (lista de strings), em ordem
-%   crescente de criacao. Usado para re-enfileirar pendentes apos restart.
+% Usado para re-enfileirar pendentes apos restart, dai a ordem crescente.
 list_matches_by_status(Statuses, Matches) :-
     ensure_connected,
     conn_alias(Alias),
@@ -542,9 +313,6 @@ list_matches_by_status(Statuses, Matches) :-
       [InList]),
     findall(Match, ( prosqlite:sqlite_query(Alias, SQL, Row), match_row_dict(Row, Match) ), Matches).
 
-%!  get_match(+MatchId, -Match) is semidet.
-%
-%   Busca uma partida por ID.
 get_match(MatchId, Match) :-
     ensure_connected,
     sql_quote(MatchId, QId),
@@ -555,9 +323,6 @@ get_match(MatchId, Match) :-
     once(prosqlite:sqlite_query(Alias, SQL, Row)),
     match_row_dict(Row, Match).
 
-%!  list_matches(-Matches) is det.
-%
-%   Lista partidas em ordem decrescente de criação.
 list_matches(Matches) :-
     ensure_connected,
     conn_alias(Alias),
@@ -570,10 +335,9 @@ list_matches(Matches) :-
 
 %!  match_row_dict(+Row, -Match) is det.
 %
-%   Materializa o dict de uma partida a partir da linha SQL. Normaliza colunas
-%   que podem vir NULL (partidas antigas, anteriores ao fluxo assincrono) ou
-%   como atomo (driver prosqlite): `status` ausente vira "done" (partida ja
-%   concluida no modelo antigo), demais textos opcionais viram "".
+%   Normaliza colunas que podem vir NULL (partidas antigas, anteriores ao fluxo
+%   assincrono) ou como atomo (driver prosqlite): `status` ausente vira "done"
+%   (modelo antigo, ja concluida); demais textos opcionais viram "".
 match_row_dict(row(Id, Thief, Detective, Scenario, Winner, Replay, Status,
                    CreatedAt, StartedAt, FinishedAt),
                Match) :-
@@ -594,51 +358,17 @@ match_row_dict(row(Id, Thief, Detective, Scenario, Winner, Replay, Status,
         finished_at: FinishedT
     }.
 
-%!  norm_status(+Raw, -Status) is det.
 norm_status(Raw, "done") :- ( Raw == '$null$' ; Raw == '' ; Raw == "" ), !.
 norm_status(Raw, Status) :- to_text(Raw, Status).
 
-%!  norm_optional(+Raw, -Text) is det.
 norm_optional(Raw, "") :- Raw == '$null$', !.
 norm_optional(Raw, Text) :- to_text(Raw, Text).
 
-%!  to_text(+Raw, -String) is det.
 to_text(Raw, Raw) :- string(Raw), !.
 to_text(Raw, S) :- atom(Raw), !, atom_string(Raw, S).
 to_text(Raw, S) :- format(string(S), "~w", [Raw]).
 
-%!  bool_int(?Bool, ?Int) is nondet.
-%
-%   Converte representação booleana para inteiro de banco e vice-versa.
+% Em ambas as direcoes: NULL do banco tambem conta como false.
 bool_int(true, 1).
 bool_int(false, 0).
 bool_int(false, '$null$').
-
-%!  timestamp_iso(-Iso) is det.
-%
-%   Retorna timestamp UTC corrente em ISO-8601.
-timestamp_iso(Iso) :-
-    get_time(Now),
-    format_time(string(Iso), '%FT%TZ', Now).
-
-%!  sql_quote(+Input, -Quoted) is det.
-%
-%   Escapa string para uso seguro em SQL textual.
-sql_quote(Input, Quoted) :-
-    string_codes(Input, Codes),
-    phrase(sql_escaped(Codes), EscapedCodes),
-    string_codes(Escaped, EscapedCodes),
-    format(string(Quoted), "'~s'", [Escaped]).
-
-%!  sql_escaped(+Codes)// is det.
-%
-%   DCG para escape de aspas simples na serialização SQL.
-sql_escaped([]) --> [].
-sql_escaped([39|Rest]) --> "''", sql_escaped(Rest).
-sql_escaped([C|Rest]) --> [C], sql_escaped(Rest).
-
-% Eager-load do pacote prosqlite no carregamento deste modulo. Sem isso o
-% `check/0` reclama de prosqlite:sqlite_*/N porque o pack so seria atachado
-% lazy via init/0. Erros sao engolidos para nao quebrar build se o pack
-% estiver ausente; ai a falha vira no momento do uso real.
-:- catch(ensure_prosqlite, _, true).

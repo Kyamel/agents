@@ -11,7 +11,7 @@
 :- use_module(library(apply)).
 :- use_module(library(filesex)).
 :- use_module('../config').
-:- use_module('../db/sqlite_store').
+:- use_module('../db/db').
 :- use_module('./agent_cache').
 :- use_module('./match_runner').
 
@@ -51,21 +51,10 @@ start_pool :-
     format("match_queue: pool com ~w worker(s)~n", [N]),
     recover_pending.
 
-%!  worker_count(-N) is det.
-%
-%   Tamanho do pool: config `match_max_workers` (inteiro) ou `auto` =
-%   max(1, cpu_count - 1), deixando um nucleo para o servidor/SO.
 worker_count(N) :-
-    config:match_max_workers(Cfg),
-    resolve_worker_count(Cfg, N).
+    config:match_max_workers(N).
 
-resolve_worker_count(K, K) :-
-    integer(K),
-    K >= 1,
-    !.
-resolve_worker_count(_, N) :-
-    current_prolog_flag(cpu_count, C),
-    N is max(1, C - 1).
+
 
 %!  recover_pending is det.
 %
@@ -73,7 +62,7 @@ resolve_worker_count(_, N) :-
 %   e as re-enfileira. As que estavam `running` voltam para `queued` e recomecam
 %   do zero (resume mid-match e Fase 2).
 recover_pending :-
-    sqlite_store:list_matches_by_status(["queued", "running"], Matches),
+    db:list_matches_by_status(["queued", "running"], Matches),
     forall(member(M, Matches), requeue_match(M)).
 
 requeue_match(Match) :-
@@ -88,7 +77,7 @@ requeue_match(Match) :-
 reset_running_status(Match, MatchId) :-
     Match.status == "running",
     !,
-    catch(sqlite_store:update_match_status(MatchId, "queued"), _, true).
+    catch(db:update_match_status(MatchId, "queued"), _, true).
 reset_running_status(_Match, _MatchId).
 
 % =============================
@@ -100,7 +89,7 @@ reset_running_status(_Match, _MatchId).
 %   Cria a linha pendente no banco, registra o job e o envia para a fila. Nao
 %   bloqueia: a partida sera executada por um worker quando houver vaga.
 enqueue_match(ThiefId, DetectiveId, Scenario, MatchId) :-
-    sqlite_store:create_pending_match(ThiefId, DetectiveId, Scenario, MatchId),
+    db:create_pending_match(ThiefId, DetectiveId, Scenario, MatchId),
     register_job(MatchId, ThiefId, DetectiveId, Scenario, "queued"),
     thread_send_message(match_jobs, run(MatchId)).
 
@@ -120,14 +109,14 @@ worker_loop :-
 %   Executa uma partida: materializa agentes, dispara o subprocesso, espera com
 %   timeout e persiste o resultado.
 run_job(MatchId) :-
-    sqlite_store:get_match(MatchId, Match),
+    db:get_match(MatchId, Match),
     !,
     ThiefId = Match.thief_agent_id,
     DetectiveId = Match.detective_agent_id,
     Scenario = Match.scenario,
     mark_running(MatchId),
-    sqlite_store:get_agent(ThiefId, ThiefAgent),
-    sqlite_store:get_agent(DetectiveId, DetectiveAgent),
+    db:get_agent(ThiefId, ThiefAgent),
+    db:get_agent(DetectiveId, DetectiveAgent),
     agent_cache:materialize_agent(ThiefAgent, ThiefPath),
     agent_cache:materialize_agent(DetectiveAgent, DetectivePath),
     match_runner:scenario_engine_arg(Scenario, ScenarioArg),
@@ -187,11 +176,10 @@ finish_after_term(Pid) :-
     catch(process_kill(Pid, kill), _, true),
     catch(process_wait(Pid, _, []), _, true).
 
-%!  finish_job(+MatchId, +Status, +OutFile) is det.
 finish_job(MatchId, exit(0), OutFile) :-
     read_result(OutFile, Winner, ReplayJson),
     !,
-    sqlite_store:finalize_match(MatchId, Winner, ReplayJson),
+    db:finalize_match(MatchId, Winner, ReplayJson),
     cleanup(MatchId, OutFile).
 finish_job(MatchId, timeout, OutFile) :-
     !,
@@ -225,10 +213,9 @@ delete_if_exists(File) :-
     catch(delete_file(File), _, true).
 delete_if_exists(_File).
 
-%!  fail_job(+MatchId, +Status, +Reason) is det.
 fail_job(MatchId, Status, Reason) :-
     format(user_error, "[match ~w] falhou (~w): ~q~n", [MatchId, Status, Reason]),
-    catch(sqlite_store:mark_match_failed(MatchId, Status), _, true),
+    catch(db:mark_match_failed(MatchId, Status), _, true),
     forget_job(MatchId).
 
 % =============================
@@ -254,7 +241,7 @@ register_job(MatchId, ThiefId, DetectiveId, Scenario, Status) :-
 mark_running(MatchId) :-
     get_time(Now),
     update_job(MatchId, _{status: "running", started_at: Now}),
-    catch(sqlite_store:update_match_status(MatchId, "running"), _, true).
+    catch(db:update_match_status(MatchId, "running"), _, true).
 
 set_job_pid(MatchId, Pid) :-
     update_job(MatchId, _{pid: Pid}).

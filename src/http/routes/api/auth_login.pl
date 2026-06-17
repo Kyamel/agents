@@ -2,7 +2,7 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module('../../../components/api_endpoint').
-:- use_module('../../../auth/account').
+:- use_module('../../../auth/auth').
 :- use_module('../../json_request').
 
 :- http_handler(root(api/v1/auth/login), handler, [methods([post, options])]).
@@ -18,7 +18,7 @@ login_from_request(Request, Status, Payload) :-
     json_request:read_json_body(Request, Body),
     json_request:require_string(Body, email, Email),
     json_request:require_string(Body, password, Password),
-    account:login(Email, Password, Outcome),
+    auth:login(Email, Password, Outcome),
     login_payload(Outcome, Status, Payload).
 
 login_payload(invalid_credentials, 401, _{error: "invalid_credentials"}).

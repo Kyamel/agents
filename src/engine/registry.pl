@@ -5,7 +5,7 @@
 
 :- use_module(library(error)).
 :- use_module('../config').
-:- use_module('../db/sqlite_store').
+:- use_module('../db/db').
 :- use_module('./sandbox').
 
 %!  register_agent_source(+UserId, +Name, +Role, +SourceText, -Agent) is det.
@@ -26,7 +26,7 @@ register_agent_source(UserId, Name, Role, SourceText, Agent) :-
     string_length(SourceText, Len),
     Len =< MaxBytes,
 
-    sqlite_store:save_agent(UserId, Name, Role, SourceText, AgentId),
+    db:save_agent(UserId, Name, Role, SourceText, AgentId),
     Agent = _{
         id: AgentId,
         owner_user_id: UserId,
@@ -34,9 +34,6 @@ register_agent_source(UserId, Name, Role, SourceText, Agent) :-
         role: Role
     }.
 
-%!  validate_role(+Role) is det.
-%
-%   Aceita somente papeis validos de agente.
 validate_role("thief").
 validate_role("detective").
 validate_role(Role) :-

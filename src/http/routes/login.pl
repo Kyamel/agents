@@ -5,7 +5,7 @@
 :- use_module('../../components/page').
 :- use_module('../../components/form_field').
 :- use_module('../../components/alert').
-:- use_module('../../auth/account').
+:- use_module('../../auth/auth').
 :- use_module('../security/web_session').
 :- use_module('../security/rate_limit').
 
@@ -44,7 +44,7 @@ process_login(Request, Email, Password) :-
     handle_outcome(Outcome, Request, Email).
 
 safe_login(Email, Password, Outcome) :-
-    catch(account:login(Email, Password, Outcome),
+    catch(auth:login(Email, Password, Outcome),
           _,
           Outcome = failed).
 

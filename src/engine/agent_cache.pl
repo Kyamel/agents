@@ -17,7 +17,7 @@
 %!  materialize_agent(+Agent, -AbsPath) is det.
 %
 %   Escreve `uploads/agents/<id>-<slug>.pl` a partir do `source_text` do
-%   Agent (dict vindo de `sqlite_store:get_agent/2`) e devolve o caminho
+%   Agent (dict vindo de `db:get_agent/2`) e devolve o caminho
 %   absoluto. Sempre sobrescreve para refletir o DB.
 materialize_agent(Agent, AbsPath) :-
     must_be(dict, Agent),
@@ -52,20 +52,13 @@ forget_agent(AgentId) :-
     expand_file_name(Pattern, Files),
     maplist(delete_cached_file, Files).
 
-%!  delete_cached_file(+AbsPath) is det.
-%
-%   Apaga o arquivo cacheado quando presente; ignora ausência e erros.
 delete_cached_file(AbsPath) :-
     exists_file(AbsPath),
     !,
     catch(delete_file(AbsPath), _, true).
 delete_cached_file(_AbsPath).
 
-%!  agent_cache_path(+AgentId, +Name, -AbsPath) is det.
-%
-%   Resolve o caminho absoluto do arquivo cache de um agente, no formato
-%   `<dir>/<id>-<slug>.pl`. O diretorio raiz eh configuravel via env
-%   `AGENT_CACHE_DIR`. Cai em `<id>.pl` se o nome nao gerar slug.
+% Caminho `<dir>/<id>-<slug>.pl` (dir via env AGENT_CACHE_DIR).
 agent_cache_path(AgentId, Name, AbsPath) :-
     cache_dir(Dir),
     id_atom(AgentId, IdAtom),
@@ -74,10 +67,7 @@ agent_cache_path(AgentId, Name, AbsPath) :-
     directory_file_path(Dir, FileName, Rel),
     absolute_file_name(Rel, AbsPath).
 
-%!  cache_basename(+IdAtom, +Name, -Base) is det.
-%
-%   `<id>-<name>`. O nome ja vem validado como slug ([a-z0-9-]); cai em
-%   `<id>` quando o nome estiver ausente/vazio.
+% `<id>-<name>` (nome ja validado como slug); cai em `<id>` se vazio.
 cache_basename(IdAtom, Name, Base) :-
     name_atom(Name, NameAtom),
     NameAtom \== '',
@@ -85,7 +75,6 @@ cache_basename(IdAtom, Name, Base) :-
     atomic_list_concat([IdAtom, '-', NameAtom], Base).
 cache_basename(IdAtom, _Name, IdAtom).
 
-%!  name_atom(+Name, -Atom) is det.
 name_atom(Name, Name) :-
     atom(Name),
     !.

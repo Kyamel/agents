@@ -4,7 +4,7 @@
 :- use_module(library(http/http_parameters)).
 :- use_module('../../components/page').
 :- use_module('../../components/button_link').
-:- use_module('../../auth/account').
+:- use_module('../../auth/auth').
 
 :- http_handler(root(auth/verify), handler, [method(get)]).
 
@@ -18,7 +18,7 @@ invalid_result(400, _{error: "invalid_or_expired_token"}).
 
 verify_from_request(Request, 200, _{status: "verified", user_id: UserId}) :-
     http_parameters(Request, [token(Token, [string])]),
-    account:verify_email_token(Token, verified(UserId)),
+    auth:verify_email_token(Token, verified(UserId)),
     !.
 verify_from_request(_Request, 400, _{error: "invalid_or_expired_token"}).
 

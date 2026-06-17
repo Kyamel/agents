@@ -314,20 +314,14 @@ cidade_do_objeto(Objeto, Cidade) :-
 
 % --- Busca no mapa com custo de risco
 
-%!  proximo_passo_seguro(+Origem, +Destino, -ProximaCidade) is semidet.
-%
-%   Escolhe o primeiro passo do caminho simples com menor custo estimado.
 proximo_passo_seguro(Origem, Destino, ProximaCidade) :-
     caminho_melhor(Origem, Destino, [Origem, ProximaCidade | _], _).
 
 %!  caminho_melhor(+Origem, +Destino, -Caminho, -Score) is semidet.
 %
-%   Enumera caminhos simples e ordena pelo custo. Em mapas pequenos isso e
-%   suficiente e permite considerar risco, nao apenas distancia.
-%   Busca de custo uniforme (Dijkstra): expande sempre o caminho de menor
-%   custo acumulado. Como o custo de cada cidade e fixo e positivo, o primeiro
-%   caminho a alcancar o destino ja e o de menor risco, sem precisar enumerar
-%   todos os caminhos simples.
+%   Busca de custo uniforme (Dijkstra): expande sempre o caminho de menor custo
+%   acumulado. Como o custo de cada cidade e fixo e positivo, o primeiro caminho
+%   a alcancar o destino ja e o de menor risco, sem enumerar todos os caminhos.
 caminho_melhor(Origem, Destino, Caminho, Score) :-
     ucs([0-[Origem]], [], Destino, CaminhoInvertido, Score),
     reverse(CaminhoInvertido, Caminho).
@@ -350,10 +344,7 @@ ucs([Custo-[Atual | Visitados] | Resto], Fechados, Destino, Caminho, Score) :-
     keysort(FilaBruta, FilaOrdenada),
     ucs(FilaOrdenada, [Atual | Fechados], Destino, Caminho, Score).
 
-%!  custo_cidade(+Cidade, -Custo) is det.
-%
-%   Custo incremental de entrar numa cidade: o mesmo peso usado por
-%   score_caminho/2 (12 por passo mais a penalidade de risco da cidade).
+% Custo de entrar numa cidade: mesmo peso de score_caminho/2 (12 + penalidade).
 custo_cidade(Cidade, Custo) :-
     penalidade_cidade(Cidade, Penalidade),
     Custo is 12 + Penalidade.

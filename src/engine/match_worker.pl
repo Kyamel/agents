@@ -29,7 +29,6 @@ main :-
         ( write_error(OutFile, Error), halt(1) )
     ).
 
-%!  parse_args(+Argv, -Scenario, -Qdis, -ThiefPath, -DetPath, -OutFile) is det.
 parse_args([ScenarioA, QdisA, ThiefPath, DetPath, OutFile],
            Scenario, Qdis, ThiefPath, DetPath, OutFile) :-
     !,
@@ -38,7 +37,6 @@ parse_args([ScenarioA, QdisA, ThiefPath, DetPath, OutFile],
 parse_args(Argv, _, _, _, _, _) :-
     throw(error(match_worker_bad_args(Argv), _)).
 
-%!  run(+Scenario, +Qdis, +ThiefPath, +DetPath, +OutFile) is det.
 run(Scenario, Qdis, ThiefPath, DetPath, OutFile) :-
     ensure_interactor_loaded,
     scenario_label(Scenario, Label),
@@ -49,15 +47,11 @@ run(Scenario, Qdis, ThiefPath, DetPath, OutFile) :-
     write_payload(OutFile, Payload),
     halt(0).
 
-%!  ensure_interactor_loaded is det.
 ensure_interactor_loaded :-
     worker_engine_dir(Dir),
     directory_file_path(Dir, 'Interactor.prolog', Path),
     user:consult(Path).
 
-%!  scenario_label(+ScenarioArg, -Label) is det.
-%
-%   Nome amigavel do cenario: basename do caminho (que ja vem sem extensao).
 scenario_label(Scenario, Label) :-
     file_base_name(Scenario, Base),
     atom_string(Base, Label).
@@ -71,14 +65,12 @@ capture_engine_run(Scenario, Qdis, ThiefPath, DetPath, Winner, InitialState, Lin
         run_engine(Scenario, Qdis, ThiefPath, DetPath, InitialState, Winner)),
     split_string(Output, "\n", "", Lines).
 
-%!  run_engine(+Scenario, +Qdis, +ThiefPath, +DetPath, -InitialState, -Winner) is det.
 run_engine(Scenario, Qdis, ThiefPath, DetPath, InitialState, Winner) :-
     user:gameStart(Scenario, Qdis, ThiefPath, DetPath, InitialState, Winner),
     !.
 run_engine(_Scenario, _Qdis, _ThiefPath, _DetPath, _InitialState, _Winner) :-
     throw(error(engine_failure(gameStart), _)).
 
-%!  write_payload(+OutFile, +Dict) is det.
 write_payload(OutFile, Dict) :-
     setup_call_cleanup(
         open(OutFile, write, Out, [encoding(utf8)]),
@@ -90,8 +82,11 @@ write_payload(OutFile, Dict) :-
 %
 %   Grava um JSON de erro para o processo pai diagnosticar a falha.
 write_error(OutFile, Error) :-
-    ( catch(message_to_string(Error, Message), _, fail)
-    -> true
-    ;  term_string(Error, Message)
-    ),
+    error_message(Error, Message),
     catch(write_payload(OutFile, _{error: Message}), _, true).
+
+error_message(Error, Message) :-
+    catch(message_to_string(Error, Message), _, fail),
+    !.
+error_message(Error, Message) :-
+    term_string(Error, Message).

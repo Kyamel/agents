@@ -2,7 +2,7 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module('../../../components/api_endpoint').
-:- use_module('../../../auth/account').
+:- use_module('../../../auth/auth').
 :- use_module('../../json_request').
 
 :- http_handler(root(api/v1/auth/signup), handler, [methods([post, options])]).
@@ -19,7 +19,7 @@ signup_from_request(Request, Status, Payload) :-
     json_request:require_string(Body, username, Username),
     json_request:require_string(Body, email, Email),
     json_request:require_string(Body, password, Password),
-    account:signup(Username, Email, Password, Outcome),
+    auth:signup(Username, Email, Password, Outcome),
     signup_payload(Username, Outcome, Status, Payload).
 
 signup_payload(_, email_exists, 409, _{error: "email_already_exists"}).

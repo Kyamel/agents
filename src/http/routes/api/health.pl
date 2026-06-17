@@ -6,9 +6,6 @@
 
 :- http_handler(root(health), health_handler, [method(get)]).
 
-%!  health_handler(+Request) is det.
-%
-%   Responde health-check do serviço.
 health_handler(Request) :-
     cors_enable(Request, [methods([get, options])]),
     reply_json_dict(_{

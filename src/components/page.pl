@@ -6,10 +6,7 @@
 :- use_module(library(http/html_write)).
 :- use_module('../http/security/web_session').
 
-%!  tailwind_config(-Script) is det.
-%
-%   Configuracao do Tailwind (via CDN) que registra a paleta `ufop`, o
-%   vermelho institucional da Universidade Federal de Ouro Preto.
+% Paleta `ufop` para o Tailwind (CDN): o vermelho institucional da UFOP.
 tailwind_config(
     "tailwind.config={theme:{extend:{colors:{ufop:{\c
      '200':'#f0b3b8','400':'#db6a74','500':'#c5283a','600':'#a31621',\c
@@ -18,8 +15,8 @@ tailwind_config(
 
 %!  reply_page(+Request, +Title, +Content) is det.
 %
-%   Renderiza uma pagina HTML completa: resolve a sessao atual, monta o layout
-%   com navegacao consciente de autenticacao e responde com Tailwind via CDN.
+%   Renderiza uma pagina HTML completa: resolve a sessao, monta o layout com a
+%   navegacao consciente de autenticacao e responde com Tailwind via CDN.
 reply_page(Request, Title, Content) :-
     web_session:current_user_or_anon(Request, User),
     layout(User, Content, Body),
@@ -35,9 +32,6 @@ reply_page(Request, Title, Content) :-
         Body
     ).
 
-%!  layout(+User, +Content, -Body) is det.
-%
-%   Monta o layout base (cabecalho, conteudo e rodape) da aplicacao.
 layout(User, Content, Body) :-
     nav(User, Nav),
     ufop_logo(Logo),
@@ -76,10 +70,6 @@ layout(User, Content, Body) :-
         ])
     ].
 
-%!  ufop_logo(-Html) is det.
-%
-%   Logo da UFOP no rodape. Usa a imagem em `assets/logo-ufop.png` quando ela
-%   existe; caso contrario, exibe um fallback textual.
 ufop_logo(Html) :-
     ufop_logo_mark(Logo),
     Html = a([
@@ -90,9 +80,7 @@ ufop_logo(Html) :-
         class('inline-flex items-center')
     ], Logo).
 
-%!  ufop_logo_mark(-Logo) is det.
-%
-%   A imagem da logo quando o arquivo existe; senao um fallback textual.
+% Imagem da logo quando o arquivo existe; senao um fallback textual.
 ufop_logo_mark(img([
         src('/assets/logo-ufop.png'),
         alt('UFOP'),
@@ -104,16 +92,11 @@ ufop_logo_mark(span([
         class('text-ufop-500 font-bold text-lg shrink-0')
     ], 'UFOP')).
 
-%!  footer_link(+Href, +Label, -Html) is det.
-%
-%   Link externo do rodape, aberto em nova aba.
 footer_link(Href, Label, Html) :-
     Html = a([ href(Href), target('_blank'), rel('noopener noreferrer'),
                class('hover:text-ufop-400 transition underline underline-offset-2') ], Label).
 
-%!  nav(+User, -Nav) is det.
-%
-%   Monta a barra de navegacao, variando os links conforme a sessao.
+% Barra de navegacao; os links variam conforme a sessao (anon vs logado).
 nav(anon, Nav) :-
     !,
     Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2 text-sm')], [

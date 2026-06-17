@@ -3,7 +3,7 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/json)).
 :- use_module('../../../components/api_endpoint').
-:- use_module('../../../db/sqlite_store').
+:- use_module('../../../db/db').
 
 % Prefix em /api/v1/matches/ para capturar o ID. /api/v1/matches (sem barra)
 % tem handler proprio (lista) e ganha pela especificidade.
@@ -34,7 +34,7 @@ extract_id(Path, Id) :-
 % =============================
 
 load_match(Id, 200, _{match: Json}) :-
-    sqlite_store:get_match(Id, Match),
+    db:get_match(Id, Match),
     !,
     match_with_replay(Match, Json).
 load_match(_, 404, _{error: "match_not_found"}).

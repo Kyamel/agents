@@ -3,11 +3,8 @@
     role_label/2
 ]).
 
-%!  agent_card(+Agent, +CurrentUser, -Html) is det.
-%
-%   Renderiza o cartao HTML de um agente. `CurrentUser` eh o usuario logado
-%   (dict) ou o atomo `anon`. Quando o usuario corrente eh dono do agente,
-%   um botao htmx-driven de exclusao eh exibido.
+% `CurrentUser` e o usuario logado (dict) ou o atomo `anon`; o dono ganha um
+% botao de exclusao (ver actions/3).
 agent_card(Agent, CurrentUser, Html) :-
     Name = Agent.name,
     role_label(Agent.role, RoleLabel),
@@ -28,7 +25,6 @@ agent_card(Agent, CurrentUser, Html) :-
         ActionsHtml
     ]).
 
-%!  owner_link(+Agent, -Html) is det.
 owner_link(Agent, Html) :-
     OwnerId = Agent.owner_user_id,
     owner_label(Agent, Label),
@@ -46,10 +42,7 @@ owner_label(Agent, Email) :-
 owner_label(Agent, Label) :-
     Label = Agent.owner_user_id.
 
-%!  actions(+Agent, +CurrentUser, -Html) is det.
-%
-%   Botao de excluir, visivel apenas para o dono do agente. Usa htmx pra
-%   trocar o cartao por uma string vazia em caso de sucesso.
+% Botao de excluir so para o dono; htmx troca o cartao por vazio no sucesso.
 actions(_Agent, anon, '') :- !.
 actions(Agent, CurrentUser, Html) :-
     is_owner(CurrentUser, Agent),
@@ -81,7 +74,6 @@ normalize_id(X, S) :- atom(X), !, atom_string(X, S).
 normalize_id(X, X) :- string(X), !.
 normalize_id(X, S) :- term_string(X, S).
 
-%!  role_label(+Role, -Label) is det.
 role_label(thief, 'Ladrao') :- !.
 role_label("thief", 'Ladrao') :- !.
 role_label(detective, 'Detetive') :- !.
