@@ -3,8 +3,6 @@
     ladrao_action/3
 ]).
 
-:- use_module(library(lists)).
-
 :- dynamic aresta_conhecida/2.
 :- dynamic item_conhecido/3.
 :- dynamic tesouro_conhecido/3.

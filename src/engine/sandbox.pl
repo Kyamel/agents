@@ -9,7 +9,7 @@
 validate_agent_source(SourceText) :-
     must_be(string, SourceText),
     blocked_pattern("initialization(", SourceText),
-    %blocked_pattern(":- use_module", SourceText),
+    blocked_pattern(":- use_module", SourceText),
     blocked_pattern("open(", SourceText),
     blocked_pattern("process_create(", SourceText),
     blocked_pattern("shell(", SourceText),

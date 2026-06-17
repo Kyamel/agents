@@ -3,7 +3,6 @@
     ladrao_action/3
 ]).
 
-:- use_module(library(lists)).
 :- use_module(library(random)).
 
 :- dynamic known_edge/2.

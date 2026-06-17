@@ -3,8 +3,6 @@
     detetive_action/3
 ]).
 
-:- use_module(library(lists)).
-
 :- dynamic known_edge/2.
 :- dynamic known_city/1.
 :- dynamic known_suspect/2.
