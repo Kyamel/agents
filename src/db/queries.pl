@@ -175,7 +175,7 @@ save_agent(OwnerUserId, Name, Role, SourceText, IsPrivate, AgentId) :-
     sql_quote(SourceText, QSource),
     sql_quote(CreatedAt, QCreated),
     format(string(SQL),
-        "INSERT INTO agents(owner_user_id, name, role, source_text, is_private, created_at) VALUES(~s, ~s, ~s, ~s, ~w, ~s);",
+        "INSERT INTO agents(owner_user_id, name, role, source_text, is_private, deleted_at, created_at) VALUES(~s, ~s, ~s, ~s, ~w, NULL, ~s);",
         [QOwner, QName, QRole, QSource, PrivateInt, QCreated]),
     sql_exec(SQL),
     last_insert_id(AgentId).
@@ -185,11 +185,12 @@ get_agent(AgentId, Agent) :-
     ensure_connected,
     sql_literal(AgentId, QAgentId),
     format(string(SQL),
-      "SELECT id, owner_user_id, name, role, source_text, is_private, created_at FROM agents WHERE id = ~s LIMIT 1;",
+      "SELECT id, owner_user_id, name, role, source_text, is_private, deleted_at, created_at FROM agents WHERE id = ~s LIMIT 1;",
       [QAgentId]),
     conn_alias(Alias),
-    once(prosqlite:sqlite_query(Alias, SQL, row(Id, Owner, Name, Role, Source, PrivateInt, CreatedAt))),
+    once(prosqlite:sqlite_query(Alias, SQL, row(Id, Owner, Name, Role, Source, PrivateInt, DeletedAt0, CreatedAt))),
     bool_int(IsPrivate, PrivateInt),
+    norm_optional(DeletedAt0, DeletedAt),
     Agent = _{
       id: Id,
       owner_user_id: Owner,
@@ -197,6 +198,7 @@ get_agent(AgentId, Agent) :-
       role: Role,
       source_text: Source,
       is_private: IsPrivate,
+      deleted_at: DeletedAt,
       created_at: CreatedAt
     }.
 
@@ -213,7 +215,7 @@ list_agents(Agents) :-
         is_private: IsPrivate
     },
     ( prosqlite:sqlite_query(Alias,
-        "SELECT id, owner_user_id, name, role, created_at, is_private FROM agents ORDER BY created_at DESC;",
+        "SELECT id, owner_user_id, name, role, created_at, is_private FROM agents WHERE deleted_at IS NULL ORDER BY created_at DESC;",
         row(Id, Owner, Name, Role, CreatedAt, PrivateInt)),
       bool_int(IsPrivate, PrivateInt)
     ),
@@ -228,9 +230,10 @@ list_agents_page(Cursor, Limit, Agents, NextCursor) :-
     conn_alias(Alias),
     PageLimit is Limit + 1,
     cursor_where(Cursor, Where),
+    active_where(Where, ActiveWhere),
     format(string(SQL),
       "SELECT id, owner_user_id, name, role, created_at, is_private FROM agents ~w ORDER BY created_at DESC, id DESC LIMIT ~w;",
-      [Where, PageLimit]),
+      [ActiveWhere, PageLimit]),
     findall(_{
         id: Id,
         owner_user_id: Owner,
@@ -245,11 +248,15 @@ list_agents_page(Cursor, Limit, Agents, NextCursor) :-
     Rows),
     page_items_and_cursor(Rows, Limit, Agents, NextCursor).
 
-% Remove so do banco; invalidar o cache em disco e do chamador (agent_cache).
+% Soft delete: preserva a linha para partidas antigas, mas remove das listagens.
 delete_agent(AgentId) :-
     ensure_connected,
     sql_literal(AgentId, QId),
-    format(string(SQL), "DELETE FROM agents WHERE id = ~s;", [QId]),
+    timestamp_iso(Now),
+    sql_quote(Now, QNow),
+    format(string(SQL),
+           "UPDATE agents SET deleted_at = ~s WHERE id = ~s AND deleted_at IS NULL;",
+           [QNow, QId]),
     sql_exec(SQL).
 
 % Deixa o cache em disco obsoleto; o chamador regrava na proxima execucao.
@@ -394,6 +401,10 @@ cursor_where(Cursor, Where) :-
            "WHERE (created_at < ~s OR (created_at = ~s AND id < ~s))",
            [QCreatedAt, QCreatedAt, QId]).
 cursor_where(_Invalid, "").
+
+active_where("", "WHERE deleted_at IS NULL") :- !.
+active_where(Where, ActiveWhere) :-
+    format(string(ActiveWhere), "~w AND deleted_at IS NULL", [Where]).
 
 cursor_parts(Cursor, CreatedAt, Id) :-
     split_string(Cursor, "|", "", [CreatedAt, Id]),

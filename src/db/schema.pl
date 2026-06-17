@@ -36,6 +36,7 @@ migrate :-
         role TEXT NOT NULL,
         source_text TEXT NOT NULL,
         is_private INTEGER NOT NULL DEFAULT 0,
+        deleted_at TEXT,
         created_at TEXT NOT NULL
     );"),
     sql_exec("CREATE TABLE IF NOT EXISTS matches (
@@ -58,7 +59,8 @@ migrate_users_columns :-
     catch(sql_exec("ALTER TABLE users ADD COLUMN username TEXT;"), _, true).
 
 migrate_agents_columns :-
-    catch(sql_exec("ALTER TABLE agents ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0;"), _, true).
+    catch(sql_exec("ALTER TABLE agents ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0;"), _, true),
+    catch(sql_exec("ALTER TABLE agents ADD COLUMN deleted_at TEXT;"), _, true).
 
 % Colunas do fluxo assincrono (fila + subprocessos) em bancos antigos, quando
 % `matches` so tinha o resultado final. `ADD COLUMN` falha se ela ja existe,

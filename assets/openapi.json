@@ -526,6 +526,11 @@
           "name": { "type": "string", "maxLength": 60, "example": "meu-agente" },
           "role": { "type": "string", "enum": ["thief", "detective"] },
           "is_private": { "type": "boolean", "default": false },
+          "deleted_at": {
+            "type": "string",
+            "nullable": true,
+            "description": "Data do soft delete. Ausente ou vazio para agentes ativos."
+          },
           "source": {
             "type": "string",
             "description": "Codigo Prolog do agente, presente apenas quando o agente nao for privado."
