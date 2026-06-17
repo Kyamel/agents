@@ -11,6 +11,7 @@ agent_card(Agent, CurrentUser, Html) :-
     Name = Agent.name,
     role_label(Agent.role, RoleLabel),
     owner_link(Agent, OwnerHtml),
+    privacy_badge(Agent, PrivacyHtml),
     actions(Agent, CurrentUser, ActionsHtml),
     format(atom(DomId), 'agent-card-~w', [Agent.id]),
     ui:surface_class('p-4', CardClass),
@@ -20,8 +21,11 @@ agent_card(Agent, CurrentUser, Html) :-
                 h2([class('font-bold text-lg break-words')], Name),
                 OwnerHtml
             ]),
-            span([class('rounded-full bg-surface-800 text-surface-300 text-xs px-2.5 py-1 shrink-0')],
-                 RoleLabel)
+            div([class('flex shrink-0 flex-wrap justify-end gap-2')], [
+                PrivacyHtml,
+                span([class('rounded-full bg-surface-800 text-surface-300 text-xs px-2.5 py-1')],
+                     RoleLabel)
+            ])
         ]),
         p([class('text-surface-500 text-xs mt-3 font-mono break-all')], ['id: ', Agent.id]),
         ActionsHtml
@@ -43,6 +47,13 @@ owner_label(Agent, Email) :-
     !.
 owner_label(Agent, Label) :-
     Label = Agent.owner_user_id.
+
+privacy_badge(Agent, Html) :-
+    get_dict(is_private, Agent, true),
+    !,
+    Html = span([class('rounded-full bg-surface-950 text-surface-400 text-xs px-2.5 py-1 border border-surface-800')],
+                'Privado').
+privacy_badge(_, '').
 
 % Botao de excluir so para o dono; htmx troca o cartao por vazio no sucesso.
 actions(_Agent, anon, '') :- !.

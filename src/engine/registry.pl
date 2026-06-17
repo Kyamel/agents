@@ -1,5 +1,6 @@
 :- module(agent_registry, [
     register_agent_source/5,
+    register_agent_source/6,
     valid_agent_name/1
 ]).
 
@@ -14,10 +15,17 @@
 %   codigo: o filesystem em `uploads/agents/<id>.pl` eh um cache
 %   read-only materializado pela engine antes de cada partida.
 register_agent_source(UserId, Name, Role, SourceText, Agent) :-
+    register_agent_source(UserId, Name, Role, SourceText, false, Agent).
+
+%!  register_agent_source(+UserId, +Name, +Role, +SourceText, +IsPrivate, -Agent) is det.
+%
+%   Versao completa usada pela UI/API para controlar exposicao do codigo.
+register_agent_source(UserId, Name, Role, SourceText, IsPrivate, Agent) :-
     must_be(string, UserId),
     must_be(string, Name),
     must_be(string, Role),
     must_be(string, SourceText),
+    must_be(boolean, IsPrivate),
 
     validate_role(Role),
     sandbox:validate_agent_source(SourceText),
@@ -26,13 +34,9 @@ register_agent_source(UserId, Name, Role, SourceText, Agent) :-
     string_length(SourceText, Len),
     Len =< MaxBytes,
 
-    db:save_agent(UserId, Name, Role, SourceText, AgentId),
-    Agent = _{
-        id: AgentId,
-        owner_user_id: UserId,
-        name: Name,
-        role: Role
-    }.
+    db:save_agent(UserId, Name, Role, SourceText, IsPrivate, AgentId),
+    db:get_agent(AgentId, AgentWithSource),
+    del_dict(source_text, AgentWithSource, _, Agent).
 
 validate_role("thief").
 validate_role("detective").

@@ -1,6 +1,7 @@
 :- module(api_matches_list, []).
 
 :- use_module(library(http/http_dispatch)).
+:- use_module(library(http/http_parameters)).
 :- use_module('../../../components/api_endpoint').
 :- use_module('../../security/authz').
 :- use_module('../../json_request').
@@ -13,9 +14,14 @@
 handler(Request) :-
     api_handle(Request, [get, post, options], dispatch).
 
-dispatch(get, _Request) :-
-    db:list_matches(Matches),
-    reply_json(200, _{matches: Matches}).
+dispatch(get, Request) :-
+    http_parameters(Request, [
+        cursor(Cursor, [default(""), string]),
+        limit(Limit0, [integer, default(20)])
+    ]),
+    clamp_limit(Limit0, Limit),
+    db:list_matches_page(Cursor, Limit, Matches, NextCursor),
+    reply_json(200, _{matches: Matches, next_cursor: NextCursor, limit: Limit}).
 dispatch(post, Request) :-
     authz:require_bearer_token(Request, _UserId),
     catch(create_match(Request, Status, Payload),
@@ -72,3 +78,6 @@ scenario_of(Body, Scenario) :-
     !.
 scenario_of(_Body, Scenario) :-
     config:engine_scenario(Scenario).
+
+clamp_limit(Limit0, Limit) :-
+    Limit is max(1, min(100, Limit0)).

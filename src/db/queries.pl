@@ -11,8 +11,10 @@
     revoke_auth_session/1,
 
     save_agent/5,
+    save_agent/6,
     get_agent/2,
     list_agents/1,
+    list_agents_page/4,
     delete_agent/1,
     update_agent_source/2,
 
@@ -23,7 +25,8 @@
     mark_match_failed/2,
     list_matches_by_status/2,
     get_match/2,
-    list_matches/1
+    list_matches/1,
+    list_matches_page/4
 ]).
 
 :- use_module(library(uuid)).
@@ -157,13 +160,20 @@ revoke_auth_session(TokenHash) :-
 
 %!  save_agent(+OwnerUserId, +Name, +Role, +SourceText, -AgentId) is det.
 %
+%   Compatibilidade: agentes criados por chamadores antigos sao publicos.
+save_agent(OwnerUserId, Name, Role, SourceText, AgentId) :-
+    save_agent(OwnerUserId, Name, Role, SourceText, false, AgentId).
+
+%!  save_agent(+OwnerUserId, +Name, +Role, +SourceText, +IsPrivate, -AgentId) is det.
+%
 %   O DB e o source-of-truth: `source_text` guarda o codigo Prolog completo do
 %   agente, materializado no cache do filesystem so na hora do match.
-save_agent(OwnerUserId, Name, Role, SourceText, AgentId) :-
+save_agent(OwnerUserId, Name, Role, SourceText, IsPrivate, AgentId) :-
     ensure_connected,
     uuid(Uuid),
     atom_string(Uuid, AgentId),
     timestamp_iso(CreatedAt),
+    bool_int(IsPrivate, PrivateInt),
     sql_quote(AgentId, QId),
     sql_quote(OwnerUserId, QOwner),
     sql_quote(Name, QName),
@@ -171,8 +181,8 @@ save_agent(OwnerUserId, Name, Role, SourceText, AgentId) :-
     sql_quote(SourceText, QSource),
     sql_quote(CreatedAt, QCreated),
     format(string(SQL),
-        "INSERT INTO agents(id, owner_user_id, name, role, source_text, created_at) VALUES(~s, ~s, ~s, ~s, ~s, ~s);",
-        [QId, QOwner, QName, QRole, QSource, QCreated]),
+        "INSERT INTO agents(id, owner_user_id, name, role, source_text, is_private, created_at) VALUES(~s, ~s, ~s, ~s, ~s, ~w, ~s);",
+        [QId, QOwner, QName, QRole, QSource, PrivateInt, QCreated]),
     sql_exec(SQL).
 
 % Inclui `source_text` (diferente de list_agents/1) para materializar o cache.
@@ -180,16 +190,18 @@ get_agent(AgentId, Agent) :-
     ensure_connected,
     sql_quote(AgentId, QAgentId),
     format(string(SQL),
-      "SELECT id, owner_user_id, name, role, source_text, created_at FROM agents WHERE id = ~s LIMIT 1;",
+      "SELECT id, owner_user_id, name, role, source_text, is_private, created_at FROM agents WHERE id = ~s LIMIT 1;",
       [QAgentId]),
     conn_alias(Alias),
-    once(prosqlite:sqlite_query(Alias, SQL, row(Id, Owner, Name, Role, Source, CreatedAt))),
+    once(prosqlite:sqlite_query(Alias, SQL, row(Id, Owner, Name, Role, Source, PrivateInt, CreatedAt))),
+    bool_int(IsPrivate, PrivateInt),
     Agent = _{
       id: Id,
       owner_user_id: Owner,
       name: Name,
       role: Role,
       source_text: Source,
+      is_private: IsPrivate,
       created_at: CreatedAt
     }.
 
@@ -202,12 +214,40 @@ list_agents(Agents) :-
         owner_user_id: Owner,
         name: Name,
         role: Role,
-        created_at: CreatedAt
+        created_at: CreatedAt,
+        is_private: IsPrivate
     },
     prosqlite:sqlite_query(Alias,
-      "SELECT id, owner_user_id, name, role, created_at FROM agents ORDER BY created_at DESC;",
-      row(Id, Owner, Name, Role, CreatedAt)),
+      "SELECT id, owner_user_id, name, role, created_at, is_private FROM agents ORDER BY created_at DESC;",
+      row(Id, Owner, Name, Role, CreatedAt, PrivateInt)),
+    bool_int(IsPrivate, PrivateInt),
     Agents).
+
+%!  list_agents_page(+Cursor, +Limit, -Agents, -NextCursor) is det.
+%
+%   Lista agentes por cursor, em ordem decrescente de criacao. `Cursor` tem
+%   formato opaco `created_at|id`, vindo do ultimo item da pagina anterior.
+list_agents_page(Cursor, Limit, Agents, NextCursor) :-
+    ensure_connected,
+    conn_alias(Alias),
+    PageLimit is Limit + 1,
+    cursor_where(Cursor, Where),
+    format(string(SQL),
+      "SELECT id, owner_user_id, name, role, created_at, is_private FROM agents ~w ORDER BY created_at DESC, id DESC LIMIT ~w;",
+      [Where, PageLimit]),
+    findall(_{
+        id: Id,
+        owner_user_id: Owner,
+        name: Name,
+        role: Role,
+        created_at: CreatedAt,
+        is_private: IsPrivate
+    },
+    ( prosqlite:sqlite_query(Alias, SQL, row(Id, Owner, Name, Role, CreatedAt, PrivateInt)),
+      bool_int(IsPrivate, PrivateInt)
+    ),
+    Rows),
+    page_items_and_cursor(Rows, Limit, Agents, NextCursor).
 
 % Remove so do banco; invalidar o cache em disco e do chamador (agent_cache).
 delete_agent(AgentId) :-
@@ -333,6 +373,52 @@ list_matches(Matches) :-
         match_row_dict(Row, Match) ),
       Matches).
 
+%!  list_matches_page(+Cursor, +Limit, -Matches, -NextCursor) is det.
+%
+%   Lista resumos de partidas por cursor. Nao inclui `replay_json`; o replay
+%   completo fica no detalhe /api/v1/matches/<id>.
+list_matches_page(Cursor, Limit, Matches, NextCursor) :-
+    ensure_connected,
+    conn_alias(Alias),
+    PageLimit is Limit + 1,
+    cursor_where(Cursor, Where),
+    format(string(SQL),
+      "SELECT id, thief_agent_id, detective_agent_id, scenario, winner, status, created_at, started_at, finished_at FROM matches ~w ORDER BY created_at DESC, id DESC LIMIT ~w;",
+      [Where, PageLimit]),
+    findall(Match,
+      ( prosqlite:sqlite_query(Alias, SQL, Row),
+        match_summary_row_dict(Row, Match) ),
+      Rows),
+    page_items_and_cursor(Rows, Limit, Matches, NextCursor).
+
+cursor_where("", "") :- !.
+cursor_where(Cursor, Where) :-
+    cursor_parts(Cursor, CreatedAt, Id),
+    !,
+    sql_quote(CreatedAt, QCreatedAt),
+    sql_quote(Id, QId),
+    format(string(Where),
+           "WHERE (created_at < ~s OR (created_at = ~s AND id < ~s))",
+           [QCreatedAt, QCreatedAt, QId]).
+cursor_where(_Invalid, "").
+
+cursor_parts(Cursor, CreatedAt, Id) :-
+    split_string(Cursor, "|", "", [CreatedAt, Id]),
+    CreatedAt \== "",
+    Id \== "".
+
+page_items_and_cursor(Rows, Limit, Items, NextCursor) :-
+    length(Prefix, Limit),
+    append(Prefix, [_Extra|_], Rows),
+    !,
+    Items = Prefix,
+    last(Prefix, Last),
+    row_cursor(Last, NextCursor).
+page_items_and_cursor(Rows, _Limit, Rows, "").
+
+row_cursor(Row, Cursor) :-
+    format(string(Cursor), "~w|~w", [Row.created_at, Row.id]).
+
 %!  match_row_dict(+Row, -Match) is det.
 %
 %   Normaliza colunas que podem vir NULL (partidas antigas, anteriores ao fluxo
@@ -352,6 +438,25 @@ match_row_dict(row(Id, Thief, Detective, Scenario, Winner, Replay, Status,
         scenario: ScenarioT,
         winner: Winner,
         replay_json: Replay,
+        status: StatusT,
+        created_at: CreatedAt,
+        started_at: StartedT,
+        finished_at: FinishedT
+    }.
+
+match_summary_row_dict(row(Id, Thief, Detective, Scenario, Winner, Status,
+                           CreatedAt, StartedAt, FinishedAt),
+                       Match) :-
+    norm_status(Status, StatusT),
+    norm_optional(Scenario, ScenarioT),
+    norm_optional(StartedAt, StartedT),
+    norm_optional(FinishedAt, FinishedT),
+    Match = _{
+        id: Id,
+        thief_agent_id: Thief,
+        detective_agent_id: Detective,
+        scenario: ScenarioT,
+        winner: Winner,
         status: StatusT,
         created_at: CreatedAt,
         started_at: StartedT,

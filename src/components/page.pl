@@ -8,7 +8,7 @@
 :- use_module(ui).
 
 % Paleta do Tailwind (CDN). `ufop` e o vermelho institucional da UFOP.
-% `surface` e a escala neutra do app (era `slate`): centralizar aqui permite
+% `surface` e a escala neutra do app: centralizar aqui permite
 % re-tematizar o tom neutro inteiro mudando so estes hex. Usar sempre
 % bg-surface-*/text-surface-*/border-surface-* (nunca cores cruas do Tailwind).
 tailwind_config(

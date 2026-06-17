@@ -7,8 +7,8 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8081",
-      "description": "Desenvolvimento local"
+      "url": "/",
+      "description": "Mesmo host em que a documentação foi aberta"
     }
   ],
   "tags": [
@@ -142,6 +142,10 @@
       "get": {
         "tags": ["Agents"],
         "summary": "Lista agentes cadastrados",
+        "parameters": [
+          { "$ref": "#/components/parameters/CursorQuery" },
+          { "$ref": "#/components/parameters/LimitQuery" }
+        ],
         "responses": {
           "200": {
             "description": "Lista de agentes",
@@ -153,9 +157,11 @@
                     "agents": {
                       "type": "array",
                       "items": { "$ref": "#/components/schemas/Agent" }
-                    }
+                    },
+                    "next_cursor": { "type": "string" },
+                    "limit": { "type": "integer", "example": 20 }
                   },
-                  "required": ["agents"]
+                  "required": ["agents", "next_cursor", "limit"]
                 }
               }
             }
@@ -228,6 +234,10 @@
       "get": {
         "tags": ["Matches"],
         "summary": "Lista partidas",
+        "parameters": [
+          { "$ref": "#/components/parameters/CursorQuery" },
+          { "$ref": "#/components/parameters/LimitQuery" }
+        ],
         "responses": {
           "200": {
             "description": "Lista de partidas",
@@ -238,10 +248,12 @@
                   "properties": {
                     "matches": {
                       "type": "array",
-                      "items": { "$ref": "#/components/schemas/Match" }
-                    }
+                      "items": { "$ref": "#/components/schemas/MatchSummary" }
+                    },
+                    "next_cursor": { "type": "string" },
+                    "limit": { "type": "integer", "example": 20 }
                   },
-                  "required": ["matches"]
+                  "required": ["matches", "next_cursor", "limit"]
                 }
               }
             }
@@ -387,6 +399,25 @@
         "in": "path",
         "required": true,
         "schema": { "type": "string" }
+      },
+      "CursorQuery": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Cursor retornado em `next_cursor` pela página anterior. Ausente ou vazio retorna a primeira página.",
+        "schema": { "type": "string" }
+      },
+      "LimitQuery": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Quantidade de itens por página. Valor efetivo entre 1 e 100.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        }
       }
     },
     "responses": {
@@ -488,20 +519,31 @@
       },
       "Agent": {
         "type": "object",
+        "description": "Metadados do agente. No detalhe `/api/v1/agents/{id}`, `source` aparece apenas quando `is_private` for false.",
         "properties": {
           "id": { "type": "string" },
           "owner_user_id": { "type": "string" },
           "name": { "type": "string", "maxLength": 60, "example": "meu-agente" },
           "role": { "type": "string", "enum": ["thief", "detective"] },
+          "is_private": { "type": "boolean", "default": false },
+          "source": {
+            "type": "string",
+            "description": "Codigo Prolog do agente, presente apenas quando o agente nao for privado."
+          },
           "created_at": { "type": "string", "format": "date-time" }
         },
-        "required": ["id", "owner_user_id", "name", "role", "created_at"]
+        "required": ["id", "owner_user_id", "name", "role", "is_private", "created_at"]
       },
       "CreateAgentRequest": {
         "type": "object",
         "properties": {
           "name": { "type": "string", "maxLength": 60, "pattern": "^[a-z0-9-]+$", "example": "meu-agente" },
           "role": { "type": "string", "enum": ["thief", "detective"] },
+          "private": {
+            "type": "boolean",
+            "default": false,
+            "description": "Quando true, o codigo nao e exibido no detalhe publico do agente."
+          },
           "source": { "type": "string", "example": ":- module(meu_agente, [])." }
         },
         "required": ["name", "role", "source"]
@@ -538,9 +580,41 @@
           "thief_agent_id": { "type": "string" },
           "detective_agent_id": { "type": "string" },
           "scenario": { "type": "string" },
-          "winner": { "type": "string", "enum": ["thief", "detective", "draw", ""] },
+          "winner": {
+            "type": "string",
+            "description": "Resultado normalizado quando disponível.",
+            "x-extensible-enum": ["thief", "detective", "draw", ""]
+          },
           "replay_json": { "type": "string" },
-          "status": { "type": "string", "enum": ["queued", "running", "done", "timeout", "error"] },
+          "status": {
+            "type": "string",
+            "description": "Estado atual da partida.",
+            "x-extensible-enum": ["queued", "running", "done", "timeout", "error"]
+          },
+          "created_at": { "type": "string", "format": "date-time" },
+          "started_at": { "type": "string" },
+          "finished_at": { "type": "string" }
+        },
+        "required": ["id", "thief_agent_id", "detective_agent_id", "winner", "status", "created_at"]
+      },
+      "MatchSummary": {
+        "type": "object",
+        "description": "Resumo de partida usado em listagens. Não inclui `replay_json`; consulte `/api/v1/matches/{id}` para obter o replay estruturado.",
+        "properties": {
+          "id": { "type": "string" },
+          "thief_agent_id": { "type": "string" },
+          "detective_agent_id": { "type": "string" },
+          "scenario": { "type": "string" },
+          "winner": {
+            "type": "string",
+            "description": "Resultado normalizado quando disponível.",
+            "x-extensible-enum": ["thief", "detective", "draw", ""]
+          },
+          "status": {
+            "type": "string",
+            "description": "Estado atual da partida.",
+            "x-extensible-enum": ["queued", "running", "done", "timeout", "error"]
+          },
           "created_at": { "type": "string", "format": "date-time" },
           "started_at": { "type": "string" },
           "finished_at": { "type": "string" }
@@ -553,10 +627,199 @@
           {
             "type": "object",
             "properties": {
-              "replay": { "type": "object", "additionalProperties": true }
+              "replay": { "$ref": "#/components/schemas/Replay" }
             }
           }
         ]
+      },
+      "Replay": {
+        "type": "object",
+        "description": "Replay estruturado gerado a partir da saída textual da engine. Em partidas ainda não concluídas, esse campo pode estar ausente.",
+        "properties": {
+          "scenario": {
+            "type": "string",
+            "description": "Nome do cenário usado pela engine."
+          },
+          "winner": {
+            "type": "string",
+            "description": "Resultado normalizado da partida.",
+            "x-extensible-enum": ["thief", "detective", "draw"]
+          },
+          "final_turn": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Quantidade de turnos agrupados no replay."
+          },
+          "setup": {
+            "$ref": "#/components/schemas/ReplaySetup"
+          },
+          "turns": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ReplayTurn" }
+          },
+          "events": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ReplayEvent" }
+          }
+        },
+        "required": ["scenario", "winner", "final_turn", "setup", "turns", "events"]
+      },
+      "ReplaySetup": {
+        "type": "object",
+        "description": "Estado inicial resumido da partida.",
+        "properties": {
+          "scenario": {
+            "type": "string",
+            "description": "Nome do cenário usado pela engine."
+          },
+          "thief_id": {
+            "type": "integer",
+            "description": "Identidade/suspeito escolhido para o ladrão."
+          },
+          "thief_start": {
+            "type": "string",
+            "description": "Cidade inicial do ladrão."
+          },
+          "detective_start": {
+            "type": "string",
+            "description": "Cidade inicial do detetive."
+          },
+          "target": {
+            "type": "string",
+            "description": "Tesouro-alvo do ladrão."
+          },
+          "disguises": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "max_turns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "appearance": {
+            "type": "array",
+            "description": "Atributos da aparência real do ladrão serializados como texto Prolog.",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["scenario"]
+      },
+      "ReplayTurn": {
+        "type": "object",
+        "description": "Ações do ladrão e do detetive em um turno da engine.",
+        "properties": {
+          "turn": {
+            "type": "integer"
+          },
+          "thief_action": {
+            "type": "string",
+            "description": "Ação do ladrão serializada como texto Prolog."
+          },
+          "thief_status": {
+            "type": "string",
+            "description": "Status retornado pela engine para a ação do ladrão.",
+            "x-extensible-enum": ["OK", "Ilegal", ""]
+          },
+          "thief_position": {
+            "type": "string",
+            "description": "Destino quando a ação do ladrão é move/2; '-' para outras ações."
+          },
+          "detective_action": {
+            "type": "string",
+            "description": "Ação do detetive serializada como texto Prolog."
+          },
+          "detective_status": {
+            "type": "string",
+            "description": "Status retornado pela engine para a ação do detetive.",
+            "x-extensible-enum": ["OK", "Ilegal", ""]
+          },
+          "detective_position": {
+            "type": "string",
+            "description": "Destino quando a ação do detetive é move/2; '-' para outras ações."
+          },
+          "events": {
+            "type": "array",
+            "description": "Eventos associados à ação deste turno, normalmente roubo.",
+            "items": { "$ref": "#/components/schemas/ReplayTurnEvent" }
+          }
+        },
+        "required": [
+          "turn",
+          "thief_action",
+          "thief_status",
+          "thief_position",
+          "detective_action",
+          "detective_status",
+          "detective_position",
+          "events"
+        ]
+      },
+      "ReplayTurnEvent": {
+        "type": "object",
+        "description": "Evento anexado ao log de uma ação dentro de um turno.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Tipo do evento.",
+            "x-extensible-enum": ["robbery", "unknown"]
+          },
+          "item": {
+            "type": "string",
+            "description": "Item roubado, quando o evento é um roubo."
+          },
+          "city": {
+            "type": "string",
+            "description": "Cidade associada ao evento, quando disponível."
+          },
+          "revealed": {
+            "type": "array",
+            "description": "Pistas reveladas pelo evento, quando houver.",
+            "items": { "type": "string" }
+          },
+          "detail": {
+            "type": "string",
+            "description": "Texto bruto para eventos não estruturados."
+          }
+        },
+        "required": ["type"]
+      },
+      "ReplayEvent": {
+        "type": "object",
+        "description": "Evento na linha do tempo global do replay.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Tipo do evento.",
+            "x-extensible-enum": ["robbery", "unknown"]
+          },
+          "item": {
+            "type": "string",
+            "description": "Item roubado, quando o evento é um roubo."
+          },
+          "city": {
+            "type": "string",
+            "description": "Cidade associada ao evento, quando disponível."
+          },
+          "revealed": {
+            "type": "array",
+            "description": "Pistas reveladas pelo evento, quando houver.",
+            "items": { "type": "string" }
+          },
+          "detail": {
+            "type": "string",
+            "description": "Texto bruto para eventos não estruturados."
+          },
+          "turn": {
+            "type": "integer",
+            "description": "Turno em que o evento foi associado."
+          },
+          "by": {
+            "type": "string",
+            "description": "Agente associado ao evento.",
+            "x-extensible-enum": ["thief", "detective"]
+          }
+        },
+        "required": ["type", "turn", "by"]
       },
       "Stats": {
         "type": "object",

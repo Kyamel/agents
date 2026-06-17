@@ -4,6 +4,7 @@
     slug_field/5,
     textarea_field/4,
     select_field/4,
+    checkbox_field/5,
     submit_button/2
 ]).
 
@@ -62,6 +63,28 @@ select_field(Name, Label, Options, Html) :-
     ]).
 
 option_html(opt(Value, Label), option([value(Value)], Label)).
+
+checkbox_field(Name, Label, Help, Checked, Html) :-
+    checked_attr(Checked, CheckedAttrs),
+    append([
+        type(checkbox),
+        name(Name),
+        id(Name),
+        value("true"),
+        class('h-4 w-4 rounded border-surface-700 bg-surface-900 text-ufop-600 focus:ring-ufop-500')
+    ], CheckedAttrs, Attrs),
+    Html = label([for(Name),
+                  class('mb-4 flex items-start gap-3 rounded-lg border border-surface-800 bg-surface-950/40 p-3 text-sm text-surface-300')],
+                 [
+                     input(Attrs),
+                     span([], [
+                         span([class('block font-medium text-surface-100')], Label),
+                         span([class('block text-surface-500')], Help)
+                     ])
+                 ]).
+
+checked_attr(true, [checked(checked)]) :- !.
+checked_attr(_, []).
 
 submit_button(Label, Html) :-
     Html = button(

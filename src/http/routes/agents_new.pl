@@ -27,9 +27,11 @@ dispatch(post, Request, User) :-
     http_parameters(Request, [
         name(Name, [default(""), string]),
         role(Role, [default(""), string]),
-        source(Source, [default(""), string])
+        source(Source, [default(""), string]),
+        private(PrivateRaw, [default("false"), string])
     ]),
-    Values = _{name: Name, role: Role, source: Source},
+    checkbox_bool(PrivateRaw, IsPrivate),
+    Values = _{name: Name, role: Role, source: Source, private: IsPrivate},
     process_post(Request, User, Values).
 
 % =============================
@@ -75,7 +77,7 @@ try_register(UserId, V, Result) :-
           register_error(Error, Result)).
 
 register_or_fail(UserId, V, ok) :-
-    engine:register_agent_source(UserId, V.name, V.role, V.source, _),
+    engine:register_agent_source(UserId, V.name, V.role, V.source, V.private, _),
     !.
 register_or_fail(_, _,
     error("Nao foi possivel registrar o agente \c
@@ -91,6 +93,10 @@ register_error(error(domain_error(role, _), _),
 register_error(error(type_error(_, _), _),
                error("Campos invalidos no formulario.")) :- !.
 register_error(_, error("Erro inesperado ao registrar o agente.")).
+
+checkbox_bool("true", true) :- !.
+checkbox_bool("on", true) :- !.
+checkbox_bool(_, false).
 
 % =============================
 % Resposta (HTML)
@@ -110,6 +116,7 @@ render_form(Request, _User, State) :-
     error_alert(State, AlertHtml),
     state_value(State, name, Name),
     state_value(State, source, Source),
+    state_bool(State, private, IsPrivate),
     page_section:page_heading(
         'Enviar agente',
         'Ladrao deve exportar ladrao_action/3 e ladrao_preload/7. Detetive deve exportar detetive_action/3 e detetive_preload/5.',
@@ -119,12 +126,17 @@ render_form(Request, _User, State) :-
     form_field:select_field(role, 'Papel',
         [opt("thief", 'Ladrao'), opt("detective", 'Detetive')], RoleField),
     form_field:textarea_field(source, 'Codigo Prolog', Source, SourceField),
+    form_field:checkbox_field(private,
+        'Manter codigo privado',
+        'Quando marcado, a API publica mostra apenas os metadados do agente.',
+        IsPrivate,
+        PrivateField),
     form_field:submit_button('Enviar agente', Submit),
     page:reply_page(Request, 'Enviar agente', [
         Heading,
         AlertHtml,
         form([method(post), action('/agents/new'), class('max-w-lg')], [
-            NameField, RoleField, SourceField, Submit
+            NameField, RoleField, SourceField, PrivateField, Submit
         ])
     ]).
 
@@ -138,3 +150,8 @@ state_value(State, Key, Value) :-
     get_dict(Key, State, Value),
     !.
 state_value(_, _, "").
+
+state_bool(State, Key, Value) :-
+    get_dict(Key, State, Value),
+    !.
+state_bool(_, _, false).

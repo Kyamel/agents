@@ -1,6 +1,7 @@
 :- module(api_agents_list, []).
 
 :- use_module(library(http/http_dispatch)).
+:- use_module(library(http/http_parameters)).
 :- use_module('../../../components/api_endpoint').
 :- use_module('../../security/authz').
 :- use_module('../../json_request').
@@ -12,9 +13,14 @@
 handler(Request) :-
     api_handle(Request, [get, post, options], dispatch).
 
-dispatch(get, _Request) :-
-    db:list_agents(Agents),
-    reply_json(200, _{agents: Agents}).
+dispatch(get, Request) :-
+    http_parameters(Request, [
+        cursor(Cursor, [default(""), string]),
+        limit(Limit0, [integer, default(20)])
+    ]),
+    clamp_limit(Limit0, Limit),
+    db:list_agents_page(Cursor, Limit, Agents, NextCursor),
+    reply_json(200, _{agents: Agents, next_cursor: NextCursor, limit: Limit}).
 dispatch(post, Request) :-
     authz:require_bearer_token(Request, UserId),
     catch(create_agent(UserId, Request, Status, Payload),
@@ -34,14 +40,15 @@ create_agent(UserId, Request, Status, Payload) :-
     json_request:require_string(Body, name, Name),
     json_request:require_string(Body, role, Role),
     json_request:require_string(Body, source, Source),
-    create_validated(UserId, Name, Role, Source, Status, Payload).
+    optional_private(Body, IsPrivate),
+    create_validated(UserId, Name, Role, Source, IsPrivate, Status, Payload).
 
-create_validated(_UserId, Name, _Role, _Source, 422, _{error: "invalid_agent_name"}) :-
+create_validated(_UserId, Name, _Role, _Source, _IsPrivate, 422, _{error: "invalid_agent_name"}) :-
     \+ engine:valid_agent_name(Name),
     !.
-create_validated(UserId, Name, Role, Source, 201, _{status: "created", agent: Agent}) :-
+create_validated(UserId, Name, Role, Source, IsPrivate, 201, _{status: "created", agent: Agent}) :-
     id_string(UserId, UserIdStr),
-    engine:register_agent_source(UserIdStr, Name, Role, Source, Agent).
+    engine:register_agent_source(UserIdStr, Name, Role, Source, IsPrivate, Agent).
 
 % Traduz erros especificos do registro; o resto (corpo invalido, 500) cai no
 % tratamento comum de api_endpoint:api_error/3.
@@ -57,3 +64,17 @@ verified_user(UserId) :-
 id_string(Id, Id) :- string(Id), !.
 id_string(Id, Str) :- atom(Id), !, atom_string(Id, Str).
 id_string(Id, Str) :- term_string(Id, Str).
+
+optional_private(Body, IsPrivate) :-
+    get_dict(private, Body, Value),
+    !,
+    json_bool(Value, IsPrivate).
+optional_private(_, false).
+
+json_bool(true, true) :- !.
+json_bool(false, false) :- !.
+json_bool(_, _) :-
+    throw(http_reply(bad_request(_{error: "Field private must be boolean"}))).
+
+clamp_limit(Limit0, Limit) :-
+    Limit is max(1, min(100, Limit0)).

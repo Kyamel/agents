@@ -1,7 +1,10 @@
 :- module(pagination, [
     paginate/5,
-    pagination_nav/3
+    pagination_nav/3,
+    cursor_nav/4
 ]).
+
+:- use_module(library(uri)).
 
 % Recorta a lista para a pagina pedida e devolve os metadados para a UI.
 paginate(Items, PerPage, RequestedPage, PageItems, Meta) :-
@@ -55,3 +58,35 @@ page_control(BasePath, Page, true, Label, Html) :-
 page_control(_, _, false, Label, Html) :-
     Html = span([class('rounded-lg bg-surface-900 px-3 py-1.5 text-surface-600 border border-surface-800')],
                 Label).
+
+% Navegacao por cursor. Como cursor e unidirecional, oferecemos "Voltar ao
+% inicio" quando o usuario ja esta em uma pagina posterior.
+cursor_nav(_BasePath, "", "", '') :- !.
+cursor_nav(BasePath, CurrentCursor, NextCursor, Html) :-
+    reset_control(BasePath, CurrentCursor, Reset),
+    next_control(BasePath, NextCursor, Next),
+    Html = nav([class('mt-6 flex flex-wrap items-center justify-between gap-3 text-sm')], [
+        Reset,
+        span([class('text-surface-500')], 'Paginação por cursor'),
+        Next
+    ]).
+
+reset_control(_BasePath, "", Html) :-
+    !,
+    Html = span([class('rounded-lg bg-surface-900 px-3 py-1.5 text-surface-600 border border-surface-800')],
+                'Início').
+reset_control(BasePath, _CurrentCursor, Html) :-
+    Html = a([href(BasePath),
+              class('rounded-lg bg-surface-800 px-3 py-1.5 hover:bg-surface-700')],
+             'Voltar ao início').
+
+next_control(_BasePath, "", Html) :-
+    !,
+    Html = span([class('rounded-lg bg-surface-900 px-3 py-1.5 text-surface-600 border border-surface-800')],
+                'Próxima').
+next_control(BasePath, NextCursor, Html) :-
+    uri_encoded(query_value, NextCursor, EncodedCursor),
+    format(atom(Href), '~w?cursor=~w', [BasePath, EncodedCursor]),
+    Html = a([href(Href),
+              class('rounded-lg bg-surface-800 px-3 py-1.5 hover:bg-surface-700')],
+             'Próxima').
