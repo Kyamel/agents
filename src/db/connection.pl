@@ -4,6 +4,7 @@
     conn_alias/1,
     sql_exec/1,
     sql_quote/2,
+    sql_literal/2,
     timestamp_iso/1
 ]).
 
@@ -108,6 +109,18 @@ sql_quote(Input, Quoted) :-
     phrase(sql_escaped(Codes), EscapedCodes),
     string_codes(Escaped, EscapedCodes),
     format(string(Quoted), "'~s'", [Escaped]).
+
+sql_literal(Input, Literal) :-
+    integer(Input),
+    !,
+    format(string(Literal), "~d", [Input]).
+sql_literal(Input, Literal) :-
+    atom(Input),
+    !,
+    atom_string(Input, String),
+    sql_quote(String, Literal).
+sql_literal(Input, Literal) :-
+    sql_quote(Input, Literal).
 
 sql_escaped([]) --> [].
 sql_escaped([39|Rest]) --> "''", sql_escaped(Rest).

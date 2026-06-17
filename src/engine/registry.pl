@@ -21,7 +21,7 @@ register_agent_source(UserId, Name, Role, SourceText, Agent) :-
 %
 %   Versao completa usada pela UI/API para controlar exposicao do codigo.
 register_agent_source(UserId, Name, Role, SourceText, IsPrivate, Agent) :-
-    must_be(string, UserId),
+    valid_user_id(UserId),
     must_be(string, Name),
     must_be(string, Role),
     must_be(string, SourceText),
@@ -42,6 +42,12 @@ validate_role("thief").
 validate_role("detective").
 validate_role(Role) :-
     domain_error(role, Role).
+
+valid_user_id(UserId) :-
+    ( integer(UserId) ; string(UserId) ),
+    !.
+valid_user_id(UserId) :-
+    type_error(user_id, UserId).
 
 %!  valid_agent_name(+Name) is semidet.
 %

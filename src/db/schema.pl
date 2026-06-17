@@ -9,7 +9,7 @@
 %   Cria as tabelas (idempotente) e aplica as migracoes de colunas.
 migrate :-
     sql_exec("CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
@@ -18,20 +18,20 @@ migrate :-
     );"),
     sql_exec("CREATE TABLE IF NOT EXISTS email_verifications (
         token_hash TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
+        user_id INTEGER NOT NULL,
         expires_at TEXT NOT NULL,
         used_at TEXT
     );"),
     sql_exec("CREATE TABLE IF NOT EXISTS auth_sessions (
         token_hash TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
+        user_id INTEGER NOT NULL,
         expires_at TEXT NOT NULL,
         created_at TEXT NOT NULL,
         revoked_at TEXT
     );"),
     sql_exec("CREATE TABLE IF NOT EXISTS agents (
-        id TEXT PRIMARY KEY,
-        owner_user_id TEXT NOT NULL,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        owner_user_id INTEGER NOT NULL,
         name TEXT NOT NULL,
         role TEXT NOT NULL,
         source_text TEXT NOT NULL,
@@ -39,9 +39,9 @@ migrate :-
         created_at TEXT NOT NULL
     );"),
     sql_exec("CREATE TABLE IF NOT EXISTS matches (
-        id TEXT PRIMARY KEY,
-        thief_agent_id TEXT NOT NULL,
-        detective_agent_id TEXT NOT NULL,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        thief_agent_id INTEGER NOT NULL,
+        detective_agent_id INTEGER NOT NULL,
         scenario TEXT,
         winner TEXT,
         replay_json TEXT,

@@ -29,23 +29,20 @@
     list_matches_page/4
 ]).
 
-:- use_module(library(uuid)).
 :- use_module(connection).
 
 create_user(Username, Email, PasswordHash, UserId, CreatedAt) :-
     ensure_connected,
-    uuid(UserUuid),
-    atom_string(UserUuid, UserId),
     timestamp_iso(CreatedAt),
     sql_quote(Username, QUsername),
     sql_quote(Email, QEmail),
     sql_quote(PasswordHash, QPwd),
-    sql_quote(UserId, QId),
     sql_quote(CreatedAt, QCreated),
     format(string(SQL),
-           "INSERT INTO users(id, username, email, password_hash, is_verified, created_at) VALUES(~s, ~s, ~s, ~s, 0, ~s);",
-           [QId, QUsername, QEmail, QPwd, QCreated]),
-    sql_exec(SQL).
+           "INSERT INTO users(username, email, password_hash, is_verified, created_at) VALUES(~s, ~s, ~s, 0, ~s);",
+           [QUsername, QEmail, QPwd, QCreated]),
+    sql_exec(SQL),
+    last_insert_id(UserId).
 
 find_user_by_email(Email, User) :-
     ensure_connected,
@@ -57,7 +54,7 @@ find_user_by_email(Email, User) :-
 
 find_user_by_id(UserId, User) :-
     ensure_connected,
-    sql_quote(UserId, QUserId),
+    sql_literal(UserId, QUserId),
     format(string(SQL),
            "SELECT id, username, email, password_hash, is_verified, created_at FROM users WHERE id = ~s LIMIT 1;",
            [QUserId]),
@@ -87,14 +84,14 @@ user_username(Username0, Email, Username) :-
 
 mark_user_verified(UserId) :-
     ensure_connected,
-    sql_quote(UserId, QUserId),
+    sql_literal(UserId, QUserId),
     format(string(SQL), "UPDATE users SET is_verified = 1 WHERE id = ~s;", [QUserId]),
     sql_exec(SQL).
 
 save_email_verification(TokenHash, UserId, ExpiresAt, _CreatedAt) :-
     ensure_connected,
     sql_quote(TokenHash, QToken),
-    sql_quote(UserId, QUser),
+    sql_literal(UserId, QUser),
     sql_quote(ExpiresAt, QExp),
     format(string(SQL),
            "INSERT OR REPLACE INTO email_verifications(token_hash, user_id, expires_at, used_at) VALUES(~s, ~s, ~s, NULL);",
@@ -125,7 +122,7 @@ consume_email_verification(TokenHash, UserId) :-
 save_auth_session(TokenHash, UserId, ExpiresAt, CreatedAt) :-
     ensure_connected,
     sql_quote(TokenHash, QToken),
-    sql_quote(UserId, QUser),
+    sql_literal(UserId, QUser),
     sql_quote(ExpiresAt, QExp),
     sql_quote(CreatedAt, QCreated),
     format(string(SQL),
@@ -170,25 +167,23 @@ save_agent(OwnerUserId, Name, Role, SourceText, AgentId) :-
 %   agente, materializado no cache do filesystem so na hora do match.
 save_agent(OwnerUserId, Name, Role, SourceText, IsPrivate, AgentId) :-
     ensure_connected,
-    uuid(Uuid),
-    atom_string(Uuid, AgentId),
     timestamp_iso(CreatedAt),
     bool_int(IsPrivate, PrivateInt),
-    sql_quote(AgentId, QId),
-    sql_quote(OwnerUserId, QOwner),
+    sql_literal(OwnerUserId, QOwner),
     sql_quote(Name, QName),
     sql_quote(Role, QRole),
     sql_quote(SourceText, QSource),
     sql_quote(CreatedAt, QCreated),
     format(string(SQL),
-        "INSERT INTO agents(id, owner_user_id, name, role, source_text, is_private, created_at) VALUES(~s, ~s, ~s, ~s, ~s, ~w, ~s);",
-        [QId, QOwner, QName, QRole, QSource, PrivateInt, QCreated]),
-    sql_exec(SQL).
+        "INSERT INTO agents(owner_user_id, name, role, source_text, is_private, created_at) VALUES(~s, ~s, ~s, ~s, ~w, ~s);",
+        [QOwner, QName, QRole, QSource, PrivateInt, QCreated]),
+    sql_exec(SQL),
+    last_insert_id(AgentId).
 
 % Inclui `source_text` (diferente de list_agents/1) para materializar o cache.
 get_agent(AgentId, Agent) :-
     ensure_connected,
-    sql_quote(AgentId, QAgentId),
+    sql_literal(AgentId, QAgentId),
     format(string(SQL),
       "SELECT id, owner_user_id, name, role, source_text, is_private, created_at FROM agents WHERE id = ~s LIMIT 1;",
       [QAgentId]),
@@ -217,10 +212,11 @@ list_agents(Agents) :-
         created_at: CreatedAt,
         is_private: IsPrivate
     },
-    prosqlite:sqlite_query(Alias,
-      "SELECT id, owner_user_id, name, role, created_at, is_private FROM agents ORDER BY created_at DESC;",
-      row(Id, Owner, Name, Role, CreatedAt, PrivateInt)),
-    bool_int(IsPrivate, PrivateInt),
+    ( prosqlite:sqlite_query(Alias,
+        "SELECT id, owner_user_id, name, role, created_at, is_private FROM agents ORDER BY created_at DESC;",
+        row(Id, Owner, Name, Role, CreatedAt, PrivateInt)),
+      bool_int(IsPrivate, PrivateInt)
+    ),
     Agents).
 
 %!  list_agents_page(+Cursor, +Limit, -Agents, -NextCursor) is det.
@@ -252,14 +248,14 @@ list_agents_page(Cursor, Limit, Agents, NextCursor) :-
 % Remove so do banco; invalidar o cache em disco e do chamador (agent_cache).
 delete_agent(AgentId) :-
     ensure_connected,
-    sql_quote(AgentId, QId),
+    sql_literal(AgentId, QId),
     format(string(SQL), "DELETE FROM agents WHERE id = ~s;", [QId]),
     sql_exec(SQL).
 
 % Deixa o cache em disco obsoleto; o chamador regrava na proxima execucao.
 update_agent_source(AgentId, SourceText) :-
     ensure_connected,
-    sql_quote(AgentId, QId),
+    sql_literal(AgentId, QId),
     sql_quote(SourceText, QSource),
     format(string(SQL),
         "UPDATE agents SET source_text = ~s WHERE id = ~s;",
@@ -268,19 +264,17 @@ update_agent_source(AgentId, SourceText) :-
 
 save_match(ThiefAgentId, DetectiveAgentId, Winner, ReplayJson, MatchId) :-
     ensure_connected,
-    uuid(Uuid),
-    atom_string(Uuid, MatchId),
     timestamp_iso(CreatedAt),
-    sql_quote(MatchId, QId),
-    sql_quote(ThiefAgentId, QT),
-    sql_quote(DetectiveAgentId, QD),
+    sql_literal(ThiefAgentId, QT),
+    sql_literal(DetectiveAgentId, QD),
     sql_quote(Winner, QW),
     sql_quote(ReplayJson, QR),
     sql_quote(CreatedAt, QC),
     format(string(SQL),
-      "INSERT INTO matches(id, thief_agent_id, detective_agent_id, winner, replay_json, created_at) VALUES(~s, ~s, ~s, ~s, ~s, ~s);",
-      [QId, QT, QD, QW, QR, QC]),
-    sql_exec(SQL).
+      "INSERT INTO matches(thief_agent_id, detective_agent_id, winner, replay_json, created_at) VALUES(~s, ~s, ~s, ~s, ~s);",
+      [QT, QD, QW, QR, QC]),
+    sql_exec(SQL),
+    last_insert_id(MatchId).
 
 %!  create_pending_match(+ThiefAgentId, +DetectiveAgentId, +Scenario, -MatchId) is det.
 %
@@ -290,22 +284,21 @@ save_match(ThiefAgentId, DetectiveAgentId, Winner, ReplayJson, MatchId) :-
 %   memoria e na URL /matches/<id>.
 create_pending_match(ThiefAgentId, DetectiveAgentId, Scenario, MatchId) :-
     ensure_connected,
-    uuid(MatchId),
     timestamp_iso(CreatedAt),
-    sql_quote(MatchId, QId),
-    sql_quote(ThiefAgentId, QT),
-    sql_quote(DetectiveAgentId, QD),
+    sql_literal(ThiefAgentId, QT),
+    sql_literal(DetectiveAgentId, QD),
     sql_quote(Scenario, QS),
     sql_quote(CreatedAt, QC),
     format(string(SQL),
-      "INSERT INTO matches(id, thief_agent_id, detective_agent_id, scenario, winner, replay_json, status, created_at, started_at, finished_at) VALUES(~s, ~s, ~s, ~s, '', '', 'queued', ~s, NULL, NULL);",
-      [QId, QT, QD, QS, QC]),
-    sql_exec(SQL).
+      "INSERT INTO matches(thief_agent_id, detective_agent_id, scenario, winner, replay_json, status, created_at, started_at, finished_at) VALUES(~s, ~s, ~s, '', '', 'queued', ~s, NULL, NULL);",
+      [QT, QD, QS, QC]),
+    sql_exec(SQL),
+    last_insert_id(MatchId).
 
 % Ao passar para "running", grava tambem `started_at`.
 update_match_status(MatchId, Status) :-
     ensure_connected,
-    sql_quote(MatchId, QId),
+    sql_literal(MatchId, QId),
     sql_quote(Status, QStatus),
     ( Status == "running"
     ->  timestamp_iso(Now),
@@ -322,7 +315,7 @@ update_match_status(MatchId, Status) :-
 finalize_match(MatchId, Winner, ReplayJson) :-
     ensure_connected,
     timestamp_iso(Now),
-    sql_quote(MatchId, QId),
+    sql_literal(MatchId, QId),
     sql_quote(Winner, QW),
     sql_quote(ReplayJson, QR),
     sql_quote(Now, QF),
@@ -334,7 +327,7 @@ finalize_match(MatchId, Winner, ReplayJson) :-
 mark_match_failed(MatchId, Status) :-
     ensure_connected,
     timestamp_iso(Now),
-    sql_quote(MatchId, QId),
+    sql_literal(MatchId, QId),
     sql_quote(Status, QStatus),
     sql_quote(Now, QF),
     format(string(SQL),
@@ -355,7 +348,7 @@ list_matches_by_status(Statuses, Matches) :-
 
 get_match(MatchId, Match) :-
     ensure_connected,
-    sql_quote(MatchId, QId),
+    sql_literal(MatchId, QId),
     format(string(SQL),
       "SELECT id, thief_agent_id, detective_agent_id, scenario, winner, replay_json, status, created_at, started_at, finished_at FROM matches WHERE id = ~s LIMIT 1;",
       [QId]),
@@ -418,6 +411,10 @@ page_items_and_cursor(Rows, _Limit, Rows, "").
 
 row_cursor(Row, Cursor) :-
     format(string(Cursor), "~w|~w", [Row.created_at, Row.id]).
+
+last_insert_id(Id) :-
+    conn_alias(Alias),
+    once(prosqlite:sqlite_query(Alias, "SELECT last_insert_rowid();", row(Id))).
 
 %!  match_row_dict(+Row, -Match) is det.
 %

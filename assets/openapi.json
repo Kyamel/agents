@@ -398,7 +398,7 @@
         "name": "id",
         "in": "path",
         "required": true,
-        "schema": { "type": "string" }
+        "schema": { "type": "integer", "minimum": 1 }
       },
       "CursorQuery": {
         "name": "cursor",
@@ -484,7 +484,7 @@
         "type": "object",
         "properties": {
           "status": { "type": "string", "example": "created" },
-          "user_id": { "type": "string" },
+          "user_id": { "type": "integer" },
           "username": { "type": "string" },
           "email_delivery": { "type": "string", "enum": ["sent", "console", "failed"] },
           "message": { "type": "string" }
@@ -504,7 +504,7 @@
         "properties": {
           "status": { "type": "string", "example": "ok" },
           "token": { "type": "string" },
-          "user_id": { "type": "string" },
+          "user_id": { "type": "integer" },
           "expires_at": { "type": "string", "format": "date-time" }
         },
         "required": ["status", "token", "user_id", "expires_at"]
@@ -513,7 +513,7 @@
         "type": "object",
         "properties": {
           "status": { "type": "string", "example": "verified" },
-          "user_id": { "type": "string" }
+          "user_id": { "type": "integer" }
         },
         "required": ["status", "user_id"]
       },
@@ -521,8 +521,8 @@
         "type": "object",
         "description": "Metadados do agente. No detalhe `/api/v1/agents/{id}`, `source` aparece apenas quando `is_private` for false.",
         "properties": {
-          "id": { "type": "string" },
-          "owner_user_id": { "type": "string" },
+          "id": { "type": "integer" },
+          "owner_user_id": { "type": "integer" },
           "name": { "type": "string", "maxLength": 60, "example": "meu-agente" },
           "role": { "type": "string", "enum": ["thief", "detective"] },
           "is_private": { "type": "boolean", "default": false },
@@ -559,8 +559,8 @@
       "CreateMatchRequest": {
         "type": "object",
         "properties": {
-          "thief_agent_id": { "type": "string" },
-          "detective_agent_id": { "type": "string" },
+          "thief_agent_id": { "type": "integer" },
+          "detective_agent_id": { "type": "integer" },
           "scenario": { "type": "string", "description": "Opcional; usa o cenário padrão quando ausente." }
         },
         "required": ["thief_agent_id", "detective_agent_id"]
@@ -569,16 +569,16 @@
         "type": "object",
         "properties": {
           "status": { "type": "string", "example": "queued" },
-          "match_id": { "type": "string" }
+          "match_id": { "type": "integer" }
         },
         "required": ["status", "match_id"]
       },
       "Match": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "thief_agent_id": { "type": "string" },
-          "detective_agent_id": { "type": "string" },
+          "id": { "type": "integer" },
+          "thief_agent_id": { "type": "integer" },
+          "detective_agent_id": { "type": "integer" },
           "scenario": { "type": "string" },
           "winner": {
             "type": "string",
@@ -601,9 +601,9 @@
         "type": "object",
         "description": "Resumo de partida usado em listagens. Não inclui `replay_json`; consulte `/api/v1/matches/{id}` para obter o replay estruturado.",
         "properties": {
-          "id": { "type": "string" },
-          "thief_agent_id": { "type": "string" },
-          "detective_agent_id": { "type": "string" },
+          "id": { "type": "integer" },
+          "thief_agent_id": { "type": "integer" },
+          "detective_agent_id": { "type": "integer" },
           "scenario": { "type": "string" },
           "winner": {
             "type": "string",
@@ -833,7 +833,7 @@
       "User": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
+          "id": { "type": "integer" },
           "username": { "type": "string" },
           "email": { "type": "string", "format": "email" },
           "is_verified": { "type": "boolean" },
@@ -868,7 +868,7 @@
       "Job": {
         "type": "object",
         "properties": {
-          "match_id": { "type": "string" },
+          "match_id": { "type": "integer" },
           "status": { "type": "string" },
           "elapsed_seconds": {
             "oneOf": [
@@ -882,8 +882,8 @@
               { "type": "null" }
             ]
           },
-          "thief_id": { "type": "string" },
-          "detective_id": { "type": "string" },
+          "thief_id": { "type": "integer" },
+          "detective_id": { "type": "integer" },
           "scenario": { "type": "string" }
         },
         "required": ["match_id", "status"]

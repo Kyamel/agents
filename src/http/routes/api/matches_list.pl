@@ -40,8 +40,8 @@ dispatch(post, Request) :-
 
 create_match(Request, Status, Payload) :-
     json_request:read_json_body(Request, Body),
-    json_request:require_string(Body, thief_agent_id, ThiefId),
-    json_request:require_string(Body, detective_agent_id, DetectiveId),
+    require_id(Body, thief_agent_id, ThiefId),
+    require_id(Body, detective_agent_id, DetectiveId),
     scenario_of(Body, Scenario),
     validate_and_enqueue(ThiefId, DetectiveId, Scenario, Status, Payload).
 
@@ -78,6 +78,23 @@ scenario_of(Body, Scenario) :-
     !.
 scenario_of(_Body, Scenario) :-
     config:engine_scenario(Scenario).
+
+require_id(Body, Key, Id) :-
+    get_dict(Key, Body, Value),
+    id_value(Value, Id),
+    !.
+require_id(_, Key, _) :-
+    format(string(Message), "Missing or invalid id field: ~w", [Key]),
+    throw(http_reply(bad_request(_{error: Message}))).
+
+id_value(Value, Value) :-
+    integer(Value),
+    Value > 0,
+    !.
+id_value(Value, Value) :-
+    string(Value),
+    Value \== "",
+    !.
 
 clamp_limit(Limit0, Limit) :-
     Limit is max(1, min(100, Limit0)).

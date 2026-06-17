@@ -95,5 +95,9 @@ id_atom(Id, Atom) :-
     string(Id),
     !,
     atom_string(Atom, Id).
+id_atom(Id, Atom) :-
+    integer(Id),
+    !,
+    atom_number(Atom, Id).
 id_atom(Id, _Atom) :-
     type_error(agent_id, Id).
