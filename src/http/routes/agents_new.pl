@@ -81,17 +81,17 @@ register_or_fail(UserId, V, ok) :-
     !.
 register_or_fail(_, _,
     error("Nao foi possivel registrar o agente \c
-           (codigo muito grande ou invalido).")).
+           (código muito grande ou invalido).")).
 
 register_error(error(permission_error(load, agent_source, Pattern), _), error(Message)) :-
     !,
     format(string(Message),
-           "Codigo bloqueado pela validacao de seguranca: padrao proibido '~w'.",
+           "Código bloqueado pela validação de seguranca: padrão proibido '~w'.",
            [Pattern]).
 register_error(error(domain_error(role, _), _),
-               error("Papel invalido. Escolha ladrao ou detetive.")) :- !.
+               error("Papel inválido. Escolha ladrão ou detetive.")) :- !.
 register_error(error(type_error(_, _), _),
-               error("Campos invalidos no formulario.")) :- !.
+               error("Campos inválidos no formulário.")) :- !.
 register_error(_, error("Erro inesperado ao registrar o agente.")).
 
 checkbox_bool("true", true) :- !.
@@ -106,7 +106,7 @@ render_form(Request, User, _State) :-
     User.is_verified \== true,
     !,
     alert:alert(info,
-        "Seu email ainda nao foi verificado. Verifique sua conta para enviar agentes.",
+        "Seu email ainda não foi verificado. Verifique sua conta para enviar agentes.",
         Notice),
     page:reply_page(Request, 'Enviar agente', [
         h1([class('text-2xl font-bold mb-4')], 'Enviar agente'),
@@ -115,20 +115,26 @@ render_form(Request, User, _State) :-
 render_form(Request, _User, State) :-
     error_alert(State, AlertHtml),
     state_value(State, name, Name),
+    state_value(State, role, Role),
     state_value(State, source, Source),
     state_bool(State, private, IsPrivate),
     page_section:page_heading(
         'Enviar agente',
-        'Ladrao deve exportar ladrao_action/3 e ladrao_preload/7. Detetive deve exportar detetive_action/3 e detetive_preload/5.',
+        'Ladrão deve exportar ladrao_action/3 e ladrao_preload/7. Detetive deve exportar detetive_action/3 e detetive_preload/5.',
         Heading
     ),
     form_field:slug_field(name, 'Nome do agente', Name, [maxlength(60)], NameField),
     form_field:select_field(role, 'Papel',
-        [opt("thief", 'Ladrao'), opt("detective", 'Detetive')], RoleField),
-    form_field:textarea_field(source, 'Codigo Prolog', Source, SourceField),
+        [ placeholder("", 'Selecionar'),
+          opt("thief", 'Ladrão'),
+          opt("detective", 'Detetive')
+        ],
+        Role,
+        RoleField),
+    form_field:textarea_field(source, 'Código Prolog', Source, SourceField),
     form_field:checkbox_field(private,
-        'Manter codigo privado',
-        'Quando marcado, a API publica mostra apenas os metadados do agente.',
+        'Manter código privado',
+        'Quando marcado, a API pública mostra apenas os metadados do agente.',
         IsPrivate,
         PrivateField),
     form_field:submit_button('Enviar agente', Submit),

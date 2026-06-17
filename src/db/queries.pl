@@ -10,7 +10,6 @@
     find_user_id_by_session_token_hash/2,
     revoke_auth_session/1,
 
-    save_agent/5,
     save_agent/6,
     get_agent/2,
     list_agents/1,
@@ -154,12 +153,6 @@ revoke_auth_session(TokenHash) :-
            "UPDATE auth_sessions SET revoked_at = ~s WHERE token_hash = ~s;",
            [QNow, QToken]),
     sql_exec(SQL).
-
-%!  save_agent(+OwnerUserId, +Name, +Role, +SourceText, -AgentId) is det.
-%
-%   Compatibilidade: agentes criados por chamadores antigos sao publicos.
-save_agent(OwnerUserId, Name, Role, SourceText, AgentId) :-
-    save_agent(OwnerUserId, Name, Role, SourceText, false, AgentId).
 
 %!  save_agent(+OwnerUserId, +Name, +Role, +SourceText, +IsPrivate, -AgentId) is det.
 %
