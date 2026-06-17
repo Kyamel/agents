@@ -7,11 +7,16 @@
 
 :- use_module('../config').
 :- use_module('../db/db').
-:- use_module('./password').
 :- use_module('./verify_email', []).
 :- use_module('./session_token', []).
 :- use_module('./mail').
 
+hash_password(Plain, Hash) :-
+    crypto_password_hash(Plain, Hash).
+
+% Com Hash ligado, crypto_password_hash/2 valida a senha contra ele.
+verify_password(Plain, Hash) :-
+    crypto_password_hash(Plain, Hash).
 
 %!  signup(+Username, +EmailRaw, +Password, -Outcome) is det.
 %
@@ -25,7 +30,7 @@ do_signup(_, Email, _, email_exists) :-
     db:find_user_by_email(Email, _),
     !.
 do_signup(Username, Email, Password, created(UserId, MailStatus)) :-
-    password:hash_password(Password, PasswordHash),
+    hash_password(Password, PasswordHash),
     db:create_user(Username, Email, PasswordHash, UserId, _CreatedAt),
     verify_email:issue_verification_token(UserId, PlainToken, TokenHash),
     config:email_verify_ttl_minutes(TtlMin),
@@ -51,7 +56,7 @@ find_user_or_anon(_, anon).
 
 authenticate(anon, _, invalid_credentials) :- !.
 authenticate(User, Password, invalid_credentials) :-
-    \+ password:verify_password(Password, User.password_hash),
+    \+ verify_password(Password, User.password_hash),
     !.
 authenticate(User, _, email_not_verified) :-
     User.is_verified \== true,

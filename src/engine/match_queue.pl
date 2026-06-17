@@ -55,7 +55,6 @@ worker_count(N) :-
     config:match_max_workers(N).
 
 
-
 %!  recover_pending is det.
 %
 %   Le do banco as partidas em `queued`/`running` (interrompidas por um restart)
