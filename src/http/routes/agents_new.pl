@@ -86,7 +86,7 @@ register_error(error(domain_error(agent_role_exports, _), _),
 register_error(error(domain_error(agent_module_directive, _), _),
                error("O código deve começar com uma diretiva :- module(Nome, Exports).")) :- !.
 register_error(error(domain_error(agent_name, _), _),
-               error("Nome de módulo inválido. Use um átomo Prolog com até 60 caracteres, sem / ou \\.")) :- !.
+               error("Nome de módulo inválido. Use um átomo Prolog com 3 à 60 caracteres, sem / ou \\.")) :- !.
 register_error(error(type_error(_, _), _),
                error("Campos inválidos no formulário.")) :- !.
 register_error(error(syntax_error(_), _),

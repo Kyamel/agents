@@ -128,7 +128,7 @@ validate_agent_name(Name) :-
 %   controles para nao contaminar exibicao ou caminhos de cache.
 valid_agent_name(Name) :-
     string_length(Name, Len),
-    Len > 3,
+    Len > 2,
     Len =< 60,
     string_codes(Name, Codes),
     forall(member(C, Codes), safe_agent_name_code(C)).
