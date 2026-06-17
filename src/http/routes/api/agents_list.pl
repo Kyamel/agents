@@ -43,15 +43,12 @@ create_validated(UserId, Name, Role, Source, 201, _{status: "created", agent: Ag
     id_string(UserId, UserIdStr),
     engine:register_agent_source(UserIdStr, Name, Role, Source, Agent).
 
-% Traduz erros do registro para respostas HTTP. Corpo invalido ja vem como
-% http_reply(bad_request(...)) (400) e segue direto para o framework.
-create_error(http_reply(Reply), _, _) :-
-    !,
-    throw(http_reply(Reply)).
+% Traduz erros especificos do registro; o resto (corpo invalido, 500) cai no
+% tratamento comum de api_endpoint:api_error/3.
 create_error(error(domain_error(role, _), _), 422,
              _{error: "invalid_role"}) :- !.
-create_error(Error, 500, _{error: "internal_error"}) :-
-    print_message(error, Error).
+create_error(Error, Status, Payload) :-
+    api_error(Error, Status, Payload).
 
 verified_user(UserId) :-
     db:find_user_by_id(UserId, User),

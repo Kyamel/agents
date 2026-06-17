@@ -5,6 +5,7 @@
 :- use_module(library(http/html_write)).
 :- use_module('../../db/db').
 :- use_module('../../components/page').
+:- use_module('../../components/ui').
 
 % Prefix em /users/ para capturar /users/<id>. Nao existe /users (lista).
 :- http_handler('/users/', handler, [method(get), prefix]).
@@ -149,12 +150,13 @@ normalize_text(Value, Text) :-
 render_profile(Request, User, Profile) :-
     stats_summary(Profile.stats, Summary),
     agents_section(Profile.agents, AgentsSection),
+    ui:link_class('text-sm', BackClass),
     page:reply_page(Request, 'Perfil', [
-        a([href('/agents'), class('text-sm text-ufop-400 hover:underline underline-offset-2')],
+        a([href('/agents'), class(BackClass)],
           'Voltar para agentes'),
         h1([class('text-2xl font-bold mt-3 mb-1')], User.username),
-        p([class('text-slate-400 text-sm mb-1 break-all')], User.email),
-        p([class('font-mono text-xs text-slate-500 mb-5 break-all')], User.id),
+        p([class('text-surface-400 text-sm mb-1 break-all')], User.email),
+        p([class('font-mono text-xs text-surface-500 mb-5 break-all')], User.id),
         Summary,
         h2([class('text-xl font-bold mt-8 mb-4')], 'Agentes enviados'),
         AgentsSection
@@ -163,7 +165,7 @@ render_profile(Request, User, Profile) :-
 stats_summary(Stats, Html) :-
     stat_card('Vitorias', Stats.wins, 'text-emerald-300', WinsCard),
     stat_card('Derrotas', Stats.losses, 'text-red-300', LossesCard),
-    stat_card('Empates', Stats.draws, 'text-slate-300', DrawsCard),
+    stat_card('Empates', Stats.draws, 'text-surface-300', DrawsCard),
     Html = div([class('grid sm:grid-cols-3 gap-4')], [
         WinsCard,
         LossesCard,
@@ -172,14 +174,15 @@ stats_summary(Stats, Html) :-
 
 stat_card(Label, Value, ValueClass, Html) :-
     atomic_list_concat(['text-3xl font-bold mt-1 ', ValueClass], Class),
-    Html = div([class('rounded-xl bg-slate-900 p-4 border border-slate-800')], [
-        p([class('text-xs uppercase tracking-wide text-slate-500')], Label),
+    ui:surface_class('p-4', CardClass),
+    Html = div([class(CardClass)], [
+        p([class('text-xs uppercase tracking-wide text-surface-500')], Label),
         p([class(Class)], Value)
     ]).
 
 agents_section([], Html) :-
     !,
-    Html = div([class('rounded-xl border border-dashed border-slate-800 p-6 text-center text-slate-500')],
+    Html = div([class('rounded-xl border border-dashed border-surface-800 p-6 text-center text-surface-500')],
                'Nenhum agente enviado ainda.').
 agents_section(AgentProfiles, Html) :-
     maplist(agent_stats_card, AgentProfiles, Cards),
@@ -191,14 +194,15 @@ agent_stats_card(Profile, Html) :-
     role_label(Agent.role, RoleLabel),
     mini_stat('V', Stats.wins, 'text-emerald-300', WinsStat),
     mini_stat('D', Stats.losses, 'text-red-300', LossesStat),
-    mini_stat('E', Stats.draws, 'text-slate-300', DrawsStat),
-    Html = div([class('rounded-xl bg-slate-900 p-4 border border-slate-800')], [
+    mini_stat('E', Stats.draws, 'text-surface-300', DrawsStat),
+    ui:surface_class('p-4', CardClass),
+    Html = div([class(CardClass)], [
         div([class('flex items-start justify-between gap-3')], [
             div([class('min-w-0 flex-1')], [
                 h3([class('font-bold text-lg break-words')], Agent.name),
-                p([class('text-slate-500 text-xs font-mono break-all')], Agent.id)
+                p([class('text-surface-500 text-xs font-mono break-all')], Agent.id)
             ]),
-            span([class('rounded-full bg-slate-800 text-slate-300 text-xs px-2.5 py-1 shrink-0')],
+            span([class('rounded-full bg-surface-800 text-surface-300 text-xs px-2.5 py-1 shrink-0')],
                  RoleLabel)
         ]),
         div([class('grid grid-cols-3 gap-2 mt-4 text-center')], [
@@ -210,8 +214,8 @@ agent_stats_card(Profile, Html) :-
 
 mini_stat(Label, Value, ValueClass, Html) :-
     atomic_list_concat(['text-lg font-bold ', ValueClass], Class),
-    Html = div([class('rounded-lg bg-slate-950 border border-slate-800 px-2 py-2')], [
-        p([class('text-[11px] font-semibold text-slate-500')], Label),
+    Html = div([class('rounded-lg bg-surface-950 border border-surface-800 px-2 py-2')], [
+        p([class('text-[11px] font-semibold text-surface-500')], Label),
         p([class(Class)], Value)
     ]).
 
@@ -222,8 +226,9 @@ role_label("detective", 'Detetive') :- !.
 role_label(Other, Other).
 
 render_not_found(Request) :-
+    ui:link_class(LinkClass),
     page:reply_page(Request, 'Usuario nao encontrado', [
         h1([class('text-2xl font-bold mb-2')], 'Usuario nao encontrado'),
-        a([href('/agents'), class('text-ufop-400 hover:underline')],
+        a([href('/agents'), class(LinkClass)],
           'Voltar para agentes')
     ]).

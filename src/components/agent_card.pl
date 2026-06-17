@@ -3,6 +3,8 @@
     role_label/2
 ]).
 
+:- use_module(ui).
+
 % `CurrentUser` e o usuario logado (dict) ou o atomo `anon`; o dono ganha um
 % botao de exclusao (ver actions/3).
 agent_card(Agent, CurrentUser, Html) :-
@@ -11,17 +13,17 @@ agent_card(Agent, CurrentUser, Html) :-
     owner_link(Agent, OwnerHtml),
     actions(Agent, CurrentUser, ActionsHtml),
     format(atom(DomId), 'agent-card-~w', [Agent.id]),
-    Html = div([id(DomId),
-                class('rounded-xl bg-slate-900 p-4 border border-slate-800')], [
+    ui:surface_class('p-4', CardClass),
+    Html = div([id(DomId), class(CardClass)], [
         div([class('flex items-start justify-between gap-3')], [
             div([class('min-w-0 flex-1')], [
                 h2([class('font-bold text-lg break-words')], Name),
                 OwnerHtml
             ]),
-            span([class('rounded-full bg-slate-800 text-slate-300 text-xs px-2.5 py-1 shrink-0')],
+            span([class('rounded-full bg-surface-800 text-surface-300 text-xs px-2.5 py-1 shrink-0')],
                  RoleLabel)
         ]),
-        p([class('text-slate-500 text-xs mt-3 font-mono break-all')], ['id: ', Agent.id]),
+        p([class('text-surface-500 text-xs mt-3 font-mono break-all')], ['id: ', Agent.id]),
         ActionsHtml
     ]).
 
@@ -29,10 +31,10 @@ owner_link(Agent, Html) :-
     OwnerId = Agent.owner_user_id,
     owner_label(Agent, Label),
     format(atom(Href), '/users/~w', [OwnerId]),
-    Html = p([class('text-slate-400 text-xs mt-1')], [
+    ui:link_class('break-all', LinkClass),
+    Html = p([class('text-surface-400 text-xs mt-1')], [
         'por ',
-        a([href(Href),
-           class('text-ufop-400 hover:underline break-all')], Label)
+        a([href(Href), class(LinkClass)], Label)
     ]).
 
 owner_label(Agent, Email) :-

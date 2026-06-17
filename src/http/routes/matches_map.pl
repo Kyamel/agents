@@ -8,6 +8,7 @@
 :- use_module('../../components/page').
 :- use_module('../../components/match_detail', [render_not_found/1]).
 :- use_module('../../components/page_section').
+:- use_module('../../components/ui').
 
 :- http_handler('/map/', handler, [method(get), prefix]).
 
@@ -77,17 +78,16 @@ render_map_page(Request, Match) :-
     map_legend(Legend),
     map_info_card('mm-thief', amber, 'Ladrao', ThiefInfo),
     map_info_card('mm-detective', sky, 'Detetive', DetectiveInfo),
+    ui:surface_class('mb-6 overflow-hidden', GraphClass),
     page:reply_page(Request, 'Mapa da partida', [
         BackLink,
         h1([class('text-2xl font-bold mt-3 mb-1')], 'Mapa da partida'),
-        p([class('text-slate-400 text-sm mb-5')], [
+        p([class('text-surface-400 text-sm mb-5')], [
             'Ladrao: ', b([], ThiefName), '  •  Detetive: ', b([], DetectiveName)
         ]),
         Legend,
         Controls,
-        div([id('mm-graph'),
-             class('rounded-xl bg-slate-900 border border-slate-800 mb-6 \c
-                    overflow-hidden')], []),
+        div([id('mm-graph'), class(GraphClass)], []),
         div([id('mm-info'), class('grid sm:grid-cols-2 gap-4')], [
             ThiefInfo, DetectiveInfo
         ]),
@@ -123,22 +123,22 @@ map_turn_frame(Turn, Frame) :-
 
 % Controles play/slider/intervalo; o JS liga tudo pelos ids `mm-*`.
 map_controls(Html) :-
-    Html = div([class('rounded-xl bg-slate-900 border border-slate-800 p-4 mb-4 \c
-                       flex flex-wrap items-center gap-3')], [
+    ui:surface_class('p-4 mb-4 flex flex-wrap items-center gap-3', CardClass),
+    Html = div([class(CardClass)], [
         button([type(button), id('mm-play'),
                 class('rounded-lg bg-ufop-600 px-4 py-2 font-semibold \c
                        hover:bg-ufop-500')], 'Reproduzir'),
         input([type(range), id('mm-slider'), min(0), max(0), value(0), step(1),
                class('flex-1 accent-ufop-500')]),
         span([id('mm-turn-label'),
-              class('font-mono text-sm text-slate-300 min-w-[5rem] text-center')],
+              class('font-mono text-sm text-surface-300 min-w-[5rem] text-center')],
              'Inicio'),
-        label([class('text-sm text-slate-400 flex items-center gap-2 ml-auto')], [
+        label([class('text-sm text-surface-400 flex items-center gap-2 ml-auto')], [
             'Intervalo',
             input([type(number), id('mm-interval'), value(800), min(100),
                    step(100),
-                   class('w-24 rounded-lg bg-slate-800 border border-slate-700 \c
-                          px-2 py-1 text-slate-200')]),
+                   class('w-24 rounded-lg bg-surface-800 border border-surface-700 \c
+                          px-2 py-1 text-surface-200')]),
             'ms'
         ])
     ]).
@@ -155,11 +155,9 @@ map_legend(div([class('flex items-center gap-5 mb-4 text-sm')], [
     ])).
 
 map_info_card(Id, Accent, Label, Html) :-
-    accent_text_class(Accent, AccentClass),
-    Html = div([class('rounded-xl bg-slate-900 border border-slate-800 p-4')], [
+    ui:eyebrow_class(Accent, AccentClass),
+    ui:surface_class('p-4', CardClass),
+    Html = div([class(CardClass)], [
         p([class(AccentClass)], Label),
-        p([id(Id), class('font-mono text-sm text-slate-300 mt-1 break-all')], '-')
+        p([id(Id), class('font-mono text-sm text-surface-300 mt-1 break-all')], '-')
     ]).
-
-accent_text_class(amber, 'text-amber-400 text-xs uppercase tracking-wide font-semibold').
-accent_text_class(sky, 'text-sky-400 text-xs uppercase tracking-wide font-semibold').

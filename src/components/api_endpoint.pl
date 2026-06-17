@@ -1,6 +1,7 @@
 :- module(api_endpoint, [
     api_handle/3,
-    reply_json/2
+    reply_json/2,
+    api_error/3
 ]).
 
 :- use_module(library(http/http_json), [reply_json_dict/2]).
@@ -42,3 +43,12 @@ route_method(_Method, _Request, _Dispatch) :-
 
 reply_json(Status, Payload) :-
     reply_json_dict(Payload, [status(Status)]).
+
+% Fallback de tratamento de erros para o catch das rotas: corpo invalido (ou
+% qualquer outro http_reply do framework) segue direto; o restante vira 500
+% logado. Cada rota trata antes os erros especificos dela e delega o resto aqui.
+api_error(http_reply(Reply), _, _) :-
+    !,
+    throw(http_reply(Reply)).
+api_error(Error, 500, _{error: "internal_error"}) :-
+    print_message(error, Error).

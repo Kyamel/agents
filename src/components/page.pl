@@ -5,12 +5,42 @@
 
 :- use_module(library(http/html_write)).
 :- use_module('../http/security/web_session').
+:- use_module(ui).
 
-% Paleta `ufop` para o Tailwind (CDN): o vermelho institucional da UFOP.
+% Paleta do Tailwind (CDN). `ufop` e o vermelho institucional da UFOP.
+% `surface` e a escala neutra do app (era `slate`): centralizar aqui permite
+% re-tematizar o tom neutro inteiro mudando so estes hex. Usar sempre
+% bg-surface-*/text-surface-*/border-surface-* (nunca cores cruas do Tailwind).
 tailwind_config(
-    "tailwind.config={theme:{extend:{colors:{ufop:{\c
-     '200':'#f0b3b8','400':'#db6a74','500':'#c5283a','600':'#a31621',\c
-     '700':'#86121b','900':'#4d0a10','950':'#310608'}}}}}"
+    "tailwind.config={\c
+        theme:{\c
+            extend:{\c
+                colors:{\c
+                    ufop:{\c
+                        '200':'#f0b3b8',\c
+                        '400':'#db6a74',\c
+                        '500':'#c5283a',\c
+                        '600':'#a31621',\c
+                        '700':'#86121b',\c
+                        '900':'#4d0a10',\c
+                        '950':'#310608'\c
+                    },\c
+                    surface:{\c
+                        '100':'#f1f5f9',\c
+                        '200':'#e2e8f0',\c
+                        '300':'#cbd5e1',\c
+                        '400':'#94a3b8',\c
+                        '500':'#64748b',\c
+                        '600':'#475569',\c
+                        '700':'#334155',\c
+                        '800':'#1e293b',\c
+                        '900':'#0f172a',\c
+                        '950':'#020617'\c
+                    }\c
+                }\c
+            }\c
+        }\c
+    }"
 ).
 
 %!  reply_page(+Request, +Title, +Content) is det.
@@ -42,17 +72,17 @@ layout(User, Content, Body) :-
     footer_link('https://icea.ufop.br/', 'ICEA', ICEALink),
     footer_link('https://ufop.br/', 'UFOP', UFOPLink),
     Body = [
-        div([class('min-h-screen bg-slate-950 text-slate-200 flex flex-col')], [
-            header([class('border-b border-slate-800')], [
+        div([class('min-h-screen bg-surface-950 text-surface-200 flex flex-col')], [
+            header([class('border-b border-surface-800')], [
                 div([class('max-w-4xl mx-auto w-full p-4')], [Nav])
             ]),
             main([class('flex-1 max-w-4xl mx-auto w-full p-6')], Content),
-            footer([class('border-t border-slate-800')], [
+            footer([class('border-t border-surface-800')], [
                 div([class('max-w-4xl mx-auto w-full p-6 flex flex-col sm:flex-row \c
-                             items-center gap-4 text-sm text-slate-500')], [
+                             items-center gap-4 text-sm text-surface-500')], [
                     Logo,
                     div([class('flex-1 text-center sm:text-left')], [
-                        p([class('text-slate-300 font-medium')], 'Scotland Yard em Prolog'),
+                        p([class('text-surface-300 font-medium')], 'Scotland Yard em Prolog'),
                         p([class('mt-0.5')], 'Disciplinas de Desenvolvimento Web e Linguagens de Programação'),
                         p([class('mt-0.5')], [
                             'Desenvolvido na ',
@@ -99,12 +129,13 @@ footer_link(Href, Label, Html) :-
 % Barra de navegacao; os links variam conforme a sessao (anon vs logado).
 nav(anon, Nav) :-
     !,
+    ui:link_class(NavClass),
     Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2 text-sm')], [
         a([href('/'), class('font-bold text-base mr-2 hover:underline underline-offset-2')], 'Scotland Yard'),
-        a([href('/agents'), class('text-ufop-400 hover:underline underline-offset-2')], 'Agentes'),
-        a([href('/matches'), class('text-ufop-400 hover:underline underline-offset-2')], 'Partidas'),
+        a([href('/agents'), class(NavClass)], 'Agentes'),
+        a([href('/matches'), class(NavClass)], 'Partidas'),
         div([class('ml-auto flex items-center gap-3')], [
-            a([href('/login'), class('text-slate-300 hover:text-white')], 'Entrar'),
+            a([href('/login'), class('text-surface-300 hover:text-white')], 'Entrar'),
             a([href('/signup'),
                class('rounded-lg bg-ufop-600 px-3 py-1.5 font-semibold hover:bg-ufop-500')],
               'Criar conta')
@@ -112,19 +143,20 @@ nav(anon, Nav) :-
     ]).
 nav(User, Nav) :-
     format(atom(ProfileHref), '/users/~w', [User.id]),
+    ui:link_class(NavClass),
     Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2 text-sm')], [
         a([href('/'), class('font-bold text-base mr-2 hover:underline underline-offset-2')], 'Scotland Yard'),
-        a([href('/agents'), class('text-ufop-400 hover:underline underline-offset-2')], 'Agentes'),
-        a([href('/matches'), class('text-ufop-400 hover:underline underline-offset-2')], 'Partidas'),
-        %a([href('/agents/new'), class('text-slate-300 hover:text-white')], 'Enviar agente'),
-        %a([href('/matches/new'), class('text-slate-300 hover:text-white')], 'Nova partida'),
+        a([href('/agents'), class(NavClass)], 'Agentes'),
+        a([href('/matches'), class(NavClass)], 'Partidas'),
+        %a([href('/agents/new'), class('text-surface-300 hover:text-white')], 'Enviar agente'),
+        %a([href('/matches/new'), class('text-surface-300 hover:text-white')], 'Nova partida'),
         div([class('ml-auto flex items-center gap-3')], [
             a([href(ProfileHref),
-               class('text-slate-500 hidden sm:inline hover:underline underline-offset-2')],
+               class('text-surface-500 hidden sm:inline hover:underline underline-offset-2')],
               User.email),
             form([method(post), action('/logout')], [
                 button([type(submit),
-                        class('rounded-lg bg-slate-800 px-3 py-1.5 hover:bg-slate-700')],
+                        class('rounded-lg bg-surface-800 px-3 py-1.5 hover:bg-surface-700')],
                        'Sair')
             ])
         ])

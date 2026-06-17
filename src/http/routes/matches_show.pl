@@ -10,6 +10,7 @@
 :- use_module('../../components/match_card').
 :- use_module('../../components/match_detail').
 :- use_module('../../components/page_section').
+:- use_module('../../components/ui').
 :- use_module('../../components/button_link').
 
 % Prefix em /matches/ para capturar /matches/<id>. /matches/new tem handler
@@ -106,7 +107,7 @@ render_detail(Request, Match, ThiefName, DetectiveName, Replay) :-
     page:reply_page(Request, 'Detalhe da partida', [
         BackLink,
         h1([class('text-2xl font-bold mt-3 mb-1')], 'Detalhe da partida'),
-        p([class('font-mono text-xs text-slate-500 mb-5 break-all')], Match.id),
+        p([class('font-mono text-xs text-surface-500 mb-5 break-all')], Match.id),
         div([class('grid sm:grid-cols-3 gap-4 mb-6')], [
             ThiefCard, DetectiveCard, WinnerCard
         ]),
@@ -133,16 +134,17 @@ render_progress(Request, Match, Status, Elapsed) :-
     stat_card('Detetive', DetectiveName, DetectiveCard),
     stat_card('Tempo decorrido', ElapsedText, TimeCard),
     atom_concat('/matches/', Match.id, SelfLink),
+    ui:link_class('text-sm', RefreshClass),
     page:reply_page(Request, 'Partida em andamento', [
         BackLink,
         h1([class('text-2xl font-bold mt-3 mb-1')], 'Partida em andamento'),
-        p([class('font-mono text-xs text-slate-500 mb-5 break-all')], Match.id),
+        p([class('font-mono text-xs text-surface-500 mb-5 break-all')], Match.id),
         div([class('grid sm:grid-cols-3 gap-4 mb-8')], [
             ThiefCard, DetectiveCard, TimeCard
         ]),
         Banner,
         div([class('mt-4')], [
-            a([href(SelfLink), class('text-ufop-400 hover:underline text-sm')],
+            a([href(SelfLink), class(RefreshClass)],
               'Atualizar')
         ])
     ]).
@@ -174,4 +176,4 @@ status_meta("error", 'Falha na execucao',
     'rounded-xl bg-rose-950 p-4 border border-rose-800 text-rose-200') :- !.
 status_meta(_Other, 'Status desconhecido',
     'O estado desta partida nao pode ser determinado.',
-    'rounded-xl bg-slate-900 p-4 border border-slate-700 text-slate-200').
+    'rounded-xl bg-surface-900 p-4 border border-surface-700 text-surface-200').

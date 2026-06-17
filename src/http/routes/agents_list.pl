@@ -55,7 +55,7 @@ render(Request, User, Agents, PageMeta) :-
     page_section:top_bar('Agentes', Cta, TopBar),
     page:reply_page(Request, 'Agentes', [
         TopBar,
-        p([class('text-slate-400 mb-6')],
+        p([class('text-surface-400 mb-6')],
           'Agentes cadastrados na plataforma. Também disponivel em /api/v1/agents.'),
         ListHtml,
         Pagination

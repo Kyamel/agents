@@ -9,9 +9,9 @@
 
 :- use_module(library(apply)).
 
-input_class('w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-ufop-500').
+input_class('w-full rounded-lg bg-surface-900 border border-surface-700 px-3 py-2 text-surface-100 placeholder-surface-500 focus:outline-none focus:border-ufop-500').
 
-label_class('block text-sm font-medium text-slate-300 mb-1').
+label_class('block text-sm font-medium text-surface-300 mb-1').
 
 text_field(Name, Label, Type, Value, Html) :-
     input_class(InputClass),

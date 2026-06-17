@@ -20,7 +20,7 @@ dispatch(post, Request) :-
     authz:require_bearer_token(Request, _UserId),
     catch(create_match(Request, Status, Payload),
           Error,
-          create_error(Error, Status, Payload)),
+          api_error(Error, Status, Payload)),
     reply_json(Status, Payload).
 
 % =============================
@@ -72,9 +72,3 @@ scenario_of(Body, Scenario) :-
     !.
 scenario_of(_Body, Scenario) :-
     config:engine_scenario(Scenario).
-
-create_error(http_reply(Reply), _, _) :-
-    !,
-    throw(http_reply(Reply)).
-create_error(Error, 500, _{error: "internal_error"}) :-
-    print_message(error, Error).

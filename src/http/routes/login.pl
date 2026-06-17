@@ -5,6 +5,7 @@
 :- use_module('../../components/page').
 :- use_module('../../components/form_field').
 :- use_module('../../components/alert').
+:- use_module('../../components/ui').
 :- use_module('../../auth/auth').
 :- use_module('../security/web_session').
 :- use_module('../security/rate_limit').
@@ -83,18 +84,19 @@ render_form(Request, Email, AlertHtml) :-
     form_field:text_field(email, 'Email', email, Email, EmailField),
     form_field:text_field(password, 'Senha', password, "", PasswordField),
     form_field:submit_button('Entrar', Submit),
-    FooterLink = a([href('/signup'), class('text-ufop-400 hover:underline')],
+    ui:link_class(FooterClass),
+    FooterLink = a([href('/signup'), class(FooterClass)],
                    'Criar conta'),
     page:reply_page(Request, 'Entrar', [
         div([class('max-w-sm mx-auto')], [
             h1([class('text-2xl font-bold mb-1')], 'Entrar'),
-            p([class('text-slate-400 text-sm mb-6')],
+            p([class('text-surface-400 text-sm mb-6')],
               'Acesse sua conta para enviar agentes e criar partidas.'),
             AlertHtml,
             form([method(post), action('/login')], [
                 EmailField, PasswordField, Submit
             ]),
-            p([class('text-slate-400 text-sm mt-4')], [
+            p([class('text-surface-400 text-sm mt-4')], [
                 'Não possui conta? ',
                 FooterLink
             ])

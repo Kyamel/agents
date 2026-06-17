@@ -11,6 +11,7 @@
 :- use_module(match_card).
 :- use_module(page).
 :- use_module(page_section).
+:- use_module(ui).
 
 setup_section(Setup, Html) :-
     field_text(Setup, scenario, Scenario),
@@ -26,19 +27,20 @@ setup_section(Setup, Html) :-
     fact('Inicio do detetive', DetectiveStart, F5),
     fact('Disfarces disponíveis', Disguises, F6),
     appearance_chips(Setup, Chips),
-    Html = div([class('rounded-xl bg-slate-900 p-4 border border-slate-800 mb-8')], [
+    ui:surface_class('p-4 mb-8', CardClass),
+    Html = div([class(CardClass)], [
         h2([class('font-semibold mb-4')], 'Configuração da partida'),
         div([class('grid sm:grid-cols-3 gap-x-6 gap-y-4 text-sm')],
             [F1, F2, F3, F4, F5, F6]),
         div([class('mt-5')], [
-            p([class('text-slate-500 text-xs uppercase tracking-wide mb-2')],
+            p([class('text-surface-500 text-xs uppercase tracking-wide mb-2')],
               'Aparencia do alvo'),
             div([class('flex flex-wrap gap-2')], Chips)
         ])
     ]).
 
 fact(Label, Value, div([], [
-        dt([class('text-slate-500 text-xs uppercase tracking-wide')], Label),
+        dt([class('text-surface-500 text-xs uppercase tracking-wide')], Label),
         dd([class('font-medium mt-0.5 break-all')], Value)
     ])).
 
@@ -48,16 +50,16 @@ appearance_chips(Setup, Chips) :-
     Attrs \= [],
     !,
     maplist(chip, Attrs, Chips).
-appearance_chips(_Setup, [span([class('text-slate-500 text-sm')], '-')]).
+appearance_chips(_Setup, [span([class('text-surface-500 text-sm')], '-')]).
 
-chip(Text, span([class('inline-block rounded-full bg-slate-800 text-slate-300 \c
+chip(Text, span([class('inline-block rounded-full bg-surface-800 text-surface-300 \c
                         px-3 py-1 text-xs')], Text)).
 
 events_section([], Html) :-
     !,
     Html = div([class('mb-8')], [
         h2([class('font-semibold mb-3')], 'Eventos'),
-        p([class('text-slate-500 text-sm')], 'Nenhum roubo registrado nesta partida.')
+        p([class('text-surface-500 text-sm')], 'Nenhum roubo registrado nesta partida.')
     ]).
 events_section(Events, Html) :-
     maplist(event_item, Events, Items),
@@ -82,8 +84,8 @@ event_item(Event, Html) :-
     field_text(Event, turn, Turn),
     field_text(Event, detail, Detail),
     format(string(Text), "Turno ~w: ~w", [Turn, Detail]),
-    Html = li([class('rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 \c
-                      text-slate-300 text-sm')], Text).
+    Html = li([class('rounded-lg bg-surface-900 border border-surface-800 px-3 py-2 \c
+                      text-surface-300 text-sm')], Text).
 
 revealed_text(Event, Text) :-
     get_dict(revealed, Event, Revealed),
@@ -102,8 +104,9 @@ field_text(Dict, Key, Text) :-
 field_text(_Dict, _Key, "-").
 
 stat_card(Label, Value, Html) :-
-    Html = div([class('rounded-xl bg-slate-900 p-4 border border-slate-800')], [
-        p([class('text-slate-500 text-xs uppercase tracking-wide')], Label),
+    ui:surface_class('p-4', CardClass),
+    Html = div([class(CardClass)], [
+        p([class('text-surface-500 text-xs uppercase tracking-wide')], Label),
         p([class('font-semibold mt-1 break-all')], Value)
     ]).
 
@@ -119,7 +122,7 @@ winner_card_class(thief, C) :- !, amber_card(C).
 winner_card_class("thief", C) :- !, amber_card(C).
 winner_card_class(detective, C) :- !, emerald_card(C).
 winner_card_class("detective", C) :- !, emerald_card(C).
-winner_card_class(_, 'rounded-xl bg-slate-900 p-4 border border-slate-700 text-slate-200').
+winner_card_class(_, 'rounded-xl bg-surface-900 p-4 border border-surface-700 text-surface-200').
 
 amber_card('rounded-xl bg-amber-950 p-4 border border-amber-800 text-amber-200').
 emerald_card('rounded-xl bg-emerald-950 p-4 border border-emerald-800 text-emerald-200').
@@ -129,9 +132,9 @@ turns_table([], Html) :-
     page_section:empty_state('Replay indisponivel para esta partida.', Html).
 turns_table(Turns, Html) :-
     maplist(turn_row, Turns, Rows),
-    Html = div([class('overflow-x-auto rounded-xl border border-slate-800')], [
+    Html = div([class('overflow-x-auto rounded-xl border border-surface-800')], [
         table([class('w-full text-sm')], [
-            thead([class('bg-slate-900 text-slate-400')], [
+            thead([class('bg-surface-900 text-surface-400')], [
                 tr([], [
                     th([class('text-left px-3 py-2')], 'Turno'),
                     th([class('text-left px-3 py-2')], 'Ação ladrão'),
@@ -144,12 +147,12 @@ turns_table(Turns, Html) :-
         ])
     ]).
 
-turn_row(Turn, tr([class('border-t border-slate-800')], [
-        td([class('px-3 py-2 text-slate-400')], TurnNo),
+turn_row(Turn, tr([class('border-t border-surface-800')], [
+        td([class('px-3 py-2 text-surface-400')], TurnNo),
         td([class(ThiefClass)], ThiefAction),
-        td([class('px-3 py-2 text-slate-400')], ThiefPos),
+        td([class('px-3 py-2 text-surface-400')], ThiefPos),
         td([class(DetectiveClass)], DetectiveAction),
-        td([class('px-3 py-2 text-slate-400')], DetectivePos)
+        td([class('px-3 py-2 text-surface-400')], DetectivePos)
     ])) :-
     field_text(Turn, turn, TurnNo),
     field_text(Turn, thief_action, ThiefAction),
@@ -165,10 +168,11 @@ action_class(Turn, StatusKey, 'px-3 py-2 text-rose-400') :-
 action_class(_Turn, _StatusKey, 'px-3 py-2').
 
 render_not_found(Request) :-
+    ui:link_class(LinkClass),
     page:reply_page(Request, 'Partida não encontrada', [
         h1([class('text-2xl font-bold mb-2')], 'Partida não encontrada'),
-        p([class('text-slate-400 mb-6')],
+        p([class('text-surface-400 mb-6')],
           'Não existe partida com esse identificador.'),
-        a([href('/matches'), class('text-ufop-400 hover:underline')],
+        a([href('/matches'), class(LinkClass)],
           'Voltar para partidas')
     ]).

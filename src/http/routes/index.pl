@@ -5,6 +5,7 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module('../../components/page').
 :- use_module('../../components/button_link').
+:- use_module('../../components/ui').
 
 :- http_handler(root(.), index_page, [method(get)]).
 
@@ -23,7 +24,7 @@ index_page(Request) :-
     page:reply_page(Request, 'Scotland Yard', [
         section([class('mb-8')], [
             h1([class('text-3xl font-bold mb-3')], 'Scotland Yard em Prolog'),
-            p([class('text-slate-300 max-w-2xl')],
+            p([class('text-surface-300 max-w-2xl')],
               'Plataforma para enviar agentes Prolog e coloca-los para disputar partidas de perseguição e dedução no estilo detetive e ladrão.')
         ]),
         div([class('flex flex-wrap gap-3 mb-10')], [AgentsButton, MatchesButton]),
@@ -31,9 +32,11 @@ index_page(Request) :-
     ]).
 
 info_card(Href, Title, Text, Html) :-
-    Html = div([class('rounded-xl bg-slate-900 p-5 border border-slate-800 hover:border-slate-600 transition')], [
+    ui:surface_class('p-5 hover:border-surface-600 transition', CardClass),
+    ui:link_class(LinkClass),
+    Html = div([class(CardClass)], [
         h3([class('font-semibold mb-1')], [
-            a([href(Href), class('text-ufop-400 hover:underline underline-offset-2')], Title)
+            a([href(Href), class(LinkClass)], Title)
         ]),
-        p([class('text-slate-400 text-sm')], Text)
+        p([class('text-surface-400 text-sm')], Text)
     ]).

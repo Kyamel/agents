@@ -3,31 +3,35 @@
     winner_label/3
 ]).
 
+:- use_module(ui).
+
 match_card(Match, Html) :-
     Id = Match.id,
     atom_concat('/matches/', Id, Href),
     winner_label(Match.winner, WinnerText, BadgeClass),
-    Html = div([class('rounded-xl bg-slate-900 p-3 border border-slate-800 hover:border-slate-600 transition')], [
+    ui:surface_class('p-3 hover:border-surface-600 transition', CardClass),
+    ui:link_class('min-w-0 truncate font-mono text-xs', LinkClass),
+    Html = div([class(CardClass)], [
         div([class('flex items-center justify-between gap-2')], [
             a([href(Href),
                title(Id),
-               class('min-w-0 truncate font-mono text-xs text-ufop-400 hover:underline underline-offset-2')],
+               class(LinkClass)],
               Id),
             span([class(BadgeClass)], WinnerText)
         ]),
         dl([class('mt-3 grid gap-1 text-xs')], [
             div([class('grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2')], [
-                dt([class('text-slate-500')], 'Ladrao'),
-                dd([title(Match.thief_agent_id), class('min-w-0 truncate font-mono text-slate-400')],
+                dt([class('text-surface-500')], 'Ladrao'),
+                dd([title(Match.thief_agent_id), class('min-w-0 truncate font-mono text-surface-400')],
                    Match.thief_agent_id)
             ]),
             div([class('grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2')], [
-                dt([class('text-slate-500')], 'Detetive'),
-                dd([title(Match.detective_agent_id), class('min-w-0 truncate font-mono text-slate-400')],
+                dt([class('text-surface-500')], 'Detetive'),
+                dd([title(Match.detective_agent_id), class('min-w-0 truncate font-mono text-surface-400')],
                    Match.detective_agent_id)
             ])
         ]),
-        p([class('text-slate-600 text-xs mt-2 truncate')], ['Criada em ', Match.created_at])
+        p([class('text-surface-600 text-xs mt-2 truncate')], ['Criada em ', Match.created_at])
     ]).
 
 % Vencedor -> rotulo + classe da etiqueta. Reutilizado por match_detail.
@@ -42,4 +46,4 @@ badge_class(amber,
 badge_class(emerald,
     'rounded-full bg-emerald-950 text-emerald-300 text-xs px-2.5 py-1 whitespace-nowrap').
 badge_class(slate,
-    'rounded-full bg-slate-800 text-slate-300 text-xs px-2.5 py-1 whitespace-nowrap').
+    'rounded-full bg-surface-800 text-surface-300 text-xs px-2.5 py-1 whitespace-nowrap').

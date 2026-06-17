@@ -43,15 +43,15 @@ pagination_nav(BasePath, Meta, Html) :-
     format(atom(Label), 'Pagina ~w de ~w', [Meta.page, Meta.total_pages]),
     Html = nav([class('mt-6 flex flex-wrap items-center justify-between gap-3 text-sm')], [
         Prev,
-        span([class('text-slate-500')], Label),
+        span([class('text-surface-500')], Label),
         Next
     ]).
 
 page_control(BasePath, Page, true, Label, Html) :-
     format(atom(Href), '~w?page=~w', [BasePath, Page]),
     Html = a([href(Href),
-              class('rounded-lg bg-slate-800 px-3 py-1.5 hover:bg-slate-700')],
+              class('rounded-lg bg-surface-800 px-3 py-1.5 hover:bg-surface-700')],
              Label).
 page_control(_, _, false, Label, Html) :-
-    Html = span([class('rounded-lg bg-slate-900 px-3 py-1.5 text-slate-600 border border-slate-800')],
+    Html = span([class('rounded-lg bg-surface-900 px-3 py-1.5 text-surface-600 border border-surface-800')],
                 Label).

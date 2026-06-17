@@ -5,6 +5,7 @@
 :- use_module('../../components/page').
 :- use_module('../../components/form_field').
 :- use_module('../../components/alert').
+:- use_module('../../components/ui').
 :- use_module('../../auth/auth').
 :- use_module('../security/rate_limit').
 
@@ -87,18 +88,19 @@ render_form(Request, Username, Email, AlertHtml) :-
     form_field:text_field(password, 'Senha', password, "", PasswordField),
     form_field:text_field(confirm_password, 'Confirmar senha', password, "", ConfirmPasswordField),
     form_field:submit_button('Criar conta', Submit),
-    FooterLink = a([href('/login'), class('text-ufop-400 hover:underline')],
+    ui:link_class(FooterClass),
+    FooterLink = a([href('/login'), class(FooterClass)],
                    'Entrar'),
     page:reply_page(Request, 'Criar conta', [
         div([class('max-w-sm mx-auto')], [
             h1([class('text-2xl font-bold mb-1')], 'Criar conta'),
-            p([class('text-slate-400 text-sm mb-6')],
+            p([class('text-surface-400 text-sm mb-6')],
               'Cadastre-se para enviar agentes e criar partidas.'),
             AlertHtml,
             form([method(post), action('/signup')], [
                 UsernameField, EmailField, PasswordField, ConfirmPasswordField, Submit
             ]),
-            p([class('text-slate-400 text-sm mt-4')], [
+            p([class('text-surface-400 text-sm mt-4')], [
                 'Ja tem conta? ',
                 FooterLink
             ])
