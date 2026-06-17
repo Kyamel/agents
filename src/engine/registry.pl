@@ -1,6 +1,8 @@
 :- module(agent_registry, [
     register_agent_source/5,
     register_agent_source/6,
+    register_agent_source_from_module/4,
+    register_agent_source_from_module/5,
     valid_agent_name/1
 ]).
 
@@ -8,6 +10,13 @@
 :- use_module('../config').
 :- use_module('../db/db').
 :- use_module('./sandbox').
+
+register_agent_source_from_module(UserId, Role, SourceText, Agent) :-
+    register_agent_source_from_module(UserId, Role, SourceText, false, Agent).
+
+register_agent_source_from_module(UserId, Role, SourceText, IsPrivate, Agent) :-
+    agent_name_from_source(SourceText, Name),
+    register_agent_source(UserId, Name, Role, SourceText, IsPrivate, Agent).
 
 %!  register_agent_source(+UserId, +Name, +Role, +SourceText, -Agent) is det.
 %
@@ -28,6 +37,7 @@ register_agent_source(UserId, Name, Role, SourceText, IsPrivate, Agent) :-
     must_be(boolean, IsPrivate),
 
     validate_role(Role),
+    validate_agent_name(Name),
     sandbox:validate_agent_source(SourceText),
 
     config:agent_max_source_bytes(MaxBytes),
@@ -49,20 +59,41 @@ valid_user_id(UserId) :-
 valid_user_id(UserId) :-
     type_error(user_id, UserId).
 
+agent_name_from_source(SourceText, Name) :-
+    setup_call_cleanup(
+        open_string(SourceText, In),
+        read_term(In, Term, [syntax_errors(error)]),
+        close(In)
+    ),
+    module_directive(Term, Module),
+    atom_string(Module, Name),
+    validate_agent_name(Name),
+    !.
+agent_name_from_source(_SourceText, _Name) :-
+    throw(error(domain_error(agent_module_directive, source), _)).
+
+module_directive((:- module(Module, Exports)), Module) :-
+    atom(Module),
+    is_list(Exports).
+
+validate_agent_name(Name) :-
+    valid_agent_name(Name),
+    !.
+validate_agent_name(Name) :-
+    throw(error(domain_error(agent_name, Name), _)).
+
 %!  valid_agent_name(+Name) is semidet.
 %
-%   Nome de agente deve ser um slug ASCII: minusculas, digitos e hifens, com ao
-%   menos um caractere alfanumerico. Centralizado aqui para as rotas web e API
-%   validarem com a mesma regra.
+%   Nome de agente vem de `:- module(Name, Exports).`. Aceita atomos Prolog
+%   mais expressivos que slug, mas bloqueia nomes vazios, path separators e
+%   controles para nao contaminar exibicao ou caminhos de cache.
 valid_agent_name(Name) :-
     string_length(Name, Len),
+    Len > 0,
     Len =< 60,
     string_codes(Name, Codes),
-    forall(member(C, Codes), slug_code(C)),
-    once((member(A, Codes), alnum_code(A))).
+    forall(member(C, Codes), safe_agent_name_code(C)).
 
-slug_code(0'-) :- !.
-slug_code(C) :- alnum_code(C).
-
-alnum_code(C) :- C >= 0'a, C =< 0'z, !.
-alnum_code(C) :- C >= 0'0, C =< 0'9.
+safe_agent_name_code(0'/) :- !, fail.
+safe_agent_name_code(0'\\) :- !, fail.
+safe_agent_name_code(C) :- C >= 32.

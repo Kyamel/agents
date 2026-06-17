@@ -37,23 +37,25 @@ create_agent(UserId, _, 403, _{error: "email_not_verified_or_user_not_found"}) :
     !.
 create_agent(UserId, Request, Status, Payload) :-
     json_request:read_json_body(Request, Body),
-    json_request:require_string(Body, name, Name),
     json_request:require_string(Body, role, Role),
     json_request:require_string(Body, source, Source),
     optional_private(Body, IsPrivate),
-    create_validated(UserId, Name, Role, Source, IsPrivate, Status, Payload).
+    create_validated(UserId, Role, Source, IsPrivate, Status, Payload).
 
-create_validated(_UserId, Name, _Role, _Source, _IsPrivate, 422, _{error: "invalid_agent_name"}) :-
-    \+ engine:valid_agent_name(Name),
-    !.
-create_validated(UserId, Name, Role, Source, IsPrivate, 201, _{status: "created", agent: Agent}) :-
+create_validated(UserId, Role, Source, IsPrivate, 201, _{status: "created", agent: Agent}) :-
     id_string(UserId, UserIdStr),
-    engine:register_agent_source(UserIdStr, Name, Role, Source, IsPrivate, Agent).
+    engine:register_agent_source_from_module(UserIdStr, Role, Source, IsPrivate, Agent).
 
 % Traduz erros especificos do registro; o resto (corpo invalido, 500) cai no
 % tratamento comum de api_endpoint:api_error/3.
 create_error(error(domain_error(role, _), _), 422,
              _{error: "invalid_role"}) :- !.
+create_error(error(domain_error(agent_module_directive, _), _), 422,
+             _{error: "missing_module_directive"}) :- !.
+create_error(error(domain_error(agent_name, _), _), 422,
+             _{error: "invalid_agent_module_name"}) :- !.
+create_error(error(syntax_error(_), _), 422,
+             _{error: "invalid_prolog_source"}) :- !.
 create_error(Error, Status, Payload) :-
     api_error(Error, Status, Payload).
 

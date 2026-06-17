@@ -523,7 +523,7 @@
         "properties": {
           "id": { "type": "integer" },
           "owner_user_id": { "type": "integer" },
-          "name": { "type": "string", "maxLength": 60, "example": "meu-agente" },
+          "name": { "type": "string", "maxLength": 60, "example": "agenteL" },
           "role": { "type": "string", "enum": ["thief", "detective"] },
           "is_private": { "type": "boolean", "default": false },
           "deleted_at": {
@@ -541,17 +541,20 @@
       },
       "CreateAgentRequest": {
         "type": "object",
+        "description": "O nome do agente é extraído da diretiva `:- module(Nome, Exports).` no código Prolog.",
         "properties": {
-          "name": { "type": "string", "maxLength": 60, "pattern": "^[a-z0-9-]+$", "example": "meu-agente" },
           "role": { "type": "string", "enum": ["thief", "detective"] },
           "private": {
             "type": "boolean",
             "default": false,
             "description": "Quando true, o codigo nao e exibido no detalhe publico do agente."
           },
-          "source": { "type": "string", "example": ":- module(meu_agente, [])." }
+          "source": {
+            "type": "string",
+            "example": ":- module('agenteL', [ladrao_action/3, ladrao_preload/7])."
+          }
         },
-        "required": ["name", "role", "source"]
+        "required": ["role", "source"]
       },
       "CreateAgentResponse": {
         "type": "object",

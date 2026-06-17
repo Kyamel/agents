@@ -67,13 +67,46 @@ agent_cache_path(AgentId, Name, AbsPath) :-
     directory_file_path(Dir, FileName, Rel),
     absolute_file_name(Rel, AbsPath).
 
-% `<id>-<name>` (nome ja validado como slug); cai em `<id>` se vazio.
+% `<id>-<safe-name>`; cai em `<id>` se o nome nao renderizar uma parte segura.
 cache_basename(IdAtom, Name, Base) :-
-    name_atom(Name, NameAtom),
+    safe_name_atom(Name, NameAtom),
     NameAtom \== '',
     !,
     atomic_list_concat([IdAtom, '-', NameAtom], Base).
 cache_basename(IdAtom, _Name, IdAtom).
+
+safe_name_atom(Name, SafeAtom) :-
+    coerce_string(Name, Text),
+    string_codes(Text, Codes),
+    maplist(safe_file_code, Codes, SafeCodes0),
+    collapse_dashes(SafeCodes0, SafeCodes),
+    trim_dashes(SafeCodes, Trimmed),
+    string_codes(Safe, Trimmed),
+    atom_string(SafeAtom, Safe).
+
+safe_file_code(C, C) :- C >= 0'a, C =< 0'z, !.
+safe_file_code(C, C) :- C >= 0'A, C =< 0'Z, !.
+safe_file_code(C, C) :- C >= 0'0, C =< 0'9, !.
+safe_file_code(0'_, 0'_) :- !.
+safe_file_code(_, 0'-).
+
+collapse_dashes([], []).
+collapse_dashes([0'-, 0'-|Codes], Collapsed) :-
+    !,
+    collapse_dashes([0'-|Codes], Collapsed).
+collapse_dashes([C|Codes], [C|Collapsed]) :-
+    collapse_dashes(Codes, Collapsed).
+
+trim_dashes(Codes, Trimmed) :-
+    drop_leading_dashes(Codes, NoLeading),
+    reverse(NoLeading, Rev),
+    drop_leading_dashes(Rev, RevTrimmed),
+    reverse(RevTrimmed, Trimmed).
+
+drop_leading_dashes([0'-|Codes], Trimmed) :-
+    !,
+    drop_leading_dashes(Codes, Trimmed).
+drop_leading_dashes(Codes, Codes).
 
 name_atom(Name, Name) :-
     atom(Name),

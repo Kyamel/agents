@@ -25,13 +25,12 @@ dispatch(get, Request, User) :-
     render_form(Request, User, _{}).
 dispatch(post, Request, User) :-
     http_parameters(Request, [
-        name(Name, [default(""), string]),
         role(Role, [default(""), string]),
         source(Source, [default(""), string]),
         private(PrivateRaw, [default("false"), string])
     ]),
     checkbox_bool(PrivateRaw, IsPrivate),
-    Values = _{name: Name, role: Role, source: Source, private: IsPrivate},
+    Values = _{role: Role, source: Source, private: IsPrivate},
     process_post(Request, User, Values).
 
 % =============================
@@ -43,17 +42,10 @@ process_post(Request, User, Values) :-
     !,
     render_form(Request, User, Values).
 process_post(Request, User, Values) :-
-    \+ fields_filled([Values.name, Values.role, Values.source]),
+    \+ fields_filled([Values.role, Values.source]),
     !,
     render_form(Request, User,
         Values.put(error, "Preencha todos os campos do formulario.")).
-process_post(Request, User, Values) :-
-    \+ engine:valid_agent_name(Values.name),
-    !,
-    render_form(Request, User,
-        Values.put(error, "Nome invalido: use apenas minusculas, numeros e \c
-                           hifens, com no maximo 60 caracteres \c
-                           (ex.: meu-agente).")).
 process_post(Request, User, Values) :-
     to_id_string(User.id, UserId),
     try_register(UserId, Values, Result),
@@ -77,7 +69,7 @@ try_register(UserId, V, Result) :-
           register_error(Error, Result)).
 
 register_or_fail(UserId, V, ok) :-
-    engine:register_agent_source(UserId, V.name, V.role, V.source, V.private, _),
+    engine:register_agent_source_from_module(UserId, V.role, V.source, V.private, _),
     !.
 register_or_fail(_, _,
     error("Nao foi possivel registrar o agente \c
@@ -90,8 +82,14 @@ register_error(error(permission_error(load, agent_source, Pattern), _), error(Me
            [Pattern]).
 register_error(error(domain_error(role, _), _),
                error("Papel inválido. Escolha ladrão ou detetive.")) :- !.
+register_error(error(domain_error(agent_module_directive, _), _),
+               error("O código deve começar com uma diretiva :- module(Nome, Exports).")) :- !.
+register_error(error(domain_error(agent_name, _), _),
+               error("Nome de módulo inválido. Use um átomo Prolog com até 60 caracteres, sem / ou \\.")) :- !.
 register_error(error(type_error(_, _), _),
                error("Campos inválidos no formulário.")) :- !.
+register_error(error(syntax_error(_), _),
+               error("Não foi possível ler a diretiva module/2 do código Prolog.")) :- !.
 register_error(_, error("Erro inesperado ao registrar o agente.")).
 
 checkbox_bool("true", true) :- !.
@@ -114,7 +112,6 @@ render_form(Request, User, _State) :-
     ]).
 render_form(Request, _User, State) :-
     error_alert(State, AlertHtml),
-    state_value(State, name, Name),
     state_value(State, role, Role),
     state_value(State, source, Source),
     state_bool(State, private, IsPrivate),
@@ -123,7 +120,6 @@ render_form(Request, _User, State) :-
         'Ladrão deve exportar ladrao_action/3 e ladrao_preload/7. Detetive deve exportar detetive_action/3 e detetive_preload/5.',
         Heading
     ),
-    form_field:slug_field(name, 'Nome do agente', Name, [maxlength(60)], NameField),
     form_field:select_field(role, 'Papel',
         [ placeholder("", 'Selecionar'),
           opt("thief", 'Ladrão'),
@@ -142,7 +138,7 @@ render_form(Request, _User, State) :-
         Heading,
         AlertHtml,
         form([method(post), action('/agents/new'), class('max-w-lg')], [
-            NameField, RoleField, SourceField, PrivateField, Submit
+            RoleField, SourceField, PrivateField, Submit
         ])
     ]).
 
