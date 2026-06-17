@@ -1,8 +1,9 @@
 :- module(agent_registry, [
     register_agent_source/5,
     register_agent_source/6,
+    register_agent_source_from_module/3,
     register_agent_source_from_module/4,
-    register_agent_source_from_module/5,
+    role_from_source/2,
     valid_agent_name/1
 ]).
 
@@ -11,11 +12,17 @@
 :- use_module('../db/db').
 :- use_module('./sandbox').
 
-register_agent_source_from_module(UserId, Role, SourceText, Agent) :-
-    register_agent_source_from_module(UserId, Role, SourceText, false, Agent).
+%!  register_agent_source_from_module(+UserId, +SourceText, +IsPrivate, -Agent)
+%
+%   Registra a partir do codigo: nome e papel sao derivados da diretiva
+%   `:- module(Nome, Exports)`. O papel vem das predicates exportadas (ver
+%   role_from_exports/2), nao de um campo escolhido pelo usuario.
+register_agent_source_from_module(UserId, SourceText, Agent) :-
+    register_agent_source_from_module(UserId, SourceText, false, Agent).
 
-register_agent_source_from_module(UserId, Role, SourceText, IsPrivate, Agent) :-
-    agent_name_from_source(SourceText, Name),
+register_agent_source_from_module(UserId, SourceText, IsPrivate, Agent) :-
+    source_module_exports(SourceText, Name, Exports),
+    role_from_exports(Exports, Role),
     register_agent_source(UserId, Name, Role, SourceText, IsPrivate, Agent).
 
 %!  register_agent_source(+UserId, +Name, +Role, +SourceText, -Agent) is det.
@@ -59,22 +66,54 @@ valid_user_id(UserId) :-
 valid_user_id(UserId) :-
     type_error(user_id, UserId).
 
-agent_name_from_source(SourceText, Name) :-
+%!  source_module_exports(+SourceText, -Name, -Exports) is det.
+%
+%   Le a diretiva `:- module(Name, Exports)` no inicio do codigo. Name vira o
+%   nome do agente (validado); Exports e usado para derivar o papel.
+source_module_exports(SourceText, Name, Exports) :-
     setup_call_cleanup(
         open_string(SourceText, In),
         read_term(In, Term, [syntax_errors(error)]),
         close(In)
     ),
-    module_directive(Term, Module),
+    module_directive(Term, Module, Exports),
     atom_string(Module, Name),
     validate_agent_name(Name),
     !.
-agent_name_from_source(_SourceText, _Name) :-
+source_module_exports(_SourceText, _Name, _Exports) :-
     throw(error(domain_error(agent_module_directive, source), _)).
 
-module_directive((:- module(Module, Exports)), Module) :-
+module_directive((:- module(Module, Exports)), Module, Exports) :-
     atom(Module),
     is_list(Exports).
+
+%!  role_from_source(+SourceText, -Role) is det.
+%
+%   Deriva o papel a partir das predicates exportadas, em vez de confiar num
+%   campo escolhido pelo usuario; tambem valida que o codigo exporta a interface
+%   esperada do papel.
+role_from_source(SourceText, Role) :-
+    source_module_exports(SourceText, _Name, Exports),
+    role_from_exports(Exports, Role).
+
+% Ladrao e detetive sao identificados pela interface (predicado/aridade) que
+% exportam. Source-of-truth do contrato de cada papel.
+role_from_exports(Exports, "thief") :-
+    role_exports(thief, Required),
+    exports_include(Required, Exports),
+    !.
+role_from_exports(Exports, "detective") :-
+    role_exports(detective, Required),
+    exports_include(Required, Exports),
+    !.
+role_from_exports(_Exports, _Role) :-
+    throw(error(domain_error(agent_role_exports, _), _)).
+
+role_exports(thief,     [ladrao_action/3, ladrao_preload/7]).
+role_exports(detective, [detetive_action/3, detetive_preload/5]).
+
+exports_include(Required, Exports) :-
+    forall(member(Pred, Required), memberchk(Pred, Exports)).
 
 validate_agent_name(Name) :-
     valid_agent_name(Name),
@@ -89,7 +128,7 @@ validate_agent_name(Name) :-
 %   controles para nao contaminar exibicao ou caminhos de cache.
 valid_agent_name(Name) :-
     string_length(Name, Len),
-    Len > 0,
+    Len > 3,
     Len =< 60,
     string_codes(Name, Codes),
     forall(member(C, Codes), safe_agent_name_code(C)).
