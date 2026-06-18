@@ -63,7 +63,7 @@ migrate_agents_columns :-
     catch(sql_exec("ALTER TABLE agents ADD COLUMN deleted_at TEXT;"), _, true).
 
 % Colunas do fluxo assincrono (fila + subprocessos) em bancos antigos, quando
-% `matches` so tinha o resultado final. `ADD COLUMN` falha se ela ja existe,
+% `matches` so tinha o resultado final. `ADD COLUMN` falha se ela já existe,
 % dai o `catch` por coluna para manter a migracao idempotente.
 migrate_matches_columns :-
     forall(member(Def, ["scenario TEXT", "status TEXT",
