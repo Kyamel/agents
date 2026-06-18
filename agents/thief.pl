@@ -9,10 +9,6 @@
 :- dynamic suspeito_conhecido/1.
 :- dynamic objetivo_atual/1.
 
-%!  ladrao_preload(+Grafo, +Suspeitos, +Itens, +Tesouros, pronto, -LadraoID, -ObjetivoLadrao) is det.
-%
-%   Guarda o mapa e escolhe uma identidade ambigua e um tesouro com cadeia de
-%   requisitos pequena.
 ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto, LadraoID, ObjetivoLadrao) :-
     limpar_memoria,
     forall(member(adj(A, B), Grafo),
@@ -27,10 +23,6 @@ ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto, LadraoID, ObjetivoLadr
     escolher_tesouro(ObjetivoLadrao),
     assertz(objetivo_atual(ObjetivoLadrao)).
 
-%!  ladrao_action(+Eventos, +EstadoLadrao, -Acao) is det.
-%
-%   Decide a proxima acao a partir dos requisitos e da cidade atual. Disfarces
-%   sao ignorados.
 ladrao_action(_, thief(loc(Cidade), _, _, Target, Itens, _), move(Cidade, Vizinho)) :-
     % Se já tem o tesouro, fugir.
     member(Target, Itens),

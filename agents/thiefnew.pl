@@ -13,10 +13,6 @@
 :- dynamic visitas/2.
 :- dynamic cidade_revelada/1.
 
-%!  ladrao_preload(+Grafo, +Suspeitos, +Itens, +Tesouros, pronto, -LadraoID, -ObjetivoLadrao) is det.
-%
-%   Inicializa a memoria do agente e escolhe identidade/tesouro. Esta variante
-%   e otimizada para reduzir tempo em rota e evitar revisitas perigosas.
 ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto, LadraoID, ObjetivoLadrao) :-
     limpar_memoria,
     forall(member(adj(A, B), Grafo),
@@ -31,11 +27,7 @@ ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto, LadraoID, ObjetivoLadr
     escolher_tesouro(ObjetivoLadrao),
     assertz(objetivo_atual(ObjetivoLadrao)).
 
-%!  ladrao_action(+Eventos, +EstadoLadrao, -Acao) is det.
-%
-%   A cada turno atualiza a memoria observavel e escolhe uma acao. Como a
-%   engine nao revela locks, a politica tenta reduzir risco indireto: menos
-%   revisitas, menos cidades de baixo grau e menos caminho repetido.
+
 ladrao_action(Eventos, thief(loc(Cidade), _, _, Target, Itens, _), Acao) :-
     registrar_observacao(Eventos, Cidade),
     escolher_acao(Cidade, Target, Itens, Acao),

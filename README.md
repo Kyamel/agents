@@ -48,13 +48,15 @@ Neste trabalho não serão considerados:
 
 A princípio, a aplicação deverá conter as seguintes páginas:
 
-- [Página inicial](src/http/routes/index.pl), apresentando a ideia do jogo e da plataforma.
-- Página de cadastro de usuário.
-- Página de login.
-- Página de envio de agente Prolog.
-- [Página de listagem de agentes](src/http/routes/agents.pl).
-- [Página de criação de partida](src/http/routes/matches.pl).
-- Página de visualização dos detalhes e resultado de uma partida.
+- [Página inicial](src/server/routes/index.pl), apresentando a ideia do jogo e da plataforma. ![Imagem do protótipo](prototipe/root.png).
+- [Página de cadastro de usuário](src/server//routes//signup.pl). ![Imagem do protótipo](prototipe/signup.png).
+- [Página de login](src/server/routes/login.pl). ![Imagem do protótipo](prototipe/login.png).
+- [Página de envio de agente Prolog](src/server/routes/agents_new.pl). ![Imagem do protótipo](prototipe/agenst:new.png).
+- [Página de listagem de agentes](src/server/routes/agents.pl). ![Imagem do protótipo](prototipe/agents.png).
+- [Página de criação de partida](src/server/routes/matches.pl). ![Imagem do protótipo](prototipe/matches:new.png).
+- [Página de listagem de particdas](src/server/routes/matches_list.pl). ![Imagem do protótipo](/prototipe/matches.png)
+- [Página de visualização dos detalhes e resultado de uma partida](src/server/routes/matches_show.pl). ![Imagem do protótipo](prototipe/matches:id.png).
+- [Página de Perfil do Usuário](src/server/routes/users_show.pl). ![Imagem do protótipo](prototipe/profile.png).
 
 A interface será simples e funcional, servida pelo próprio backend em SWI-Prolog, utilizando geração de HTML por meio de uma DSL e estilização com Tailwind CSS via CDN.
 
