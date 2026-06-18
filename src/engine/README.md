@@ -3,7 +3,7 @@
 O arquivo [`Interactor.prolog`](Interactor.prolog) foi disponibilizado para uso
 neste projeto pelo professor **Elton Maximo Cardoso**
 ([eltonmc@ufop.edu.br](mailto:eltonmc@ufop.edu.br)), do Departamento de
-Computacao e Sistemas (DECSI) do Instituto de Ciencias Exatas e Aplicadas
+Computação e Sistemas (DECSI) do Instituto de Ciências Exatas e Aplicadas
 (ICEA) da Universidade Federal de Ouro Preto (UFOP).
 
 ## Arquitetura
