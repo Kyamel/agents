@@ -10,6 +10,8 @@ Nesse jogo, dois agentes disputam com objetivos opostos: um assume o papel de de
 
 Dessa forma, o projeto une o conteúdo estudado em Linguagens de Programação com os conceitos da disciplina de Desenvolvimento Web, criando uma aplicação completa com backend, rotas HTTP, persistência em banco de dados, autenticação, upload de código e execução controlada das partidas. A proposta final é desenvolver uma plataforma em que usuários possam submeter seus próprios agentes, iniciar partidas entre eles e acompanhar os resultados, tornando o jogo mais acessível, reutilizável e próximo de uma aplicação real.
 
+O Interactor utilizado pela engine foi disponibilizado pelo professor [Elton Maximo Cardoso](src/engine/README.md), do DECSI/ICEA/UFOP.
+
 ## 1. Tema
 
 Aplicação Web para execução de partidas entre agentes inteligentes programados em Prolog.
