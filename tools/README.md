@@ -14,7 +14,7 @@ python3 tools/eval/run.py \
   -n 50 \
   -t agents/thief.pl agents/thiefnew.pl \
   -d agents/randomd.pl agents/warrantd.pl agents/neighborblockd.pl \
-  --scenario src/engine/cenario1.prolog
+  --scenario maps/cenario1.prolog
 ```
 
 Opcoes principais:
