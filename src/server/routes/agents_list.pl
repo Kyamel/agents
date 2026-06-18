@@ -20,10 +20,11 @@
 
 handler(Request) :-
     web_session:current_user_or_anon(Request, User),
-    http_parameters(Request, [cursor(Cursor, [default(""), string])]),
-    db:list_agents_page(Cursor, 20, Agents, NextCursor),
+    http_parameters(Request, [page(Page0, [integer, default(1)])]),
+    Page is max(1, Page0),
+    db:list_agents_page(Page, 10, Agents, PaginationMeta),
     augment_with_owner(Agents, AgentsRich),
-    render(Request, User, AgentsRich, Cursor, NextCursor).
+    render(Request, User, AgentsRich, PaginationMeta).
 
 % =============================
 % Logica (DB enrichment)
@@ -46,10 +47,10 @@ owner_email(_, "").
 % Resposta (HTML)
 % =============================
 
-render(Request, User, Agents, Cursor, NextCursor) :-
+render(Request, User, Agents, PaginationMeta) :-
     card_grid(Agents, render_card(User), 'grid sm:grid-cols-2 gap-4',
               'Nenhum agente cadastrado ainda.', ListHtml),
-    pagination:cursor_nav('/agents', Cursor, NextCursor, Pagination),
+    pagination:pagination_nav('/agents', PaginationMeta, Pagination),
     button_link:auth_button_link(User, '/agents/new', 'Enviar agente', Cta),
     page_section:top_bar('Agentes', Cta, TopBar),
     page:reply_page(Request, 'Agentes', [

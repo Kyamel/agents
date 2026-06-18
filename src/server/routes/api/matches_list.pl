@@ -16,12 +16,12 @@ handler(Request) :-
 
 dispatch(get, Request) :-
     http_parameters(Request, [
-        cursor(Cursor, [default(""), string]),
-        limit(Limit0, [integer, default(20)])
+        page(Page0, [integer, default(1)]),
+        perPage(PerPage0, [integer, default(10)])
     ]),
-    clamp_limit(Limit0, Limit),
-    db:list_matches_page(Cursor, Limit, Matches, NextCursor),
-    reply_json(200, _{matches: Matches, next_cursor: NextCursor, limit: Limit}).
+    clamp_pagination(Page0, PerPage0, Page, PerPage),
+    db:list_matches_page(Page, PerPage, Matches, Pagination),
+    reply_json(200, _{matches: Matches, pagination: Pagination}).
 dispatch(post, Request) :-
     authz:require_bearer_token(Request, _UserId),
     catch(create_match(Request, Status, Payload),
@@ -96,5 +96,6 @@ id_value(Value, Value) :-
     Value \== "",
     !.
 
-clamp_limit(Limit0, Limit) :-
-    Limit is max(1, min(100, Limit0)).
+clamp_pagination(Page0, PerPage0, Page, PerPage) :-
+    Page is max(1, Page0),
+    PerPage is max(1, min(100, PerPage0)).

@@ -4,7 +4,7 @@
 ]).
 
 :- use_module('./db/db').
-:- use_module('./http/server').
+:- use_module('./server/server').
 :- use_module('./engine/engine').
 
 %!  main is det.

@@ -20,18 +20,19 @@
 
 handler(Request) :-
     web_session:current_user_or_anon(Request, User),
-    http_parameters(Request, [cursor(Cursor, [default(""), string])]),
-    db:list_matches_page(Cursor, 20, Matches, NextCursor),
-    render(Request, User, Matches, Cursor, NextCursor).
+    http_parameters(Request, [page(Page0, [integer, default(1)])]),
+    Page is max(1, Page0),
+    db:list_matches_page(Page, 10, Matches, PaginationMeta),
+    render(Request, User, Matches, PaginationMeta).
 
 % =============================
 % Resposta (HTML)
 % =============================
 
-render(Request, User, Matches, Cursor, NextCursor) :-
+render(Request, User, Matches, PaginationMeta) :-
     card_grid(Matches, match_card:match_card, 'grid sm:grid-cols-2 gap-4',
               'Nenhuma partida registrada ainda.', ListHtml),
-    pagination:cursor_nav('/matches', Cursor, NextCursor, Pagination),
+    pagination:pagination_nav('/matches', PaginationMeta, Pagination),
     button_link:auth_button_link(User, '/matches/new', 'Nova partida', Cta),
     page_section:top_bar('Partidas', Cta, TopBar),
     page:reply_page(Request, 'Partidas', [

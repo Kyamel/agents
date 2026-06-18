@@ -2,6 +2,15 @@
 
 Este PEAS descreve o problema do agente ladrão conforme as regras implementadas em `src/engine/Interactor.prolog`. A estratégia concreta do agente fica separada em `STRATEGY.md`; aqui o foco é definir desempenho, ambiente, atuadores e sensores.
 
+## Resumo
+
+| Componente | Modelagem |
+| --- | --- |
+| Performance | Vencer roubando o tesouro-alvo e escapando; minimizar turnos, captura, exposição real de pistas e ações sem progresso |
+| Environment | Grafo de cidades com itens, tesouros, suspeitos, detetive adversário, cidades fechadas, eventos de roubo e limite de turnos |
+| Actuators | `move/2`, `roubar/1`, `disfarce/1`, `despir_disfarce`, `nada` |
+| Sensors | Estado do ladrão, cidade atual, itens coletados, aparência, disfarces restantes, eventos, mapa, suspeitos, itens e tesouros |
+
 ## P - Performance / Medida de desempenho
 
 O desempenho do agente ladrão deve medir o quanto ele consegue roubar o tesouro-alvo e escapar antes de ser capturado ou antes do limite de turnos.
@@ -107,30 +116,6 @@ Os sensores são as informações que o ladrão recebe ou consegue inferir.
 
 O ladrão não observa diretamente tudo que seria útil. Em particular, ele não vê a hipótese interna do detetive, e os eventos recebidos no fluxo do jogo são eventos de roubo, não avisos diretos de fechamento ou de interpretação do detetive. Além disso, `disfarce/1` não emite evento público. Isso justifica uma política robusta: evitar planos que só funcionam se o ladrão prever exatamente o próximo passo do detetive.
 
-## Contrato de implementação
-
-O agente ladrão deve exportar os predicados esperados pelo engine:
-
-```prolog
-ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto, ThiefID, ThiefObj).
-ladrao_action(Eventos, EstadoLadrao, Acao).
-```
-
-No preload, o agente escolhe `ThiefID` e `ThiefObj`. Durante a partida, `EstadoLadrao` tem a forma:
-
-```prolog
-thief(loc(Cidade), Id, aparencia(Atributos), TesouroAlvo, ItensColetados, DisfarcesRestantes)
-```
-
 ## Validação experimental
 
-A eficácia do agente deve ser medida em partidas contra detetives de teste variados: perseguidores, bloqueadores, detetives baseados em pistas e detetives conservadores. A discussão de algoritmos e heurísticas fica em `STRATEGY.md` e também pode ser comparada com `docs/estrategias-agente-ladrao.md`.
-
-## PEAS em forma resumida
-
-| Componente | Modelagem |
-| --- | --- |
-| Performance | Vencer roubando o tesouro-alvo e escapando; minimizar turnos, captura, exposição real de pistas e ações sem progresso |
-| Environment | Grafo de cidades com itens, tesouros, suspeitos, detetive adversário, cidades fechadas, eventos de roubo e limite de turnos |
-| Actuators | `move/2`, `roubar/1`, `disfarce/1`, `despir_disfarce`, `nada` |
-| Sensors | Estado do ladrão, cidade atual, itens coletados, aparência, disfarces restantes, eventos, mapa, suspeitos, itens e tesouros |
+A eficácia do agente deve ser medida em partidas contra detetives de teste variados: perseguidores, bloqueadores, detetives baseados em pistas e detetives conservadores.

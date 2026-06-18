@@ -6,7 +6,7 @@
 
 :- use_module(library(http/http_json), [reply_json_dict/2]).
 :- use_module(library(http/http_cors)).
-:- use_module('../http/security/rate_limit').
+:- use_module('../server/security/rate_limit').
 
 % Boilerplate comum a todas as rotas JSON da API: habilita CORS, aplica o rate
 % limit por IP, extrai o metodo e despacha. Responde OPTIONS (preflight) e

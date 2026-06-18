@@ -4,7 +4,7 @@
 ]).
 
 :- use_module(library(http/html_write)).
-:- use_module('../http/security/web_session').
+:- use_module('../server/security/web_session').
 :- use_module(ui).
 
 % Paleta do Tailwind (CDN). `ufop` e o vermelho institucional da UFOP.
@@ -56,8 +56,8 @@ reply_page(Request, Title, Content) :-
           meta([charset('UTF-8')]),
           meta([name(viewport), content('width=device-width, initial-scale=1')]),
           script([src('https://cdn.tailwindcss.com')], []),
-          script([], TwConfig),
-          script([src('https://unpkg.com/htmx.org@2.0.4')], [])
+          script([], TwConfig)
+          %script([src('https://unpkg.com/htmx.org@2.0.4')], [])
         ],
         Body
     ).

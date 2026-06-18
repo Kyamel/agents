@@ -15,12 +15,12 @@ handler(Request) :-
 
 dispatch(get, Request) :-
     http_parameters(Request, [
-        cursor(Cursor, [default(""), string]),
-        limit(Limit0, [integer, default(20)])
+        page(Page0, [integer, default(1)]),
+        perPage(PerPage0, [integer, default(10)])
     ]),
-    clamp_limit(Limit0, Limit),
-    db:list_agents_page(Cursor, Limit, Agents, NextCursor),
-    reply_json(200, _{agents: Agents, next_cursor: NextCursor, limit: Limit}).
+    clamp_pagination(Page0, PerPage0, Page, PerPage),
+    db:list_agents_page(Page, PerPage, Agents, Pagination),
+    reply_json(200, _{agents: Agents, pagination: Pagination}).
 dispatch(post, Request) :-
     authz:require_bearer_token(Request, UserId),
     catch(create_agent(UserId, Request, Status, Payload),
@@ -78,5 +78,6 @@ json_bool(false, false) :- !.
 json_bool(_, _) :-
     throw(http_reply(bad_request(_{error: "Field private must be boolean"}))).
 
-clamp_limit(Limit0, Limit) :-
-    Limit is max(1, min(100, Limit0)).
+clamp_pagination(Page0, PerPage0, Page, PerPage) :-
+    Page is max(1, Page0),
+    PerPage is max(1, min(100, PerPage0)).

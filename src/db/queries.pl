@@ -214,19 +214,18 @@ list_agents(Agents) :-
     ),
     Agents).
 
-%!  list_agents_page(+Cursor, +Limit, -Agents, -NextCursor) is det.
+%!  list_agents_page(+RequestedPage, +PerPage, -Agents, -Pagination) is det.
 %
-%   Lista agentes por cursor, em ordem decrescente de criacao. `Cursor` tem
-%   formato opaco `created_at|id`, vindo do ultimo item da pagina anterior.
-list_agents_page(Cursor, Limit, Agents, NextCursor) :-
+%   Lista agentes por pagina, do menor para o maior id.
+list_agents_page(RequestedPage, PerPage, Agents, Pagination) :-
     ensure_connected,
     conn_alias(Alias),
-    PageLimit is Limit + 1,
-    cursor_where(Cursor, Where),
-    active_where(Where, ActiveWhere),
+    count_rows("agents", "WHERE deleted_at IS NULL", TotalItems),
+    pagination_meta(RequestedPage, PerPage, TotalItems, Pagination),
+    Offset is (Pagination.page - 1) * PerPage,
     format(string(SQL),
-      "SELECT id, owner_user_id, name, role, created_at, is_private FROM agents ~w ORDER BY created_at DESC, id DESC LIMIT ~w;",
-      [ActiveWhere, PageLimit]),
+      "SELECT id, owner_user_id, name, role, created_at, is_private FROM agents WHERE deleted_at IS NULL ORDER BY id ASC LIMIT ~w OFFSET ~w;",
+      [PerPage, Offset]),
     findall(_{
         id: Id,
         owner_user_id: Owner,
@@ -238,8 +237,7 @@ list_agents_page(Cursor, Limit, Agents, NextCursor) :-
     ( prosqlite:sqlite_query(Alias, SQL, row(Id, Owner, Name, Role, CreatedAt, PrivateInt)),
       bool_int(IsPrivate, PrivateInt)
     ),
-    Rows),
-    page_items_and_cursor(Rows, Limit, Agents, NextCursor).
+    Agents).
 
 % Soft delete: preserva a linha para partidas antigas, mas remove das listagens.
 delete_agent(AgentId) :-
@@ -366,55 +364,47 @@ list_matches(Matches) :-
         match_row_dict(Row, Match) ),
       Matches).
 
-%!  list_matches_page(+Cursor, +Limit, -Matches, -NextCursor) is det.
+%!  list_matches_page(+RequestedPage, +PerPage, -Matches, -Pagination) is det.
 %
-%   Lista resumos de partidas por cursor. Nao inclui `replay_json`; o replay
+%   Lista resumos de partidas por pagina, do menor para o maior id. Nao inclui `replay_json`; o replay
 %   completo fica no detalhe /api/v1/matches/<id>.
-list_matches_page(Cursor, Limit, Matches, NextCursor) :-
+list_matches_page(RequestedPage, PerPage, Matches, Pagination) :-
     ensure_connected,
     conn_alias(Alias),
-    PageLimit is Limit + 1,
-    cursor_where(Cursor, Where),
+    count_rows("matches", "", TotalItems),
+    pagination_meta(RequestedPage, PerPage, TotalItems, Pagination),
+    Offset is (Pagination.page - 1) * PerPage,
     format(string(SQL),
-      "SELECT id, thief_agent_id, detective_agent_id, scenario, winner, status, created_at, started_at, finished_at FROM matches ~w ORDER BY created_at DESC, id DESC LIMIT ~w;",
-      [Where, PageLimit]),
+      "SELECT id, thief_agent_id, detective_agent_id, scenario, winner, status, created_at, started_at, finished_at FROM matches ORDER BY id ASC LIMIT ~w OFFSET ~w;",
+      [PerPage, Offset]),
     findall(Match,
       ( prosqlite:sqlite_query(Alias, SQL, Row),
         match_summary_row_dict(Row, Match) ),
-      Rows),
-    page_items_and_cursor(Rows, Limit, Matches, NextCursor).
+      Matches).
 
-cursor_where("", "") :- !.
-cursor_where(Cursor, Where) :-
-    cursor_parts(Cursor, CreatedAt, Id),
-    !,
-    sql_quote(CreatedAt, QCreatedAt),
-    sql_quote(Id, QId),
-    format(string(Where),
-           "WHERE (created_at < ~s OR (created_at = ~s AND id < ~s))",
-           [QCreatedAt, QCreatedAt, QId]).
-cursor_where(_Invalid, "").
+count_rows(Table, Where, TotalItems) :-
+    conn_alias(Alias),
+    format(string(SQL), "SELECT COUNT(*) FROM ~w ~w;", [Table, Where]),
+    once(prosqlite:sqlite_query(Alias, SQL, row(TotalItems))).
 
-active_where("", "WHERE deleted_at IS NULL") :- !.
-active_where(Where, ActiveWhere) :-
-    format(string(ActiveWhere), "~w AND deleted_at IS NULL", [Where]).
+pagination_meta(RequestedPage, PerPage, TotalItems, Pagination) :-
+    TotalPages is ceiling(TotalItems / PerPage),
+    Page0 is max(1, RequestedPage),
+    effective_page(Page0, TotalPages, Page),
+    ( Page > 1 -> HasPreviousPage = true ; HasPreviousPage = false ),
+    ( Page < TotalPages -> HasNextPage = true ; HasNextPage = false ),
+    Pagination = _{
+        page: Page,
+        perPage: PerPage,
+        totalItems: TotalItems,
+        totalPages: TotalPages,
+        hasPreviousPage: HasPreviousPage,
+        hasNextPage: HasNextPage
+    }.
 
-cursor_parts(Cursor, CreatedAt, Id) :-
-    split_string(Cursor, "|", "", [CreatedAt, Id]),
-    CreatedAt \== "",
-    Id \== "".
-
-page_items_and_cursor(Rows, Limit, Items, NextCursor) :-
-    length(Prefix, Limit),
-    append(Prefix, [_Extra|_], Rows),
-    !,
-    Items = Prefix,
-    last(Prefix, Last),
-    row_cursor(Last, NextCursor).
-page_items_and_cursor(Rows, _Limit, Rows, "").
-
-row_cursor(Row, Cursor) :-
-    format(string(Cursor), "~w|~w", [Row.created_at, Row.id]).
+effective_page(_RequestedPage, 0, 1) :- !.
+effective_page(RequestedPage, TotalPages, Page) :-
+    Page is min(RequestedPage, TotalPages).
 
 last_insert_id(Id) :-
     conn_alias(Alias),

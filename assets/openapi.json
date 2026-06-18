@@ -143,8 +143,8 @@
         "tags": ["Agents"],
         "summary": "Lista agentes cadastrados",
         "parameters": [
-          { "$ref": "#/components/parameters/CursorQuery" },
-          { "$ref": "#/components/parameters/LimitQuery" }
+          { "$ref": "#/components/parameters/PageQuery" },
+          { "$ref": "#/components/parameters/PerPageQuery" }
         ],
         "responses": {
           "200": {
@@ -158,10 +158,9 @@
                       "type": "array",
                       "items": { "$ref": "#/components/schemas/Agent" }
                     },
-                    "next_cursor": { "type": "string" },
-                    "limit": { "type": "integer", "example": 20 }
+                    "pagination": { "$ref": "#/components/schemas/Pagination" }
                   },
-                  "required": ["agents", "next_cursor", "limit"]
+                  "required": ["agents", "pagination"]
                 }
               }
             }
@@ -235,8 +234,8 @@
         "tags": ["Matches"],
         "summary": "Lista partidas",
         "parameters": [
-          { "$ref": "#/components/parameters/CursorQuery" },
-          { "$ref": "#/components/parameters/LimitQuery" }
+          { "$ref": "#/components/parameters/PageQuery" },
+          { "$ref": "#/components/parameters/PerPageQuery" }
         ],
         "responses": {
           "200": {
@@ -250,10 +249,9 @@
                       "type": "array",
                       "items": { "$ref": "#/components/schemas/MatchSummary" }
                     },
-                    "next_cursor": { "type": "string" },
-                    "limit": { "type": "integer", "example": 20 }
+                    "pagination": { "$ref": "#/components/schemas/Pagination" }
                   },
-                  "required": ["matches", "next_cursor", "limit"]
+                  "required": ["matches", "pagination"]
                 }
               }
             }
@@ -400,15 +398,15 @@
         "required": true,
         "schema": { "type": "integer", "minimum": 1 }
       },
-      "CursorQuery": {
-        "name": "cursor",
+      "PageQuery": {
+        "name": "page",
         "in": "query",
         "required": false,
-        "description": "Cursor retornado em `next_cursor` pela página anterior. Ausente ou vazio retorna a primeira página.",
-        "schema": { "type": "string" }
+        "description": "Número da página.",
+        "schema": { "type": "integer", "minimum": 1, "default": 1 }
       },
-      "LimitQuery": {
-        "name": "limit",
+      "PerPageQuery": {
+        "name": "perPage",
         "in": "query",
         "required": false,
         "description": "Quantidade de itens por página. Valor efetivo entre 1 e 100.",
@@ -416,7 +414,7 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 100,
-          "default": 20
+          "default": 10
         }
       }
     },
@@ -462,6 +460,25 @@
           "error": { "type": "string" }
         },
         "required": ["error"]
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "page": { "type": "integer", "example": 3 },
+          "perPage": { "type": "integer", "example": 20 },
+          "totalItems": { "type": "integer", "example": 137 },
+          "totalPages": { "type": "integer", "example": 7 },
+          "hasPreviousPage": { "type": "boolean", "example": true },
+          "hasNextPage": { "type": "boolean", "example": true }
+        },
+        "required": [
+          "page",
+          "perPage",
+          "totalItems",
+          "totalPages",
+          "hasPreviousPage",
+          "hasNextPage"
+        ]
       },
       "HealthResponse": {
         "type": "object",
