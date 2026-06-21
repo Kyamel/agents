@@ -29,7 +29,7 @@ Ou, para escolher um diretório de instalação dentro do projeto:
 
 ```prolog
 ?- pack_install(prosqlite, [pack_directory('./packs')]).
-true
+true.
 ```
 
 Se você instalou em ./packs, carregue o SWI-Prolog informando esse diretório:
@@ -47,7 +47,7 @@ true.
 
 Se carregar sem erro, o servidor já deve conseguir usar SQLite.
 
-## Configuracao inicial
+## Configuração inicial
 
 Antes de rodar o servidor, crie `src/config.pl` a partir do exemplo:
 
