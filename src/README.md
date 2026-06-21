@@ -79,9 +79,3 @@ Modo foreground, bloqueando o processo:
 ```sh
 swipl -g main_foreground src/main.pl
 ```
-
-Depois acesse:
-
-```text
-http://localhost:8080
-```
