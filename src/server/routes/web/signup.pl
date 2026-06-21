@@ -2,12 +2,12 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_parameters)).
-:- use_module('../../components/page').
-:- use_module('../../components/form_field').
-:- use_module('../../components/alert').
-:- use_module('../../components/ui').
-:- use_module('../../auth/auth').
-:- use_module('../security/rate_limit').
+:- use_module('../../views/page').
+:- use_module('../../views/form_field').
+:- use_module('../../views/alert').
+:- use_module('../../views/ui').
+:- use_module('../../../auth/auth').
+:- use_module('../../http/rate_limit').
 
 :- http_handler(root(signup), handler, [methods([get, post])]).
 

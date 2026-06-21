@@ -3,14 +3,14 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/http_parameters)).
-:- use_module('../../db/db').
-:- use_module('../../components/page').
-:- use_module('../../components/agent_card').
-:- use_module('../../components/button_link').
-:- use_module('../../components/card_list').
-:- use_module('../../components/pagination').
-:- use_module('../../components/page_section').
-:- use_module('../security/web_session').
+:- use_module('../../../db/db').
+:- use_module('../../views/page').
+:- use_module('../../views/agent_card').
+:- use_module('../../views/button_link').
+:- use_module('../../views/card_list').
+:- use_module('../../views/pagination').
+:- use_module('../../views/page_section').
+:- use_module('../../http/web_session').
 
 :- http_handler(root(agents), handler, [method(get)]).
 

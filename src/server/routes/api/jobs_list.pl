@@ -1,7 +1,7 @@
 :- module(api_jobs_list, []).
 
 :- use_module(library(http/http_dispatch)).
-:- use_module('../../../components/api_endpoint').
+:- use_module('../../http/api_endpoint').
 :- use_module('../../../engine/engine').
 
 % Lista os jobs de partida ATIVOS (na fila + executando), com tempo decorrido.

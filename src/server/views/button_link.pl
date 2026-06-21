@@ -16,4 +16,3 @@ button_link(Href, Label, Html) :-
 auth_button_link(anon, _Href, _Label, '') :- !.
 auth_button_link(_User, Href, Label, Html) :-
     button_link(Href, Label, Html).
-

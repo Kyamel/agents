@@ -2,9 +2,9 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_parameters)).
-:- use_module('../../../components/api_endpoint').
-:- use_module('../../security/authz').
-:- use_module('../../json_request').
+:- use_module('../../http/api_endpoint').
+:- use_module('../../http/authz').
+:- use_module('../../http/json_request').
 :- use_module('../../../db/db').
 :- use_module('../../../engine/engine').
 :- use_module('../../../config').

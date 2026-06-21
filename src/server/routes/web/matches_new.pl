@@ -4,13 +4,13 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_parameters)).
 :- use_module(library(apply)).
-:- use_module('../../db/db').
-:- use_module('../../engine/engine').
-:- use_module('../../components/page').
-:- use_module('../../components/alert').
-:- use_module('../../components/form_field').
-:- use_module('../../components/page_section').
-:- use_module('../security/web_session').
+:- use_module('../../../db/db').
+:- use_module('../../../engine/engine').
+:- use_module('../../views/page').
+:- use_module('../../views/alert').
+:- use_module('../../views/form_field').
+:- use_module('../../views/page_section').
+:- use_module('../../http/web_session').
 
 :- http_handler(root(matches/new), handler, [methods([get, post])]).
 

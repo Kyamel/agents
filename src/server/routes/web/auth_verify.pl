@@ -2,10 +2,10 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_parameters)).
-:- use_module('../../components/page').
-:- use_module('../../components/button_link').
-:- use_module('../../components/ui').
-:- use_module('../../auth/auth').
+:- use_module('../../views/page').
+:- use_module('../../views/button_link').
+:- use_module('../../views/ui').
+:- use_module('../../../auth/auth').
 
 :- http_handler(root(auth/verify), handler, [method(get)]).
 

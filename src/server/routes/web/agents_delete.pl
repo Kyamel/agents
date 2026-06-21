@@ -1,9 +1,9 @@
 :- module(route_agents_delete, []).
 
 :- use_module(library(http/http_dispatch)).
-:- use_module('../../db/db').
-:- use_module('../../engine/engine').
-:- use_module('../security/web_session').
+:- use_module('../../../db/db').
+:- use_module('../../../engine/engine').
+:- use_module('../../http/web_session').
 
 % Prefix em /agents/ para capturar /agents/<id>. Restrito a DELETE para nao
 % colidir com os handlers GET/POST de /agents/new.

@@ -2,7 +2,7 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_parameters)).
-:- use_module('../../../components/api_endpoint').
+:- use_module('../../http/api_endpoint').
 :- use_module('../../../auth/auth').
 
 :- http_handler(root(api/v1/auth/verify), handler, [methods([get, options])]).

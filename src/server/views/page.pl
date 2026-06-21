@@ -4,7 +4,7 @@
 ]).
 
 :- use_module(library(http/html_write)).
-:- use_module('../server/security/web_session').
+:- use_module('../http/web_session').
 :- use_module(ui).
 
 % Paleta do Tailwind (CDN). `ufop` e o vermelho institucional da UFOP.

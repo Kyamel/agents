@@ -2,7 +2,7 @@
 
 :- use_module(library(apply)).
 :- use_module(library(http/http_dispatch)).
-:- use_module('../../../components/api_endpoint').
+:- use_module('../../http/api_endpoint').
 :- use_module('../../../db/db').
 
 :- http_handler('/api/v1/users/', handler,

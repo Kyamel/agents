@@ -3,12 +3,12 @@
 :- use_module(library(apply)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/json)).
-:- use_module('../../db/db').
-:- use_module('../../engine/engine').
-:- use_module('../../components/page').
-:- use_module('../../components/match_detail', [render_not_found/1]).
-:- use_module('../../components/page_section').
-:- use_module('../../components/ui').
+:- use_module('../../../db/db').
+:- use_module('../../../engine/engine').
+:- use_module('../../views/page').
+:- use_module('../../views/match_detail', [render_not_found/1]).
+:- use_module('../../views/page_section').
+:- use_module('../../views/ui').
 
 :- http_handler('/map/', handler, [method(get), prefix]).
 

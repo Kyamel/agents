@@ -3,9 +3,9 @@
   ]).
 
 :- use_module(library(http/http_dispatch)).
-:- use_module('../../components/page').
-:- use_module('../../components/button_link').
-:- use_module('../../components/ui').
+:- use_module('../../views/page').
+:- use_module('../../views/button_link').
+:- use_module('../../views/ui').
 
 :- http_handler(root(.), index_page, [method(get)]).
 

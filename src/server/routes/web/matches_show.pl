@@ -4,14 +4,14 @@
 :- use_module(library(http/html_write)).
 :- use_module(library(http/json)).
 :- use_module(library(apply)).
-:- use_module('../../db/db').
-:- use_module('../../engine/engine').
-:- use_module('../../components/page').
-:- use_module('../../components/match_card').
-:- use_module('../../components/match_detail').
-:- use_module('../../components/page_section').
-:- use_module('../../components/ui').
-:- use_module('../../components/button_link').
+:- use_module('../../../db/db').
+:- use_module('../../../engine/engine').
+:- use_module('../../views/page').
+:- use_module('../../views/match_card').
+:- use_module('../../views/match_detail').
+:- use_module('../../views/page_section').
+:- use_module('../../views/ui').
+:- use_module('../../views/button_link').
 
 % Prefix em /matches/ para capturar /matches/<id>. /matches/new tem handler
 % proprio (mais especifico) e ganha por especificidade.

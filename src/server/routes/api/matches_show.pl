@@ -2,7 +2,7 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/json)).
-:- use_module('../../../components/api_endpoint').
+:- use_module('../../http/api_endpoint').
 :- use_module('../../../db/db').
 
 % Prefix em /api/v1/matches/ para capturar o ID. /api/v1/matches (sem barra)

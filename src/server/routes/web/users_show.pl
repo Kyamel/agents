@@ -3,9 +3,9 @@
 :- use_module(library(apply)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/html_write)).
-:- use_module('../../db/db').
-:- use_module('../../components/page').
-:- use_module('../../components/ui').
+:- use_module('../../../db/db').
+:- use_module('../../views/page').
+:- use_module('../../views/ui').
 
 % Prefix em /users/ para capturar /users/<id>. Nao existe /users (lista).
 :- http_handler('/users/', handler, [method(get), prefix]).

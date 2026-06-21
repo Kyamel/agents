@@ -1,7 +1,7 @@
 :- module(route_logout, []).
 
 :- use_module(library(http/http_dispatch)).
-:- use_module('../security/web_session').
+:- use_module('../../http/web_session').
 
 :- http_handler(root(logout), handler, [method(post)]).
 

@@ -1,9 +1,9 @@
 :- module(api_auth_login, []).
 
 :- use_module(library(http/http_dispatch)).
-:- use_module('../../../components/api_endpoint').
+:- use_module('../../http/api_endpoint').
 :- use_module('../../../auth/auth').
-:- use_module('../../json_request').
+:- use_module('../../http/json_request').
 
 :- http_handler(root(api/v1/auth/login), handler, [methods([post, options])]).
 

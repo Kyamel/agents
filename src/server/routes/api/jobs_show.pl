@@ -1,7 +1,7 @@
 :- module(api_jobs_show, []).
 
 :- use_module(library(http/http_dispatch)).
-:- use_module('../../../components/api_endpoint').
+:- use_module('../../http/api_endpoint').
 :- use_module('../../../engine/engine').
 :- use_module('../../../db/db').
 

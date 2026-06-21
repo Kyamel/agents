@@ -8,21 +8,21 @@
 :- use_module('../config').
 
 % Rotas web
-:- use_module('./routes/static').
-:- use_module('./routes/index').
-:- use_module('./routes/docs').
-:- use_module('./routes/signup').
-:- use_module('./routes/login').
-:- use_module('./routes/logout').
-:- use_module('./routes/auth_verify').
-:- use_module('./routes/agents_list').
-:- use_module('./routes/agents_new').
-:- use_module('./routes/agents_delete').
-:- use_module('./routes/matches_list').
-:- use_module('./routes/matches_new').
-:- use_module('./routes/matches_show').
-:- use_module('./routes/matches_map').
-:- use_module('./routes/users_show').
+:- use_module('./routes/web/static').
+:- use_module('./routes/web/index').
+:- use_module('./routes/web/docs').
+:- use_module('./routes/web/signup').
+:- use_module('./routes/web/login').
+:- use_module('./routes/web/logout').
+:- use_module('./routes/web/auth_verify').
+:- use_module('./routes/web/agents_list').
+:- use_module('./routes/web/agents_new').
+:- use_module('./routes/web/agents_delete').
+:- use_module('./routes/web/matches_list').
+:- use_module('./routes/web/matches_new').
+:- use_module('./routes/web/matches_show').
+:- use_module('./routes/web/matches_map').
+:- use_module('./routes/web/users_show').
 
 % Rotas API
 :- use_module('./routes/api/health').
