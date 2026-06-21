@@ -55,20 +55,17 @@ privacy_badge(Agent, Html) :-
                 'Privado').
 privacy_badge(_, '').
 
-% Botao de excluir so para o dono; htmx troca o cartao por vazio no sucesso.
+% Botao de excluir so para o dono. Sem htmx: um onclick chama a rota do
+% servidor via fetch e remove o cartao do DOM no sucesso.
 actions(_Agent, anon, '') :- !.
 actions(Agent, CurrentUser, Html) :-
     is_owner(CurrentUser, Agent),
     !,
-    format(atom(DeleteUrl), '/agents/~w', [Agent.id]),
-    format(atom(TargetSel), '#agent-card-~w', [Agent.id]),
+    delete_onclick(Agent.id, OnClick),
     Html = div([class('mt-4 flex justify-end')], [
         button([
             type(button),
-            'hx-delete'(DeleteUrl),
-            'hx-confirm'('Excluir esse agente? As partidas ja jogadas continuam disponiveis.'),
-            'hx-target'(TargetSel),
-            'hx-swap'('outerHTML'),
+            onclick(OnClick),
             class('rounded-lg bg-red-950 px-3 py-1.5 text-xs font-semibold \c
                    text-red-200 border border-red-900 hover:bg-red-900 \c
                    hover:border-red-700 focus:outline-none focus:ring-2 \c
@@ -76,6 +73,30 @@ actions(Agent, CurrentUser, Html) :-
         ], 'Excluir')
     ]).
 actions(_, _, '').
+
+% JS inline: confirma, faz DELETE /agents/<id>/delete (cookie de sessao vai
+% junto por padrao) e remove o cartão no sucesso.
+delete_onclick(Id, OnClick) :-
+    format(
+        atom(OnClick),
+        "if (confirm('Excluir este agente? As partidas já jogadas continuarão disponíveis.')) {\c
+            fetch('/agents/~w/delete', { method: 'DELETE' })\c
+                .then(function (response) {\c
+                    if (response.ok) {\c
+                        var card = document.getElementById('agent-card-~w');\c
+                        if (card) {\c
+                            card.remove();\c
+                        }\c
+                    } else {\c
+                        alert('Não foi possível excluir o agente.');\c
+                    }\c
+                })\c
+                .catch(function () {\c
+                    alert('Erro de rede ao excluir.');\c
+                });\c
+        }",
+        [Id, Id]
+    ).
 
 is_owner(User, Agent) :-
     is_dict(User),

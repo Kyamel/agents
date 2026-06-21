@@ -31,6 +31,7 @@
 :- use_module('./routes/api/auth_verify').
 :- use_module('./routes/api/agents_list').
 :- use_module('./routes/api/agents_show').
+:- use_module('./routes/api/agents_delete').
 :- use_module('./routes/api/matches_list').
 :- use_module('./routes/api/matches_show').
 :- use_module('./routes/api/users_show').

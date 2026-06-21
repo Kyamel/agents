@@ -5,34 +5,21 @@
 :- use_module('../../../engine/engine').
 :- use_module('../../http/web_session').
 
-% Prefix em /agents/ para capturar /agents/<id>. Restrito a DELETE para nao
-% colidir com os handlers GET/POST de /agents/new.
-:- http_handler('/agents/', handler, [method(delete), prefix]).
+% Rota /agents/<id>/delete. O `Id` e uma variavel de segmento (segment_pattern),
+% entao convive com /agents/new (GET/POST) e /agents (lista) sem colidir.
+:- http_handler(root(agents/Id/delete), handler(Id), [methods([post, delete])]).
 
 % =============================
 % Handler
 % =============================
 
-handler(Request) :-
+handler(Id, Request) :-
     web_session:require_user(Request, User),
-    memberchk(path(Path), Request),
-    handle_path(Path, User).
-
-handle_path(Path, User) :-
-    extract_id(Path, Id),
-    !,
     process_delete(User, Id).
-handle_path(_, _) :-
-    reply_not_found.
 
 % =============================
 % Logica (autorizacao + DB)
 % =============================
-
-extract_id(Path, Id) :-
-    atom_concat('/agents/', Id, Path),
-    Id \== '',
-    Id \== new.
 
 process_delete(User, Id) :-
     db:get_agent(Id, Agent),
