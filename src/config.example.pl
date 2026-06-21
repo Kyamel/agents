@@ -17,7 +17,8 @@
     auth_session_ttl_minutes/1,
     mail_transport/1,
     resend_api_key/1,
-    resend_from/1
+    resend_from/1,
+    admin_emails/1
 ]).
 
 % --- Servidor HTTP ---
@@ -100,3 +101,12 @@ mail_transport(console).
 
 resend_api_key("").
 resend_from("Agents <no-reply@example.com>").
+
+% --- Autorizacao ---
+
+% Emails que recebem o papel `admin`. Admins podem excluir qualquer agente
+% (scope `agent:delete:any`), nao so os proprios. A sincronizacao roda no boot
+% (e no cadastro), entao basta listar aqui o email do usuario.
+admin_emails([
+    % "voce@exemplo.com"
+]).

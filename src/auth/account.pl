@@ -10,6 +10,7 @@
 :- use_module('./verify_email', []).
 :- use_module('./session_token', []).
 :- use_module('./mail').
+:- use_module('./scopes').
 
 hash_password(Plain, Hash) :-
     crypto_password_hash(Plain, Hash).
@@ -32,6 +33,7 @@ do_signup(_, Email, _, email_exists) :-
 do_signup(Username, Email, Password, created(UserId, MailStatus)) :-
     hash_password(Password, PasswordHash),
     db:create_user(Username, Email, PasswordHash, UserId, _CreatedAt),
+    scopes:promote_if_admin(Email),
     verify_email:issue_verification_token(UserId, PlainToken, TokenHash),
     config:email_verify_ttl_minutes(TtlMin),
     verify_email:expiry_iso(TtlMin, ExpiresAt),

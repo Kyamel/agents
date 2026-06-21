@@ -3,6 +3,8 @@
     find_user_by_email/2,
     find_user_by_id/2,
     mark_user_verified/1,
+    set_user_role_by_email/2,
+    reset_admins/0,
 
     save_email_verification/4,
     consume_email_verification/2,
@@ -47,7 +49,7 @@ find_user_by_email(Email, User) :-
     ensure_connected,
     sql_quote(Email, QEmail),
     format(string(SQL),
-           "SELECT id, username, email, password_hash, is_verified, created_at FROM users WHERE email = ~s LIMIT 1;",
+           "SELECT id, username, email, password_hash, is_verified, role, created_at FROM users WHERE email = ~s LIMIT 1;",
            [QEmail]),
     user_from_query(SQL, User).
 
@@ -55,23 +57,30 @@ find_user_by_id(UserId, User) :-
     ensure_connected,
     sql_literal(UserId, QUserId),
     format(string(SQL),
-           "SELECT id, username, email, password_hash, is_verified, created_at FROM users WHERE id = ~s LIMIT 1;",
+           "SELECT id, username, email, password_hash, is_verified, role, created_at FROM users WHERE id = ~s LIMIT 1;",
            [QUserId]),
     user_from_query(SQL, User).
 
 user_from_query(SQL, User) :-
     conn_alias(Alias),
-    once(prosqlite:sqlite_query(Alias, SQL, row(Id, Username0, E, Hash, VerifiedInt, CreatedAt))),
+    once(prosqlite:sqlite_query(Alias, SQL, row(Id, Username0, E, Hash, VerifiedInt, Role0, CreatedAt))),
     bool_int(BoolVerified, VerifiedInt),
     user_username(Username0, E, Username),
+    user_role(Role0, Role),
     User = _{
         id: Id,
         username: Username,
         email: E,
         password_hash: Hash,
         is_verified: BoolVerified,
+        role: Role,
         created_at: CreatedAt
     }.
+
+% Linhas antigas (antes da coluna `role`) ou NULL caem para 'user'.
+user_role(Role0, Role) :-
+    norm_optional(Role0, Role1),
+    ( Role1 == "" -> Role = "user" ; Role = Role1 ).
 
 % Usuarios criados antes da coluna `username` caem de volta para o email.
 user_username(Username0, Email, Username) :-
@@ -86,6 +95,21 @@ mark_user_verified(UserId) :-
     sql_literal(UserId, QUserId),
     format(string(SQL), "UPDATE users SET is_verified = 1 WHERE id = ~s;", [QUserId]),
     sql_exec(SQL).
+
+% Define o papel de quem tiver esse email (no-op se o email nao existe).
+set_user_role_by_email(Email, Role) :-
+    ensure_connected,
+    sql_quote(Email, QEmail),
+    sql_quote(Role, QRole),
+    format(string(SQL),
+           "UPDATE users SET role = ~s WHERE email = ~s;", [QRole, QEmail]),
+    sql_exec(SQL).
+
+% Rebaixa todo admin para `user`. Usado antes de reaplicar a lista do config,
+% para que o config seja a fonte da verdade.
+reset_admins :-
+    ensure_connected,
+    sql_exec("UPDATE users SET role = 'user' WHERE role = 'admin';").
 
 save_email_verification(TokenHash, UserId, ExpiresAt, _CreatedAt) :-
     ensure_connected,

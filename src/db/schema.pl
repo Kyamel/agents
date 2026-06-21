@@ -56,7 +56,8 @@ migrate :-
     migrate_matches_columns.
 
 migrate_users_columns :-
-    catch(sql_exec("ALTER TABLE users ADD COLUMN username TEXT;"), _, true).
+    catch(sql_exec("ALTER TABLE users ADD COLUMN username TEXT;"), _, true),
+    catch(sql_exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user';"), _, true).
 
 migrate_agents_columns :-
     catch(sql_exec("ALTER TABLE agents ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0;"), _, true),

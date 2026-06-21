@@ -3,6 +3,7 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module('../../../db/db').
 :- use_module('../../../engine/engine').
+:- use_module('../../../auth/scopes').
 :- use_module('../../http/web_session').
 
 % Rota /agents/<id>/delete. O `Id` e uma variavel de segmento (segment_pattern),
@@ -24,20 +25,26 @@ handler(Id, Request) :-
 process_delete(User, Id) :-
     db:get_agent(Id, Agent),
     !,
-    ensure_owner(User, Agent),
+    ensure_can_delete(User, Agent),
     db:delete_agent(Id),
     engine:forget_agent(Id),
     reply_empty.
 process_delete(_, _) :-
     reply_not_found.
 
-ensure_owner(User, Agent) :-
+% O dono OU um admin (scope agent:delete:any) pode excluir.
+ensure_can_delete(User, Agent) :-
+    ( is_owner(User, Agent) -> true
+    ; scopes:has_scope(User, 'agent:delete:any') -> true
+    ; deny
+    ).
+
+is_owner(User, Agent) :-
     normalize_id(User.id, UserIdN),
     normalize_id(Agent.owner_user_id, OwnerIdN),
-    same_owner(UserIdN, OwnerIdN).
+    UserIdN == OwnerIdN.
 
-same_owner(Id, Id) :- !.
-same_owner(_, _) :-
+deny :-
     throw(http_reply(forbidden('/agents'),
                      [],
                      [content_type('text/plain'),

@@ -229,6 +229,84 @@
         }
       }
     },
+    "/api/v1/agents/{id}/delete": {
+      "delete": {
+        "tags": ["Agents"],
+        "summary": "Exclui um agente",
+        "description": "Exclusão lógica (soft delete): o agente some das listagens, mas as partidas já jogadas continuam disponíveis. Autorizado para o dono do agente ou para usuários com o scope `agent:delete:any` (papel admin). Aceita também `POST` para clientes sem suporte ao método `DELETE`.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/IdPath" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agente excluído",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteAgentResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": {
+            "description": "Sem permissão para excluir este agente",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": { "error": "forbidden" }
+              }
+            }
+          },
+          "404": {
+            "description": "Agente não encontrado ou já excluído",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": { "error": "agent_not_found" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Agents"],
+        "summary": "Exclui um agente (alias de DELETE)",
+        "description": "Idêntico ao método `DELETE` desta rota; oferecido para clientes (ex.: formulários HTML) que não enviam `DELETE`.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/IdPath" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agente excluído",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteAgentResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": {
+            "description": "Sem permissão para excluir este agente",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": { "error": "forbidden" }
+              }
+            }
+          },
+          "404": {
+            "description": "Agente não encontrado ou já excluído",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": { "error": "agent_not_found" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/matches": {
       "get": {
         "tags": ["Matches"],
@@ -460,6 +538,14 @@
           "error": { "type": "string" }
         },
         "required": ["error"]
+      },
+      "DeleteAgentResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "deleted" },
+          "id": { "type": "integer", "example": 42 }
+        },
+        "required": ["status", "id"]
       },
       "Pagination": {
         "type": "object",

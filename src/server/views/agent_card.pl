@@ -55,11 +55,11 @@ privacy_badge(Agent, Html) :-
                 'Privado').
 privacy_badge(_, '').
 
-% Botao de excluir so para o dono. Sem htmx: um onclick chama a rota do
-% servidor via fetch e remove o cartao do DOM no sucesso.
+% Botao de excluir para o dono ou para admin. Sem htmx: um onclick chama a rota
+% do servidor via fetch e remove o cartao do DOM no sucesso.
 actions(_Agent, anon, '') :- !.
 actions(Agent, CurrentUser, Html) :-
-    is_owner(CurrentUser, Agent),
+    can_delete(CurrentUser, Agent),
     !,
     delete_onclick(Agent.id, OnClick),
     Html = div([class('mt-4 flex justify-end')], [
@@ -98,11 +98,23 @@ delete_onclick(Id, OnClick) :-
         [Id, Id]
     ).
 
+% Dono ou admin pode excluir (espelha a autorizacao da rota).
+can_delete(User, Agent) :-
+    is_owner(User, Agent),
+    !.
+can_delete(User, _Agent) :-
+    is_admin_user(User).
+
 is_owner(User, Agent) :-
     is_dict(User),
     normalize_id(User.id, UserIdN),
     normalize_id(Agent.owner_user_id, OwnerIdN),
     UserIdN == OwnerIdN.
+
+is_admin_user(User) :-
+    is_dict(User),
+    get_dict(role, User, Role),
+    normalize_id(Role, "admin").
 
 normalize_id(X, S) :- atom(X), !, atom_string(X, S).
 normalize_id(X, X) :- string(X), !.

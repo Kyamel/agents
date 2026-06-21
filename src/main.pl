@@ -6,6 +6,7 @@
 :- use_module('./db/db').
 :- use_module('./server/server').
 :- use_module('./engine/engine').
+:- use_module('./auth/scopes').
 
 :- dynamic app_started/0.
 
@@ -21,6 +22,7 @@ ensure_started :-
     !.
 ensure_started :-
     db:init,
+    scopes:sync_admin_roles,
     server:start,
     engine:start_pool,
     assertz(app_started).
