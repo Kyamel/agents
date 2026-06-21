@@ -79,3 +79,9 @@ Modo foreground, bloqueando o processo:
 ```sh
 swipl -g main_foreground src/main.pl
 ```
+
+Rodar também o servidor de documentação:
+
+```sh
+swipl --pldoc=4000 src/main.pl
+```
