@@ -12,6 +12,8 @@ Dessa forma, o projeto une o conteúdo estudado em Linguagens de Programação c
 
 O [motor do jogo](src/engine/Interactor.prolog) utilizado foi disponibilizado pelo professor [Elton Maximo Cardoso](src/engine/README.md), do DECSI/ICEA/UFOP.
 
+Instruções para execução do servidor estão disponíveis em [src/README.md](src/README.md).
+
 ## 1. Tema
 
 Aplicação Web para execução de partidas entre agentes inteligentes programados em Prolog.
