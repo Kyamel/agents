@@ -21,13 +21,14 @@ index_page(Request) :-
     info_card('/matches/new',
               '3. Crie partidas',
               'Coloque dois agentes para disputar e acompanhe o resultado.', Step3),
+    button_link:button_link('/docs', 'Documentação da API', DocsButton),
     page:reply_page(Request, 'Scotland Yard', [
         section([class('mb-8')], [
             h1([class('text-3xl font-bold mb-3')], 'Scotland Yard em Prolog'),
             p([class('text-surface-300 max-w-2xl')],
               'Plataforma para enviar agentes Prolog e coloca-los para disputar partidas de perseguição e dedução no estilo detetive e ladrão.')
         ]),
-        div([class('flex flex-wrap gap-3 mb-10')], [AgentsButton, MatchesButton]),
+        div([class('flex flex-wrap gap-3 mb-10')], [AgentsButton, MatchesButton, DocsButton]),
         div([class('grid sm:grid-cols-3 gap-4')], [Step1, Step2, Step3])
     ]).
 
