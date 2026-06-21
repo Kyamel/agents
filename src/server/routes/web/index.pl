@@ -26,7 +26,7 @@ index_page(Request) :-
         section([class('mb-8')], [
             h1([class('text-3xl font-bold mb-3')], 'Scotland Yard em Prolog'),
             p([class('text-surface-300 max-w-2xl')],
-              'Plataforma para enviar agentes Prolog e coloca-los para disputar partidas de perseguição e dedução no estilo detetive e ladrão.')
+              'Plataforma para enviar agentes Prolog e colocá-los para disputar partidas de perseguição e dedução no estilo detetive e ladrão.')
         ]),
         div([class('flex flex-wrap gap-3 mb-10')], [AgentsButton, MatchesButton, DocsButton]),
         div([class('grid sm:grid-cols-3 gap-4')], [Step1, Step2, Step3])
