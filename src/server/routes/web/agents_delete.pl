@@ -1,69 +1,22 @@
 :- module(route_agents_delete, []).
 
-:- use_module(library(http/http_dispatch)).
-:- use_module('../../../db/db').
-:- use_module('../../../engine/engine').
-:- use_module('../../../auth/scopes').
-:- use_module('../../http/web_session').
+:- use_module('../../framework/endpoint').
+:- use_module('../../../services/agents').
 
-% Rota /agents/<id>/delete. O `Id` e uma variavel de segmento (segment_pattern),
-% entao convive com /agents/new (GET/POST) e /agents (lista) sem colidir.
-:- http_handler(root(agents/Id/delete), handler(Id), [methods([post, delete])]).
+% Endpoint web de exclusao de agente. Mesma logica do service que a API usa; muda
+% so a auth (cookie de sessao) e o formato da resposta. O botao no card faz um
+% fetch DELETE aqui e remove o cartao no 200.
 
-% =============================
-% Handler
-% =============================
+style(web).
+endpoint_methods([post, delete]).
+endpoint_path(root(agents/Id/delete), [id-Id]).
+endpoint_auth(session).
 
-handler(Id, Request) :-
-    web_session:require_user(Request, User),
-    process_delete(User, Id).
+handle(_Request, User, Params, Outcome) :-
+    agents_service:delete_agent(User, Params.id, Outcome).
 
-% =============================
-% Logica (autorizacao + DB)
-% =============================
+render(deleted(_), empty(200)).
+render(forbidden,  text(403, "Sem permissao para excluir este agente.")).
+render(not_found,  text(404, "Agente nao encontrado.")).
 
-process_delete(User, Id) :-
-    db:get_agent(Id, Agent),
-    !,
-    ensure_can_delete(User, Agent),
-    db:delete_agent(Id),
-    engine:forget_agent(Id),
-    reply_empty.
-process_delete(_, _) :-
-    reply_not_found.
-
-% O dono OU um admin (scope agent:delete:any) pode excluir.
-ensure_can_delete(User, Agent) :-
-    ( is_owner(User, Agent) -> true
-    ; scopes:has_scope(User, 'agent:delete:any') -> true
-    ; deny
-    ).
-
-is_owner(User, Agent) :-
-    normalize_id(User.id, UserIdN),
-    normalize_id(Agent.owner_user_id, OwnerIdN),
-    UserIdN == OwnerIdN.
-
-deny :-
-    throw(http_reply(forbidden('/agents'),
-                     [],
-                     [content_type('text/plain'),
-                      status(403)])).
-
-normalize_id(X, S) :- atom(X), !, atom_string(X, S).
-normalize_id(X, X) :- string(X), !.
-normalize_id(X, S) :- term_string(X, S).
-
-% =============================
-% Resposta
-% =============================
-
-% 200 OK com corpo vazio; o htmx faz o swap do cartao por nada.
-reply_empty :-
-    format("Status: 200 OK~n"),
-    format("Content-Type: text/html; charset=UTF-8~n~n").
-
-reply_not_found :-
-    format("Status: 404 Not Found~n"),
-    format("Content-Type: text/plain; charset=UTF-8~n~n"),
-    format("Agente nao encontrado.~n").
+:- endpoint:mount(route_agents_delete).

@@ -6,3 +6,5 @@
 
 :- reexport(account).
 :- reexport(session_token).
+:- reexport(scopes).
+
