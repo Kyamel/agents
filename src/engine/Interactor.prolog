@@ -1,7 +1,6 @@
 
 :- dynamic fechado/1.
 :- dynamic pistas/3.
-:- dynamic roubo_pendente/2.
 
 insert(X,[],[X]).
 insert(X,[Y|YS],[X,Y|YS]).
@@ -62,8 +61,7 @@ action(roubar(I),thf , GSt ,GSt1) :-
   length(AS,K),
   N is min(NR+1,K),
   takeAttr(N,AS,ZS),
-  atrasarEventoRoubo(roubo(I,A,ZS)),
-  GSt1 = TMP.
+  emitirEvento(TMP,roubo(I,A,ZS),GSt1).
 
 action(roubar(I),thf , GSt ,GSt1) :-
   getSt(thf,GSt,thief(loc(A),Id,Appear,Target,XS,Dsg)),
@@ -76,8 +74,7 @@ action(roubar(I),thf , GSt ,GSt1) :-
   length(AS,K),
   N is min(NR+1,K),
   takeAttr(N,AS,ZS),
-  atrasarEventoRoubo(roubo(I,A,ZS)),
-  GSt1 = TMP.
+  emitirEvento(TMP,roubo(I,A,ZS),GSt1).
 
 
 action(disfarce(LS),thf, GSt, GSt1) :-
@@ -124,31 +121,6 @@ setSt(det,DSt1, gSt(TSt,_,Tobj,Locks,BOs,Caugth,Turn),gSt(TSt,DSt1,Tobj,Locks,BO
 caugth(gSt(TSt,DSt,Tobj,Locks,BOs,_,Turn),gSt(TSt,DSt,Tobj,Locks,BOs,capturado,Turn) ).
 stepTurn(gSt(TSt,DSt,Tobj,Locks,BOs,Caugth,Turn),gSt(TSt,DSt,Tobj,Locks,BOs,Caugth,Turn1)) :- Turn > 0, Turn1 is Turn -1.
 getEvents(gSt(_,_,_,_,EV,_,_),EV).
-
-% ALTERACAO: eventos de roubo agora tem delay de um turno do ladrao.
-% O roubo nao entra em BOs imediatamente; ele fica pendente no turno em que
-% acontece e so e publicado depois da proxima acao do ladrao, antes da acao do
-% detetive. Ex.: ladrao rouba no turno 20, detetive nao ve no 20; ladrao age no
-% turno 19, entao o roubo do turno 20 passa a ficar visivel ao detetive.
-atrasarEventoRoubo(E) :-
-   assertz(roubo_pendente(E,2)).
-
-publicarEventosPendentes(GSt,GSt1) :-
-   findall(E-D,roubo_pendente(E,D),Pendentes),
-   retractall(roubo_pendente(_,_)),
-   publicarEventosPendentes_(Pendentes,GSt,GSt1).
-
-publicarEventosPendentes_([],GSt,GSt).
-publicarEventosPendentes_([E-D|Ps],GSt,GSt2) :-
-   (D =< 1,
-    !,
-    emitirEvento(GSt,E,GSt1)
-   ;
-    D1 is D - 1,
-    assertz(roubo_pendente(E,D1)),
-    GSt1 = GSt
-   ),
-   publicarEventosPendentes_(Ps,GSt1,GSt2).
 
 emitirEvento(gSt(TSt,detective(L,M,CS),Tobj,Locks,BOs,Caugth,Turn),E,gSt(TSt,detective(L,M,CS1),Tobj,Locks,[E|BOs],Caugth,Turn)) :-
    collect(E,ZS),
@@ -213,7 +185,6 @@ loadCenario(C) :- atomic(C),
 
 
 gameStart(Cenario,Qdis,ThfModule,DetModule,State,V) :-
-    retractall(roubo_pendente(_,_)),
     loadCenario(Cenario),
     loadThiefAgent(ThfModule),
     loadDetectiveAgent(DetModule),
@@ -259,8 +230,7 @@ agentMove(thf,S,V) :-
        validar(A,TSt,R),
        turnos(S,T),
        (R = t, !, action(A,thf,S,S1) ,logar(T,thf,A,'OK') ; logar(T,thf,A,'Ilegal'),S1 = S),!,
-       publicarEventosPendentes(S1,S2),!,
-       agentMove(det,S2,V).
+       agentMove(det,S1,V).
 
 agentMove(det,S,V) :-
        getSt(det,S,DSt),
@@ -279,3 +249,4 @@ logar(N,thf,A,OBS) :- write(N),write(' '),write('ladrao: '),write(A),write('['),
 termino(gSt(_,_,_,_,_,livre,0),empate) :- !.
 termino(gSt(_,_,_,_,_,capturado,_),detetive) :- !.
 termino(gSt(thief(loc(C),_,_,Target,Itens,_),_,_,_,_,_,_),ladrao):- roubado(Target,C1), C \= C1, member(Target,Itens).
+
