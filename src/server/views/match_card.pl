@@ -14,11 +14,12 @@ match_card(Match, Html) :-
     ui:text_class(normal, 'font-mono font-semibold', MatchLinkTextClass),
     ui:link_class(MatchLinkTextClass, LinkClass),
     ui:text_class(normal, 'mt-1 grid gap-0.5', DetailsClass),
-    ui:text_class(auxiliary,
+    ui:text_class(meta,
                   'mt-1 min-w-0 text-surface-500 truncate',
                   CreatedClass),
     ui:surface_class('p-3 hover:border-surface-600 transition',
                      CardClass),
+    ui:local_time(Match.created_at, CreatedTime),
     Html = article([class(CardClass)], [
         div([class('flex items-center justify-between gap-2')], [
             a([href(Href), class(LinkClass)], ['Partida #', Id]),
@@ -39,7 +40,7 @@ match_card(Match, Html) :-
             ])
         ]),
         p([class(CreatedClass)],
-          ['Criada em ', Match.created_at])
+          ['Criada em ', CreatedTime])
     ]).
 
 agent_name(Match, NameKey, _IdKey, Name) :-
@@ -56,11 +57,15 @@ winner_label(detective, 'Vitória do detetive', Class) :- !, badge_class(sky, Cl
 winner_label("detective", 'Vitória do detetive', Class) :- !, badge_class(sky, Class).
 winner_label(_, 'Empate', Class) :- badge_class(slate, Class).
 
-badge_class(amber,
-    'rounded-full bg-amber-950 text-amber-300 text-sm leading-5 px-2.5 py-1 whitespace-nowrap').
-badge_class(emerald,
-    'rounded-full bg-emerald-950 text-emerald-300 text-sm leading-5 px-2.5 py-1 whitespace-nowrap').
-badge_class(sky,
-    'rounded-full bg-sky-950 text-sky-300 text-sm leading-5 px-2.5 py-1 whitespace-nowrap').
-badge_class(slate,
-    'rounded-full bg-surface-800 text-surface-300 text-sm leading-5 px-2.5 py-1 whitespace-nowrap').
+badge_class(amber, Class) :-
+    ui:text_class(meta,
+        'rounded-full bg-amber-950 text-amber-300 px-2.5 py-1 whitespace-nowrap', Class).
+badge_class(emerald, Class) :-
+    ui:text_class(meta,
+        'rounded-full bg-emerald-950 text-emerald-300 px-2.5 py-1 whitespace-nowrap', Class).
+badge_class(sky, Class) :-
+    ui:text_class(meta,
+        'rounded-full bg-sky-950 text-sky-300 px-2.5 py-1 whitespace-nowrap', Class).
+badge_class(slate, Class) :-
+    ui:text_class(meta,
+        'rounded-full bg-surface-800 text-surface-300 px-2.5 py-1 whitespace-nowrap', Class).

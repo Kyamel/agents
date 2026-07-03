@@ -64,7 +64,7 @@ slug_field(Name, Label, Value, ExtraAttrs, Html) :-
 textarea_field(Name, Label, Value, Html) :-
     input_class(BaseClass),
     label_class(LabelClass),
-    atom_concat(BaseClass, ' font-mono text-sm', InputClass),
+    atom_concat(BaseClass, ' font-mono', InputClass),
     Html = div([class('mb-4')], [
         label([for(Name), class(LabelClass)], Label),
         textarea([name(Name), id(Name), rows(14), class(InputClass)], Value)

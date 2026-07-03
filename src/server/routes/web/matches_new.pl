@@ -65,7 +65,7 @@ render_form_for(Thieves, Detectives, Request, State) :-
     render_form_fields(Request, State, Thieves, Detectives).
 
 render_empty_roster(Request) :-
-    ui:text_class(page_title, 'mb-4', TitleClass),
+    ui:text_class(title, 'mb-4', TitleClass),
     alert:alert(info,
         "Cadastre ao menos um agente ladrão e um agente detetive para criar partidas.",
         Notice),

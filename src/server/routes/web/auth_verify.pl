@@ -27,8 +27,8 @@ render_result(Request, 200, Payload) :-
     !,
     button_link:button_link('/login', 'Entrar', LoginButton),
     ui:surface_class('p-6', CardClass),
-    ui:text_class(auxiliary, 'text-emerald-300 font-semibold mb-2', StatusClass),
-    ui:text_class(page_title, 'mb-3', TitleClass),
+    ui:text_class(meta, 'text-emerald-300 font-semibold mb-2', StatusClass),
+    ui:text_class(title, 'mb-3', TitleClass),
     ui:text_class(normal, 'text-surface-400 mb-5', MessageClass),
     page:reply_page(Request, 'Email verificado', [
         section([class('max-w-lg mx-auto text-center py-10')], [
@@ -46,8 +46,8 @@ render_result(Request, 200, Payload) :-
 render_result(Request, _Status, _Payload) :-
     button_link:button_link('/signup', 'Criar conta', SignupButton),
     ui:surface_class('p-6', CardClass),
-    ui:text_class(auxiliary, 'text-red-300 font-semibold mb-2', StatusClass),
-    ui:text_class(page_title, 'mb-3', TitleClass),
+    ui:text_class(meta, 'text-red-300 font-semibold mb-2', StatusClass),
+    ui:text_class(title, 'mb-3', TitleClass),
     ui:text_class(normal, 'text-surface-400 mb-5', MessageClass),
     page:reply_page(Request, 'Verificação inválida', [
         section([class('max-w-lg mx-auto text-center py-10')], [

@@ -51,16 +51,40 @@ reply_page(Request, Title, Content) :-
     web_session:current_user_or_anon(Request, User),
     layout(User, Content, Body),
     tailwind_config(TwConfig),
+    local_time_script(LocalTimeJs),
     reply_html_page(
         [ title(Title),
           meta([charset('UTF-8')]),
           meta([name(viewport), content('width=device-width, initial-scale=1')]),
           script([src('https://cdn.tailwindcss.com')], []),
-          script([], TwConfig)
+          script([], TwConfig),
+          script([], LocalTimeJs)
           %script([src('https://unpkg.com/htmx.org@2.0.4')], [])
         ],
         Body
     ).
+
+% Converte todo <time class="js-localtime"> pro fuso horario local do cliente,
+% usando o atributo datetime (ISO 8601 UTC vindo do servidor). Sem `<` nem `&`
+% para nao sofrer escape de HTML. Ver ui:local_time/2 pra gerar os elementos.
+local_time_script(
+    "(function(){\c
+        function fmt(el){\c
+            var iso=el.getAttribute('datetime');\c
+            if(!iso){return;}\c
+            var d=new Date(iso);\c
+            if(isNaN(d.getTime())){return;}\c
+            el.textContent=d.toLocaleString('pt-BR',{dateStyle:'medium',timeStyle:'short'});\c
+            el.title=d.toString();\c
+        }\c
+        function run(){\c
+            var els=document.querySelectorAll('time.js-localtime');\c
+            for(var i=0;i!==els.length;i++){fmt(els[i]);}\c
+        }\c
+        if(document.readyState==='loading'){\c
+            document.addEventListener('DOMContentLoaded',run);\c
+        }else{run();}\c
+    })();").
 
 layout(User, Content, Body) :-
     nav(User, Nav),
@@ -72,6 +96,8 @@ layout(User, Content, Body) :-
     footer_link('https://github.com/kyamel/agents', 'Código Fonte', GitLink),
     footer_link('https://icea.ufop.br/', 'ICEA', ICEALink),
     footer_link('https://ufop.br/', 'UFOP', UFOPLink),
+    ui:text_class(meta, 'text-surface-300 font-medium', FooterTitleClass),
+    ui:text_class(meta, 'mt-0.5', FooterLineClass),
     Body = [
         div([class('min-h-screen bg-surface-950 text-surface-200 flex flex-col')], [
             header([class('border-b border-surface-800')], [
@@ -80,12 +106,12 @@ layout(User, Content, Body) :-
             main([class(MainClass)], Content),
             footer([class('border-t border-surface-800')], [
                 div([class('max-w-4xl mx-auto w-full p-6 flex flex-col sm:flex-row \c
-                             items-center gap-4 text-sm text-surface-500')], [
+                             items-center gap-4 text-surface-500')], [
                     Logo,
                     div([class('flex-1 text-center sm:text-left')], [
-                        p([class('text-surface-300 font-medium')], 'Scotland Yard em Prolog'),
-                        p([class('mt-0.5')], 'Disciplinas de Desenvolvimento Web e Linguagens de Programação'),
-                        p([class('mt-0.5')], [
+                        p([class(FooterTitleClass)], 'Scotland Yard em Prolog'),
+                        p([class(FooterLineClass)], 'Disciplinas de Desenvolvimento Web e Linguagens de Programação'),
+                        p([class(FooterLineClass)], [
                             'Desenvolvido na ',
                             UFOPLink,
                             ' / ',
@@ -119,48 +145,56 @@ ufop_logo_mark(img([
     ])) :-
     exists_file('assets/logo-ufop.png'),
     !.
-ufop_logo_mark(span([
-        class('text-ufop-500 font-bold text-lg shrink-0')
-    ], 'UFOP')).
+ufop_logo_mark(span([class(Class)], 'UFOP')) :-
+    ui:text_class(emphasis, 'text-ufop-500 shrink-0', Class).
 
 footer_link(Href, Label, Html) :-
+    ui:text_class(meta,
+                  'hover:text-ufop-400 transition underline underline-offset-2',
+                  Class),
     Html = a([ href(Href), target('_blank'), rel('noopener noreferrer'),
-               class('hover:text-ufop-400 transition underline underline-offset-2') ], Label).
+               class(Class) ], Label).
 
 % Barra de navegacao; os links variam conforme a sessao (anon vs logado).
 nav(anon, Nav) :-
     !,
-    ui:link_class(NavClass),
-    Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2 text-sm')], [
-        a([href('/'), class('font-bold text-base mr-2 hover:underline underline-offset-2')], 'Scotland Yard'),
+    ui:text_class(normal, 'font-bold mr-2 hover:underline underline-offset-2', BrandClass),
+    ui:text_class(meta, MetaClass),
+    ui:link_class(MetaClass, NavClass),
+    ui:text_class(meta, 'text-surface-300 hover:text-white', EntrarClass),
+    ui:text_class(meta,
+                  'rounded-lg bg-ufop-600 px-3 py-1.5 font-semibold hover:bg-ufop-500',
+                  SignupClass),
+    Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2')], [
+        a([href('/'), class(BrandClass)], 'Scotland Yard'),
         a([href('/about/'), class(NavClass)], 'Sobre'),
         a([href('/agents'), class(NavClass)], 'Agentes'),
         a([href('/matches'), class(NavClass)], 'Partidas'),
         div([class('ml-auto flex items-center gap-3')], [
-            a([href('/login'), class('text-surface-300 hover:text-white')], 'Entrar'),
-            a([href('/signup'),
-               class('rounded-lg bg-ufop-600 px-3 py-1.5 font-semibold hover:bg-ufop-500')],
-              'Criar conta')
+            a([href('/login'), class(EntrarClass)], 'Entrar'),
+            a([href('/signup'), class(SignupClass)], 'Criar conta')
         ])
     ]).
 nav(User, Nav) :-
     format(atom(ProfileHref), '/users/~w', [User.id]),
-    ui:link_class(NavClass),
-    Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2 text-sm')], [
-        a([href('/'), class('font-bold text-base mr-2 hover:underline underline-offset-2')], 'Scotland Yard'),
+    ui:text_class(normal, 'font-bold mr-2 hover:underline underline-offset-2', BrandClass),
+    ui:text_class(meta, MetaClass),
+    ui:link_class(MetaClass, NavClass),
+    ui:text_class(meta,
+                  'text-surface-500 hidden sm:inline hover:underline underline-offset-2',
+                  ProfileClass),
+    ui:text_class(meta, 'rounded-lg bg-surface-800 px-3 py-1.5 hover:bg-surface-700', SairClass),
+    Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2')], [
+        a([href('/'), class(BrandClass)], 'Scotland Yard'),
         a([href('/about/'), class(NavClass)], 'Sobre'),
         a([href('/agents'), class(NavClass)], 'Agentes'),
         a([href('/matches'), class(NavClass)], 'Partidas'),
         %a([href('/agents/new'), class('text-surface-300 hover:text-white')], 'Enviar agente'),
         %a([href('/matches/new'), class('text-surface-300 hover:text-white')], 'Nova partida'),
         div([class('ml-auto flex items-center gap-3')], [
-            a([href(ProfileHref),
-               class('text-surface-500 hidden sm:inline hover:underline underline-offset-2')],
-              User.email),
+            a([href(ProfileHref), class(ProfileClass)], User.email),
             form([method(post), action('/logout')], [
-                button([type(submit),
-                        class('rounded-lg bg-surface-800 px-3 py-1.5 hover:bg-surface-700')],
-                       'Sair')
+                button([type(submit), class(SairClass)], 'Sair')
             ])
         ])
     ]).

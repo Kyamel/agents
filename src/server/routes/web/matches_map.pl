@@ -66,7 +66,7 @@ render_map_page(Request, Match) :-
     map_info_card('mm-thief', amber, 'Ladrão', ThiefInfo),
     map_info_card('mm-detective', sky, 'Detetive', DetectiveInfo),
     ui:surface_class('mb-6 overflow-hidden', GraphClass),
-    ui:text_class(page_title, 'mt-3 mb-1', TitleClass),
+    ui:text_class(title, 'mt-3 mb-1', TitleClass),
     ui:text_class(normal, 'text-surface-400 mb-5', DescriptionClass),
     page:reply_page(Request, 'Mapa da partida', [
         BackLink,
@@ -113,10 +113,10 @@ map_turn_frame(Turn, Frame) :-
 % Controles play/slider/intervalo; o JS liga tudo pelos ids `mm-*`.
 map_controls(Html) :-
     ui:surface_class('p-4 mb-4 flex flex-wrap items-center gap-3', CardClass),
-    ui:text_class(auxiliary,
+    ui:text_class(meta,
                   'font-mono text-surface-300 min-w-[5rem] text-center',
                   TurnClass),
-    ui:text_class(auxiliary,
+    ui:text_class(meta,
                   'text-surface-400 flex items-center gap-2 ml-auto',
                   IntervalClass),
     Html = div([class(CardClass)], [
@@ -138,7 +138,7 @@ map_controls(Html) :-
     ]).
 
 map_legend(Html) :-
-    ui:text_class(auxiliary, 'flex items-center gap-5 mb-4', Class),
+    ui:text_class(meta, 'flex items-center gap-5 mb-4', Class),
     Html = div([class(Class)], [
         span([class('flex items-center gap-2')], [
             span([class('inline-block w-3 h-3 rounded-full bg-amber-400')], []),
@@ -153,7 +153,7 @@ map_legend(Html) :-
 map_info_card(Id, Accent, Label, Html) :-
     ui:eyebrow_class(Accent, AccentClass),
     ui:surface_class('p-4', CardClass),
-    ui:text_class(auxiliary,
+    ui:text_class(meta,
                   'font-mono text-surface-300 mt-1 break-all',
                   InfoClass),
     Html = div([class(CardClass)], [

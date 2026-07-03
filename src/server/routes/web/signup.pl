@@ -89,7 +89,7 @@ render_form(Request, Username, Email, AlertHtml) :-
     form_field:text_field(confirm_password, 'Confirmar senha', password, "", ConfirmPasswordField),
     form_field:submit_button('Criar conta', Submit),
     ui:link_class(FooterClass),
-    ui:text_class(page_title, 'mb-1', TitleClass),
+    ui:text_class(title, 'mb-1', TitleClass),
     ui:text_class(normal, 'text-surface-400 mb-6', DescriptionClass),
     ui:text_class(normal, 'text-surface-400 mt-4', FooterTextClass),
     FooterLink = a([href('/login'), class(FooterClass)],

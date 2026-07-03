@@ -26,12 +26,12 @@ handler(Request) :-
     ]).
 
 hero(Html) :-
-    ui:text_class(badge,
+    ui:text_class(meta,
                   'text-ufop-400 uppercase tracking-[0.2em] font-semibold mb-3',
                   EyebrowClass),
-    ui:text_class(hero_title, 'tracking-tight mb-4', TitleClass),
-    ui:text_class(lead, 'text-surface-300 max-w-3xl', LeadClass),
-    ui:text_class(auxiliary, 'flex flex-wrap gap-3 mt-6', NavClass),
+    ui:text_class(title, 'tracking-tight mb-4', TitleClass),
+    ui:text_class(emphasis, 'text-surface-300 max-w-3xl', LeadClass),
+    ui:text_class(meta, 'flex flex-wrap gap-3 mt-6', NavClass),
     Html = section([class('mb-10')], [
     p([class(EyebrowClass)],
       'Guia do jogo'),
@@ -201,7 +201,7 @@ detective_section(Html) :-
 
 submission_section(Html) :-
     ui:link_class(LinkClass),
-    ui:text_class(section_title, 'mb-2', TitleClass),
+    ui:text_class(section, 'mb-2', TitleClass),
     ui:text_class(normal, 'space-y-2 text-surface-300 list-disc pl-5', ListClass),
     Html = section([class('my-8 rounded-xl border border-ufop-900 bg-ufop-950/40 p-6 sm:p-7')], [
         h2([class(TitleClass)], 'Antes de enviar'),
@@ -218,17 +218,17 @@ submission_section(Html) :-
     ]).
 
 section_title(Eyebrow, Title, Html) :-
-    ui:text_class(badge,
+    ui:text_class(meta,
                   'text-surface-500 uppercase tracking-wide font-semibold mb-1',
                   EyebrowClass),
-    ui:text_class(section_title, TitleClass),
+    ui:text_class(section, TitleClass),
     Html = div([class('mb-5')], [
     p([class(EyebrowClass)], Eyebrow),
     h2([class(TitleClass)], Title)
 ]).
 
 step_card(Number, Title, Text, Html) :-
-    ui:text_class(badge,
+    ui:text_class(meta,
                   'inline-flex items-center justify-center w-7 h-7 rounded-full \c
                    bg-ufop-950 text-ufop-400 border border-ufop-900 font-bold mb-3',
                   NumberClass),
@@ -260,7 +260,7 @@ contract_item(Number, Title, Text, Html) :-
 ]).
 
 signature(Label, Value, Html) :-
-    ui:text_class(badge, 'text-surface-500 uppercase tracking-wide', LabelClass),
+    ui:text_class(meta, 'text-surface-500 uppercase tracking-wide', LabelClass),
     Html = div([], [
     p([class(LabelClass)], Label),
     code([class('text-surface-300 break-all')], Value)
@@ -268,7 +268,7 @@ signature(Label, Value, Html) :-
 
 role_header(Accent, Title, Description, Html) :-
     ui:eyebrow_class(Accent, AccentClass),
-    ui:text_class(page_title, 'mt-1', TitleClass),
+    ui:text_class(title, 'mt-1', TitleClass),
     Html = div([], [
     p([class(AccentClass)], 'Papel do agente'),
     h2([class(TitleClass)], Title),
@@ -276,24 +276,24 @@ role_header(Accent, Title, Description, Html) :-
 ]).
 
 contract_signature(Name, Signature, Html) :-
-    ui:text_class(badge,
+    ui:text_class(meta,
                   'text-surface-500 uppercase tracking-wide mb-2',
                   NameClass),
-    ui:text_class(auxiliary, 'text-surface-200 break-all', SignatureClass),
+    ui:text_class(meta, 'text-surface-200 break-all', SignatureClass),
     Html = div([class('rounded-lg bg-surface-950/70 border border-surface-800 p-4')], [
     p([class(NameClass)], Name),
     code([class(SignatureClass)], Signature)
 ]).
 
 action_chip(Text, Html) :-
-    ui:text_class(badge,
+    ui:text_class(meta,
                   'rounded-md bg-surface-800 border border-surface-700 \c
                    px-2.5 py-1.5 text-surface-300',
                   Class),
     Html = code([class(Class)], Text).
 
 code_block(Code, Html) :-
-    ui:text_class(auxiliary,
+    ui:text_class(meta,
                   'overflow-x-auto rounded-lg bg-surface-950 border \c
                    border-surface-800 p-4 text-surface-300',
                   Class),

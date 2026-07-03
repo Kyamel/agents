@@ -26,11 +26,9 @@ render_page(Request, User, Agents, PaginationMeta) :-
               'Nenhum agente cadastrado ainda.', ListHtml),
     pagination:pagination_nav('/agents', PaginationMeta, Pagination),
     button_link:auth_button_link(User, '/agents/new', 'Enviar agente', Cta),
-    page_section:top_bar('Agentes', Cta, TopBar),
+    page_section:top_bar('Agentes cadastrados', Cta, TopBar),
     page:reply_page(Request, 'Agentes', [
         TopBar,
-        p([class('text-surface-400 mb-6')],
-          'Agentes cadastrados na plataforma. Também disponível em /api/v1/agents.'),
         ListHtml,
         Pagination
     ]).

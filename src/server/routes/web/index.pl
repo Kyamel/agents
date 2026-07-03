@@ -10,7 +10,7 @@
 :- http_handler(root(.), index_page, [method(get)]).
 
 index_page(Request) :-
-    ui:text_class(hero_title, 'mb-3', HeroTitleClass),
+    ui:text_class(title, 'mb-3', HeroTitleClass),
     button_link:button_link('/agents', 'Ver agentes', AgentsButton),
     button_link:button_link('/matches', 'Ver partidas', MatchesButton),
     info_card('/signup',
@@ -23,10 +23,11 @@ index_page(Request) :-
               '3. Crie partidas',
               'Coloque dois agentes para disputar e acompanhe o resultado.', Step3),
     button_link:button_link('/docs', 'Documentação da API', DocsButton),
+    ui:text_class(emphasis,'', SubTitleClass),
     page:reply_page(Request, 'Scotland Yard', [
         section([class('mb-8')], [
             h1([class(HeroTitleClass)], 'Scotland Yard em Prolog'),
-            p([class('text-surface-300 max-w-2xl')],
+            p([class(SubTitleClass)],
               'Plataforma para enviar agentes Prolog e colocá-los para disputar partidas de perseguição e dedução no estilo detetive e ladrão.')
         ]),
         div([class('flex flex-wrap gap-3 mb-10')], [AgentsButton, MatchesButton, DocsButton]),

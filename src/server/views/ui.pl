@@ -5,7 +5,8 @@
     link_class/2,
     text_class/2,
     text_class/3,
-    eyebrow_class/2
+    eyebrow_class/2,
+    local_time/2
 ]).
 
 % Receitas de classe Tailwind: combinações de utilitários que se repetem ao
@@ -31,15 +32,12 @@ link_class(Extra, Class) :-
 
 link_base('text-ufop-400 hover:underline underline-offset-2').
 
-% Escala tipografica semantica do app:
+% Escala tipografica semantica do app (5 niveis, do menor ao maior):
+%   meta      14 px — datas, autoria, rotulos, pills e informacao secundaria;
 %   normal    16 px — conteudo principal;
-%   highlight 18 px — nomes e valores em destaque;
-%   lead      18 px — texto introdutorio sem negrito;
-%   auxiliary 14 px — datas, autoria e informacao secundaria;
-%   badge      12 px — pills e rotulos curtos.
-%   page_title 24 px — titulo principal de uma pagina;
-%   section_title 20/24 px — titulo de secao responsivo;
-%   hero_title 30/36 px — titulo de destaque da pagina inicial/About.
+%   emphasis  18 px — nomes, valores e texto introdutorio em destaque;
+%   section   20/24 px — titulo de secao responsivo;
+%   title     24/30 px — titulo principal de pagina (responsivo).
 % `text-xs` nao deve ser usado para conteudo de leitura.
 text_class(Kind, Class) :-
     text_base(Kind, Class).
@@ -47,19 +45,21 @@ text_class(Kind, Extra, Class) :-
     text_base(Kind, Base),
     atomic_list_concat([Base, Extra], ' ', Class).
 
-text_base(normal,    'text-base leading-6').
-text_base(highlight, 'text-lg leading-7 font-semibold').
-text_base(lead,      'text-lg leading-7').
-text_base(auxiliary, 'text-sm leading-5').
-text_base(badge,     'text-xs leading-4 font-medium').
-text_base(page_title,    'text-2xl leading-8 font-bold').
-text_base(section_title, 'text-xl leading-7 font-bold sm:text-2xl sm:leading-8').
-text_base(hero_title,    'text-3xl leading-9 font-bold sm:text-4xl sm:leading-10').
+text_base(meta,     'text-base leading-4').
+text_base(normal,   'text-base leading-5').
+text_base(emphasis, 'text-lg leading-5 font-semibold').
+text_base(section,  'text-xl leading-5 font-bold sm:text-2xl sm:leading-6').
+text_base(title,    'text-2xl leading-6 font-bold sm:text-3xl sm:leading-7').
 
 % Rótulo pequeno em maiúsculas (eyebrow) com cor de acento.
 eyebrow_class(Accent, Class) :-
     accent_color(Accent, Color),
     atomic_list_concat([Color, 'text-xs uppercase tracking-wide font-semibold'], ' ', Class).
+
+% Timestamp em ISO 8601 (UTC) que o JS do cliente converte pro fuso horario
+% local. Sem JS, o proprio ISO recebido do servidor fica como fallback visivel.
+% O script correspondente vive em page.pl (local_time_script/1).
+local_time(ISO, time([datetime(ISO), class('js-localtime')], ISO)).
 
 accent_color(amber, 'text-amber-400').
 accent_color(sky,   'text-sky-400').

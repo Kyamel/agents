@@ -74,7 +74,7 @@ render_form(Request, Email, AlertHtml) :-
     form_field:text_field(password, 'Senha', password, "", PasswordField),
     form_field:submit_button('Entrar', Submit),
     ui:link_class(FooterClass),
-    ui:text_class(page_title, 'mb-1', TitleClass),
+    ui:text_class(title, 'mb-1', TitleClass),
     ui:text_class(normal, 'text-surface-400 mb-6', DescriptionClass),
     ui:text_class(normal, 'text-surface-400 mt-4', FooterTextClass),
     FooterLink = a([href('/signup'), class(FooterClass)],

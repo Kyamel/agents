@@ -14,9 +14,9 @@ agent_card(Agent, CurrentUser, Html) :-
     stats_line(Agent, StatsHtml),
     privacy_badge(Agent, PrivacyHtml),
     actions(Agent, CurrentUser, ActionsHtml),
-    ui:text_class(highlight, 'break-words', NameClass),
-    ui:text_class(auxiliary, 'text-surface-500 font-mono', IdClass),
-    ui:text_class(badge, BadgeTextClass),
+    ui:text_class(emphasis, 'break-words', NameClass),
+    ui:text_class(meta, 'text-surface-500 font-mono', IdClass),
+    ui:text_class(meta, BadgeTextClass),
     atomic_list_concat(
         ['rounded-full bg-surface-800 text-surface-300 px-2.5 py-1', BadgeTextClass],
         ' ',
@@ -55,7 +55,7 @@ owner_link(Agent, Html) :-
     owner_label(Agent, Label),
     format(atom(Href), '/users/~w', [OwnerId]),
     ui:link_class('break-all', LinkClass),
-    ui:text_class(auxiliary, 'min-w-0 text-surface-400', OwnerClass),
+    ui:text_class(meta, 'min-w-0 text-surface-400', OwnerClass),
     Html = p([class(OwnerClass)], [
         'por ',
         a([href(Href), class(LinkClass)], Label)
@@ -94,7 +94,7 @@ privacy_badge(Agent, Html) :-
     get_dict(is_private, Agent, true),
     !,
     ui:text_class(
-        badge,
+        meta,
         'rounded-full bg-surface-950 text-surface-400 px-2.5 py-1 border border-surface-800',
         Class
     ),
@@ -110,7 +110,7 @@ actions(Agent, CurrentUser, Html) :-
     !,
     delete_onclick(Agent.id, OnClick),
     ui:text_class(
-        auxiliary,
+        meta,
         'rounded-md bg-red-950 px-2.5 py-1 font-semibold text-red-200 \c
          border border-red-900 hover:bg-red-900 hover:border-red-700 \c
          focus:outline-none focus:ring-2 focus:ring-red-500/40',

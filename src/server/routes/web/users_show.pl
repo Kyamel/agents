@@ -50,9 +50,9 @@ render_profile(Request, Id, User, Profile) :-
     agents_section(Profile.agents, AgentsSection),
     format(atom(BaseUrl), '/users/~w', [Id]),
     pagination:pagination_nav(BaseUrl, Profile.pagination, PaginationNav),
-    ui:text_class(page_title, 'mt-3 mb-1', TitleClass),
-    ui:text_class(badge, 'font-mono text-surface-500 mb-6 break-all', IdClass),
-    ui:text_class(section_title, 'mt-8 mb-4', SectionTitleClass),
+    ui:text_class(title, 'mt-3 mb-1', TitleClass),
+    ui:text_class(meta, 'font-mono text-surface-500 mb-6 break-all', IdClass),
+    ui:text_class(section, 'mt-8 mb-4', SectionTitleClass),
     page:reply_page(Request, 'Perfil', [
         BackLink,
         h1([class(TitleClass)], User.username),
@@ -88,7 +88,7 @@ agent_profile_card(Profile, Html) :-
 
 render_not_found(Request) :-
     ui:link_class(LinkClass),
-    ui:text_class(page_title, 'mb-2', TitleClass),
+    ui:text_class(title, 'mb-2', TitleClass),
     page:reply_page(Request, 'Usuário não encontrado', [
         h1([class(TitleClass)], 'Usuário não encontrado'),
         a([href('/agents'), class(LinkClass)],

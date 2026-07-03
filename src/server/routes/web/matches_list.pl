@@ -26,11 +26,9 @@ render_page(Request, User, Matches, PaginationMeta) :-
               'Nenhuma partida registrada ainda.', ListHtml),
     pagination:pagination_nav('/matches', PaginationMeta, Pagination),
     button_link:auth_button_link(User, '/matches/new', 'Nova partida', Cta),
-    page_section:top_bar('Partidas', Cta, TopBar),
+    page_section:top_bar('Histórico de partidas', Cta, TopBar),
     page:reply_page(Request, 'Partidas', [
         TopBar,
-        p([class('text-surface-400 mb-6')],
-          'Histórico de partidas. Também disponível em /api/v1/matches.'),
         ListHtml,
         Pagination
     ]).

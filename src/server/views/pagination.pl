@@ -3,6 +3,8 @@
     pagination_nav/3
 ]).
 
+:- use_module(ui).
+
 % Recorta a lista para a pagina pedida e devolve os metadados para a UI.
 paginate(Items, PerPage, RequestedPage, PageItems, Meta) :-
     length(Items, TotalItems),
@@ -48,8 +50,11 @@ pagination_nav(BasePath, Meta, Html) :-
     page_control(BasePath, PrevPage, Meta.hasPreviousPage, 'Anterior', Prev),
     page_control(BasePath, NextPage, Meta.hasNextPage, 'Próxima', Next),
     page_window(BasePath, Meta, Window),
+    ui:text_class(meta,
+                  'mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center sm:gap-2',
+                  NavClass),
     Html = nav([
-        class('mt-8 flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-center sm:gap-2'),
+        class(NavClass),
         'aria-label'('Navegação entre páginas')
     ], [
         div([class('flex items-center justify-center sm:contents')], Prev),

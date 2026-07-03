@@ -94,7 +94,7 @@ checkbox_bool(_, false).
 render_form(Request, User, _State) :-
     User.is_verified \== true,
     !,
-    ui:text_class(page_title, 'mb-4', TitleClass),
+    ui:text_class(title, 'mb-4', TitleClass),
     alert:alert(info,
         "Seu email ainda não foi verificado. Verifique sua conta para enviar agentes.",
         Notice),
