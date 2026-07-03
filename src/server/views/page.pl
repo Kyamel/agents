@@ -65,6 +65,7 @@ reply_page(Request, Title, Content) :-
 layout(User, Content, Body) :-
     nav(User, Nav),
     ufop_logo(Logo),
+    ui:text_class(normal, 'flex-1 max-w-4xl mx-auto w-full p-6', MainClass),
     footer_link('https://en.wikipedia.org/wiki/Scotland_Yard_(board_game)',
                 'O Jogo', GameLink),
     footer_link('https://www.swi-prolog.org/', 'SWI-Prolog', PrologLink),
@@ -76,7 +77,7 @@ layout(User, Content, Body) :-
             header([class('border-b border-surface-800')], [
                 div([class('max-w-4xl mx-auto w-full p-4')], [Nav])
             ]),
-            main([class('flex-1 max-w-4xl mx-auto w-full p-6')], Content),
+            main([class(MainClass)], Content),
             footer([class('border-t border-surface-800')], [
                 div([class('max-w-4xl mx-auto w-full p-6 flex flex-col sm:flex-row \c
                              items-center gap-4 text-sm text-surface-500')], [

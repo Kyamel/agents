@@ -2,7 +2,8 @@
     signup/4,
     login/3,
     verify_email_token/2,
-    issue_session/3
+    issue_session/3,
+    normalize_username/2
 ]).
 
 :- use_module('../config').
@@ -24,10 +25,50 @@ verify_password(Plain, Hash) :-
 %!  signup(+Username, +EmailRaw, +Password, -Outcome) is det.
 %
 %   Cria um usuario e dispara o email de verificacao. `Outcome` e
-%   `email_exists` ou `created(UserId, MailStatus)`.
-signup(Username, EmailRaw, Password, Outcome) :-
+%   `invalid_username`, `email_exists` ou `created(UserId, MailStatus)`.
+signup(UsernameRaw, EmailRaw, Password, Outcome) :-
+    normalize_username(UsernameRaw, Username),
+    signup_validated(Username, EmailRaw, Password, Outcome).
+
+signup_validated(Username, _EmailRaw, _Password, invalid_username) :-
+    \+ valid_username(Username),
+    !.
+signup_validated(Username, EmailRaw, Password, Outcome) :-
     string_lower(EmailRaw, Email),
     do_signup(Username, Email, Password, Outcome).
+
+valid_username(Username) :-
+    string(Username),
+    string_length(Username, Length),
+    between(3, 60, Length),
+    string_codes(Username, Codes),
+    forall(member(Code, Codes), valid_username_code(Code)).
+
+valid_username_code(Code) :- code_type(Code, alnum), !.
+valid_username_code(32).  % espaco
+valid_username_code(95).  % _
+valid_username_code(45).  % -
+valid_username_code(46).  % .
+
+normalize_username(Raw, Normalized) :-
+    string(Raw),
+    !,
+    string_codes(Raw, Codes),
+    trim_edge_whitespace(Codes, Trimmed),
+    string_codes(Normalized, Trimmed).
+normalize_username(_Raw, "").
+
+trim_edge_whitespace(Codes, Trimmed) :-
+    drop_leading_whitespace(Codes, LeftTrimmed),
+    reverse(LeftTrimmed, Reversed),
+    drop_leading_whitespace(Reversed, RightTrimmedReversed),
+    reverse(RightTrimmedReversed, Trimmed).
+
+drop_leading_whitespace([Code|Codes], Trimmed) :-
+    code_type(Code, space),
+    !,
+    drop_leading_whitespace(Codes, Trimmed).
+drop_leading_whitespace(Codes, Codes).
 
 do_signup(_, Email, _, email_exists) :-
     db:find_user_by_email(Email, _),

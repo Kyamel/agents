@@ -22,10 +22,10 @@ load_profile(Id, profile(PublicUser, GlobalStats, Agents)) :-
 load_profile(_, not_found).
 
 public_user(User, Public) :-
+    users:display_name(User, DisplayName),
     Public = _{
         id: User.id,
-        username: User.username,
-        email: User.email,
+        username: DisplayName,
         is_verified: User.is_verified,
         created_at: User.created_at
     }.

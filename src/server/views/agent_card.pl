@@ -11,47 +11,94 @@ agent_card(Agent, CurrentUser, Html) :-
     Name = Agent.name,
     role_label(Agent.role, RoleLabel),
     owner_link(Agent, OwnerHtml),
+    stats_line(Agent, StatsHtml),
     privacy_badge(Agent, PrivacyHtml),
     actions(Agent, CurrentUser, ActionsHtml),
+    ui:text_class(highlight, 'break-words', NameClass),
+    ui:text_class(auxiliary, 'text-surface-500 font-mono', IdClass),
+    ui:text_class(badge, BadgeTextClass),
+    atomic_list_concat(
+        ['rounded-full bg-surface-800 text-surface-300 px-2.5 py-1', BadgeTextClass],
+        ' ',
+        RoleBadgeClass
+    ),
     format(atom(DomId), 'agent-card-~w', [Agent.id]),
-    ui:surface_class('p-4', CardClass),
+    ui:surface_class('px-3.5 py-3', CardClass),
     Html = div([id(DomId), class(CardClass)], [
-        div([class('flex items-start justify-between gap-3')], [
+        div([class('flex items-start justify-between gap-2')], [
             div([class('min-w-0 flex-1')], [
-                h2([class('font-bold text-lg break-words')], Name),
-                OwnerHtml
+                h2([class(NameClass)], [
+                    Name,
+                    span([class(IdClass)], [' #', Agent.id])
+
+                ])
             ]),
             div([class('flex shrink-0 flex-wrap justify-end gap-2')], [
                 PrivacyHtml,
-                span([class('rounded-full bg-surface-800 text-surface-300 text-xs px-2.5 py-1')],
+                span([class(RoleBadgeClass)],
                      RoleLabel)
             ])
         ]),
-        p([class('text-surface-500 text-xs mt-3 font-mono break-all')], ['id: ', Agent.id]),
-        ActionsHtml
+        div([class('mt-2')], [
+            OwnerHtml,
+            div([class('mt-1 flex items-center justify-between gap-3')], [
+                StatsHtml,
+                ActionsHtml
+            ])
+        ])
     ]).
 
 owner_link(Agent, Html) :-
+    get_dict(owner_name, Agent, _),
+    !,
     OwnerId = Agent.owner_user_id,
     owner_label(Agent, Label),
     format(atom(Href), '/users/~w', [OwnerId]),
     ui:link_class('break-all', LinkClass),
-    Html = p([class('text-surface-400 text-xs mt-1')], [
+    ui:text_class(auxiliary, 'min-w-0 text-surface-400', OwnerClass),
+    Html = p([class(OwnerClass)], [
         'por ',
         a([href(Href), class(LinkClass)], Label)
     ]).
+owner_link(_Agent, '').
 
-owner_label(Agent, Email) :-
-    get_dict(owner_email, Agent, Email),
-    Email \== "",
+owner_label(Agent, Name) :-
+    get_dict(owner_name, Agent, Name),
+    Name \== "",
     !.
 owner_label(Agent, Label) :-
     Label = Agent.owner_user_id.
 
+stats_line(Agent, Html) :-
+    get_dict(stats, Agent, Stats),
+    !,
+    record_line(Stats, RecordLine),
+    ui:text_class(normal, 'text-surface-400', Class),
+    Html = p([class(Class)], RecordLine).
+stats_line(_Agent, '').
+
+record_line(Stats, [W, Sep, L, Sep, D]) :-
+    Sep = span([class('text-surface-600')], ' - '),
+    stat_part(Stats.wins,   'V', 'text-emerald-300', W),
+    stat_part(Stats.losses, 'D', 'text-red-300',     L),
+    stat_part(Stats.draws,  'E', 'text-surface-300', D).
+
+stat_part(Value, Label, ColorClass, span([], [
+        span([class(NumClass)], Value),
+        span([class('text-surface-500')], LabelText)
+    ])) :-
+    atomic_list_concat([ColorClass, 'font-semibold'], ' ', NumClass),
+    atom_concat(' ', Label, LabelText).
+
 privacy_badge(Agent, Html) :-
     get_dict(is_private, Agent, true),
     !,
-    Html = span([class('rounded-full bg-surface-950 text-surface-400 text-xs px-2.5 py-1 border border-surface-800')],
+    ui:text_class(
+        badge,
+        'rounded-full bg-surface-950 text-surface-400 px-2.5 py-1 border border-surface-800',
+        Class
+    ),
+    Html = span([class(Class)],
                 'Privado').
 privacy_badge(_, '').
 
@@ -62,16 +109,18 @@ actions(Agent, CurrentUser, Html) :-
     can_delete(CurrentUser, Agent),
     !,
     delete_onclick(Agent.id, OnClick),
-    Html = div([class('mt-4 flex justify-end')], [
-        button([
-            type(button),
-            onclick(OnClick),
-            class('rounded-lg bg-red-950 px-3 py-1.5 text-xs font-semibold \c
-                   text-red-200 border border-red-900 hover:bg-red-900 \c
-                   hover:border-red-700 focus:outline-none focus:ring-2 \c
-                   focus:ring-red-500/40')
-        ], 'Excluir')
-    ]).
+    ui:text_class(
+        auxiliary,
+        'rounded-md bg-red-950 px-2.5 py-1 font-semibold text-red-200 \c
+         border border-red-900 hover:bg-red-900 hover:border-red-700 \c
+         focus:outline-none focus:ring-2 focus:ring-red-500/40',
+        ButtonClass
+    ),
+    Html = button([
+        type(button),
+        onclick(OnClick),
+        class(ButtonClass)
+    ], 'Excluir').
 actions(_, _, '').
 
 % JS inline: confirma, faz DELETE /agents/<id>/delete (cookie de sessao vai
@@ -120,8 +169,8 @@ normalize_id(X, S) :- atom(X), !, atom_string(X, S).
 normalize_id(X, X) :- string(X), !.
 normalize_id(X, S) :- term_string(X, S).
 
-role_label(thief, 'Ladrao') :- !.
-role_label("thief", 'Ladrao') :- !.
+role_label(thief, 'Ladrão') :- !.
+role_label("thief", 'Ladrão') :- !.
 role_label(detective, 'Detetive') :- !.
 role_label("detective", 'Detetive') :- !.
 role_label(Other, Other).

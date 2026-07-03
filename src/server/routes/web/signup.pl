@@ -60,6 +60,10 @@ log_and_fail(Email, Error, failed) :-
 
 handle_outcome(created(_, _), Request, _, _) :-
     http_redirect(see_other, '/login?notice=signup_ok', Request).
+handle_outcome(invalid_username, Request, Username, Email) :-
+    render_error(Request, Username, Email,
+        "O nome de usuário deve ter entre 3 e 60 caracteres e usar apenas \c
+         letras, números, espaços, _, - ou .").
 handle_outcome(email_exists, Request, Username, Email) :-
     render_error(Request, Username, Email, "Esse email já está cadastrado.").
 handle_outcome(failed, Request, Username, Email) :-
@@ -72,24 +76,34 @@ render_error(Request, Username, Email, Message) :-
     render_form(Request, Username, Email, AlertHtml).
 
 render_form(Request, Username, Email, AlertHtml) :-
-    form_field:text_field(username, 'Nome de usuário', text, Username, UsernameField),
+    form_field:text_field(
+        username,
+        'Nome de usuário',
+        text,
+        Username,
+        [minlength(3), maxlength(60)],
+        UsernameField
+    ),
     form_field:text_field(email, 'Email', email, Email, EmailField),
     form_field:text_field(password, 'Senha', password, "", PasswordField),
     form_field:text_field(confirm_password, 'Confirmar senha', password, "", ConfirmPasswordField),
     form_field:submit_button('Criar conta', Submit),
     ui:link_class(FooterClass),
+    ui:text_class(page_title, 'mb-1', TitleClass),
+    ui:text_class(normal, 'text-surface-400 mb-6', DescriptionClass),
+    ui:text_class(normal, 'text-surface-400 mt-4', FooterTextClass),
     FooterLink = a([href('/login'), class(FooterClass)],
                    'Entrar'),
     page:reply_page(Request, 'Criar conta', [
         div([class('max-w-sm mx-auto')], [
-            h1([class('text-2xl font-bold mb-1')], 'Criar conta'),
-            p([class('text-surface-400 text-sm mb-6')],
+            h1([class(TitleClass)], 'Criar conta'),
+            p([class(DescriptionClass)],
               'Cadastre-se para enviar agentes e criar partidas.'),
             AlertHtml,
             form([method(post), action('/signup')], [
                 UsernameField, EmailField, PasswordField, ConfirmPasswordField, Submit
             ]),
-            p([class('text-surface-400 text-sm mt-4')], [
+            p([class(FooterTextClass)], [
                 'Já tem conta? ',
                 FooterLink
             ])

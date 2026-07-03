@@ -10,6 +10,7 @@
 :- http_handler(root(.), index_page, [method(get)]).
 
 index_page(Request) :-
+    ui:text_class(hero_title, 'mb-3', HeroTitleClass),
     button_link:button_link('/agents', 'Ver agentes', AgentsButton),
     button_link:button_link('/matches', 'Ver partidas', MatchesButton),
     info_card('/signup',
@@ -24,7 +25,7 @@ index_page(Request) :-
     button_link:button_link('/docs', 'Documentação da API', DocsButton),
     page:reply_page(Request, 'Scotland Yard', [
         section([class('mb-8')], [
-            h1([class('text-3xl font-bold mb-3')], 'Scotland Yard em Prolog'),
+            h1([class(HeroTitleClass)], 'Scotland Yard em Prolog'),
             p([class('text-surface-300 max-w-2xl')],
               'Plataforma para enviar agentes Prolog e colocá-los para disputar partidas de perseguição e dedução no estilo detetive e ladrão.')
         ]),
@@ -35,9 +36,10 @@ index_page(Request) :-
 info_card(Href, Title, Text, Html) :-
     ui:surface_class('p-5 hover:border-surface-600 transition', CardClass),
     ui:link_class(LinkClass),
+    ui:text_class(normal, 'text-surface-400', TextClass),
     Html = div([class(CardClass)], [
         h3([class('font-semibold mb-1')], [
             a([href(Href), class(LinkClass)], Title)
         ]),
-        p([class('text-surface-400 text-sm')], Text)
+        p([class(TextClass)], Text)
     ]).

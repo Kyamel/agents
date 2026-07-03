@@ -16,11 +16,19 @@ handle(post, Request, _User, _Params, Outcome) :-
     signup_outcome(Username, Result, Outcome).
 
 signup_outcome(_Username, email_exists, email_exists).
+signup_outcome(_Username, invalid_username, invalid_username).
 signup_outcome(Username, created(UserId, MailStatus0),
-               created(Username, UserId, MailStatus)) :-
+               created(NormalizedUsername, UserId, MailStatus)) :-
+    accounts:normalize_username(Username, NormalizedUsername),
     mail_status_string(MailStatus0, MailStatus).
 
 render(_Request, email_exists, json(409, _{error: "email_already_exists"})).
+render(_Request, invalid_username,
+       json(400, _{
+           error: "invalid_username",
+           message: "username must contain 3-60 characters and only letters, \c
+                     numbers, spaces, underscores, hyphens or dots"
+       })).
 render(_Request, created(Username, UserId, MailStatus),
        json(201, _{
            status: "created",

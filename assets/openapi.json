@@ -577,7 +577,13 @@
       "SignupRequest": {
         "type": "object",
         "properties": {
-          "username": { "type": "string", "example": "Lucas" },
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 60,
+            "description": "Trimmed at both ends; accepts Unicode letters, numbers, spaces, underscores, hyphens and dots.",
+            "example": "Lucas"
+          },
           "email": { "type": "string", "format": "email", "example": "lucas@example.com" },
           "password": { "type": "string", "format": "password", "example": "secret123" }
         },
@@ -946,11 +952,10 @@
         "properties": {
           "id": { "type": "integer" },
           "username": { "type": "string" },
-          "email": { "type": "string", "format": "email" },
           "is_verified": { "type": "boolean" },
           "created_at": { "type": "string", "format": "date-time" }
         },
-        "required": ["id", "username", "email", "is_verified", "created_at"]
+        "required": ["id", "username", "is_verified", "created_at"]
       },
       "AgentWithStats": {
         "allOf": [

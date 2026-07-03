@@ -11,6 +11,7 @@
 :- use_module('../../views/alert').
 :- use_module('../../views/form_field').
 :- use_module('../../views/page_section').
+:- use_module('../../views/ui').
 
 :- http_handler(root(matches/new), handler, [methods([get, post])]).
 
@@ -64,11 +65,12 @@ render_form_for(Thieves, Detectives, Request, State) :-
     render_form_fields(Request, State, Thieves, Detectives).
 
 render_empty_roster(Request) :-
+    ui:text_class(page_title, 'mb-4', TitleClass),
     alert:alert(info,
         "Cadastre ao menos um agente ladrão e um agente detetive para criar partidas.",
         Notice),
     page:reply_page(Request, 'Nova partida', [
-        h1([class('text-2xl font-bold mb-4')], 'Nova partida'),
+        h1([class(TitleClass)], 'Nova partida'),
         Notice
     ]).
 
@@ -110,4 +112,4 @@ state_alert(_, '').
 
 agent_option(Agent, opt(Id, Label)) :-
     Id = Agent.id,
-    format(string(Label), "~w  (~w)", [Agent.name, Id]).
+    format(string(Label), "~w  #~w", [Agent.name, Id]).

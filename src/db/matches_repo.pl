@@ -18,7 +18,12 @@
 % mapeador de dominio via repo:get_*_with/3. Reexportado por db.pl.
 
 match_columns("id, thief_agent_id, detective_agent_id, scenario, winner, replay_json, status, created_at, started_at, finished_at").
-summary_columns("id, thief_agent_id, detective_agent_id, scenario, winner, status, created_at, started_at, finished_at").
+summary_columns(
+    "m.id, m.thief_agent_id, m.detective_agent_id, m.scenario, m.winner, \c
+     m.status, m.created_at, m.started_at, m.finished_at, \c
+     COALESCE(thief.name, CAST(m.thief_agent_id AS TEXT)), \c
+     COALESCE(detective.name, CAST(m.detective_agent_id AS TEXT))"
+).
 
 save_match(ThiefAgentId, DetectiveAgentId, Winner, ReplayJson, MatchId) :-
     repo:now_iso(CreatedAt),
@@ -114,7 +119,11 @@ list_matches_page(RequestedPage, PerPage, Matches, Pagination) :-
     Offset is (Pagination.page - 1) * PerPage,
     summary_columns(Cols),
     format(string(SQL),
-        "SELECT ~w FROM matches ORDER BY id ASC LIMIT ~w OFFSET ~w;",
+        "SELECT ~w \c
+           FROM matches AS m \c
+           LEFT JOIN agents AS thief ON thief.id = m.thief_agent_id \c
+           LEFT JOIN agents AS detective ON detective.id = m.detective_agent_id \c
+          ORDER BY m.id ASC LIMIT ~w OFFSET ~w;",
         [Cols, PerPage, Offset]),
     repo:get_all_with(SQL, matches_repo:match_summary_row_dict, Matches).
 
@@ -198,16 +207,21 @@ match_row_dict(row(Id, Thief, Detective, Scenario, Winner, Replay, Status,
     }.
 
 match_summary_row_dict(row(Id, Thief, Detective, Scenario, Winner, Status,
-                           CreatedAt, StartedAt, FinishedAt),
+                           CreatedAt, StartedAt, FinishedAt, ThiefName,
+                           DetectiveName),
                        Match) :-
     norm_status(Status, StatusT),
     norm_optional(Scenario, ScenarioT),
     norm_optional(StartedAt, StartedT),
     norm_optional(FinishedAt, FinishedT),
+    repo:text(ThiefName, ThiefNameT),
+    repo:text(DetectiveName, DetectiveNameT),
     Match = _{
         id: Id,
         thief_agent_id: Thief,
+        thief_agent_name: ThiefNameT,
         detective_agent_id: Detective,
+        detective_agent_name: DetectiveNameT,
         scenario: ScenarioT,
         winner: Winner,
         status: StatusT,

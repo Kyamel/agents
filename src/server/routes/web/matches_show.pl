@@ -71,17 +71,20 @@ render_detail(Request, Match, ThiefName, DetectiveName, Replay) :-
     turns_table(Turns, TableHtml),
     atom_concat('/map/', Match.id, MapLink),
     button_link:button_link(MapLink, 'Visualizar mapa', MapButton),
+    ui:text_class(page_title, 'mt-3 mb-1', TitleClass),
+    ui:text_class(badge, 'font-mono text-surface-500 mb-5 break-all', IdClass),
+    ui:text_class(highlight, 'mb-3', ReplayTitleClass),
     page:reply_page(Request, 'Detalhe da partida', [
         BackLink,
-        h1([class('text-2xl font-bold mt-3 mb-1')], 'Detalhe da partida'),
-        p([class('font-mono text-xs text-surface-500 mb-5 break-all')], Match.id),
+        h1([class(TitleClass)], 'Detalhe da partida'),
+        p([class(IdClass)], Match.id),
         div([class('grid sm:grid-cols-3 gap-4 mb-6')], [
             ThiefCard, DetectiveCard, WinnerCard
         ]),
         div([class('mb-8')], [MapButton]),
         SetupHtml,
         EventsHtml,
-        h2([class('font-semibold mb-3')], 'Replay turno a turno'),
+        h2([class(ReplayTitleClass)], 'Replay turno a turno'),
         TableHtml
     ]).
 
@@ -98,11 +101,14 @@ render_progress(Request, Match, Status, Elapsed) :-
     stat_card('Detetive', DetectiveName, DetectiveCard),
     stat_card('Tempo decorrido', ElapsedText, TimeCard),
     atom_concat('/matches/', Match.id, SelfLink),
-    ui:link_class('text-sm', RefreshClass),
+    ui:text_class(auxiliary, AuxiliaryClass),
+    ui:link_class(AuxiliaryClass, RefreshClass),
+    ui:text_class(page_title, 'mt-3 mb-1', TitleClass),
+    ui:text_class(badge, 'font-mono text-surface-500 mb-5 break-all', IdClass),
     page:reply_page(Request, 'Partida em andamento', [
         BackLink,
-        h1([class('text-2xl font-bold mt-3 mb-1')], 'Partida em andamento'),
-        p([class('font-mono text-xs text-surface-500 mb-5 break-all')], Match.id),
+        h1([class(TitleClass)], 'Partida em andamento'),
+        p([class(IdClass)], Match.id),
         div([class('grid sm:grid-cols-3 gap-4 mb-8')], [
             ThiefCard, DetectiveCard, TimeCard
         ]),
@@ -121,9 +127,10 @@ elapsed_text(_Elapsed, "-").
 
 status_banner(Status, Html) :-
     status_meta(Status, Title, Hint, Class),
+    ui:text_class(auxiliary, 'opacity-80 mt-1', HintClass),
     Html = div([class(Class)], [
         p([class('font-semibold')], Title),
-        p([class('text-sm opacity-80 mt-1')], Hint)
+        p([class(HintClass)], Hint)
     ]).
 
 status_meta("queued", 'Na fila',

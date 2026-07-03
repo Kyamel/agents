@@ -8,6 +8,7 @@
 :- use_module('../db/db').
 :- use_module('../engine/engine').
 :- use_module('./scopes').
+:- use_module('./users').
 :- use_module(library(apply)).
 
 % Camada de servico do recurso "agente". Contem a regra de negocio e NUNCA
@@ -56,21 +57,22 @@ public_agent(Agent, Agent).
 
 %!  list_page_with_owners(+Page, +PerPage, -Agents, -Pagination) is det.
 %
-%   Uma pagina de agentes, cada um enriquecido com `owner_email` (join com o
-%   dono). N+1 consciente: volumes pequenos no projeto.
+%   Uma pagina de agentes, cada um enriquecido com `owner_name` e `stats`.
+%   N+1 consciente: volumes pequenos no projeto.
 list_page_with_owners(Page, PerPage, AgentsRich, Pagination) :-
     db:list_agents_page(Page, PerPage, Agents, Pagination),
-    maplist(with_owner_email, Agents, AgentsRich).
+    maplist(with_owner_and_stats, Agents, AgentsRich).
 
-with_owner_email(Agent, Rich) :-
-    owner_email(Agent, Email),
-    put_dict(owner_email, Agent, Email, Rich).
+with_owner_and_stats(Agent, Rich) :-
+    owner_name(Agent, OwnerName),
+    db:agent_record(Agent.id, Stats),
+    put_dict(_{owner_name: OwnerName, stats: Stats}, Agent, Rich).
 
-owner_email(Agent, Email) :-
+owner_name(Agent, Name) :-
     db:find_user_by_id(Agent.owner_user_id, Owner),
     !,
-    Email = Owner.email.
-owner_email(_Agent, "").
+    users:display_name(Owner, Name).
+owner_name(_Agent, "").
 
 % Agente existe e esta ativo: decide entre excluir e negar.
 delete_active(User, Id, Agent, deleted(Id)) :-

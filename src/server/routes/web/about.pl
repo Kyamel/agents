@@ -25,16 +25,23 @@ handler(Request) :-
         Submission
     ]).
 
-hero(section([class('mb-10')], [
-    p([class('text-ufop-400 text-xs uppercase tracking-[0.2em] font-semibold mb-3')],
+hero(Html) :-
+    ui:text_class(badge,
+                  'text-ufop-400 uppercase tracking-[0.2em] font-semibold mb-3',
+                  EyebrowClass),
+    ui:text_class(hero_title, 'tracking-tight mb-4', TitleClass),
+    ui:text_class(lead, 'text-surface-300 max-w-3xl', LeadClass),
+    ui:text_class(auxiliary, 'flex flex-wrap gap-3 mt-6', NavClass),
+    Html = section([class('mb-10')], [
+    p([class(EyebrowClass)],
       'Guia do jogo'),
-    h1([class('text-3xl sm:text-4xl font-bold tracking-tight mb-4')],
+    h1([class(TitleClass)],
        'Programe um agente para Scotland Yard'),
-    p([class('text-surface-300 text-lg leading-relaxed max-w-3xl')],
+    p([class(LeadClass)],
       'Crie um módulo Prolog que tome decisões como ladrão ou detetive. \c
        A plataforma valida o contrato do agente, executa a partida em turnos \c
        e registra cada ação para replay.'),
-    nav([class('flex flex-wrap gap-3 mt-6 text-sm')], [
+    nav([class(NavClass)], [
         a([href('#como-funciona'),
            class('rounded-lg bg-surface-800 border border-surface-700 px-3 py-2 \c
                   hover:border-surface-500 transition')],
@@ -47,7 +54,7 @@ hero(section([class('mb-10')], [
            class('rounded-lg bg-ufop-600 px-3 py-2 font-semibold hover:bg-ufop-500 transition')],
           'Enviar meu agente')
     ])
-])).
+]).
 
 game_section(Html) :-
     section_title('Visão geral', 'Como a partida funciona', Title),
@@ -122,9 +129,10 @@ data_shapes(Html) :-
               'thief(loc(Cidade), Id, Aparência, Alvo, Itens, Disfarces)', S6),
     signature('Estado do detetive',
               'detective(loc(Cidade), Mandato, Pistas)', S7),
+    ui:text_class(normal, 'grid lg:grid-cols-2 gap-x-8 gap-y-3', ShapesClass),
     Html = div([class('mt-7 border-t border-surface-800 pt-6')], [
     h3([class('font-semibold mb-3')], 'Dados recebidos da engine'),
-    div([class('grid lg:grid-cols-2 gap-x-8 gap-y-3 text-sm')], [
+    div([class(ShapesClass)], [
         S1, S2, S3, S4, S5, S6, S7
     ])
 ]).
@@ -146,12 +154,13 @@ thief_section(Html) :-
     contract_signature('ladrao_action/3',
         'ladrao_action(Eventos, EstadoDoLadrao, Acao).',
         P2),
+    ui:text_class(normal, 'text-surface-400 mt-4', HintClass),
     surface('p-6 sm:p-7', section([id('agente-ladrao'), class('scroll-mt-6')], [
         Header,
         div([class('grid lg:grid-cols-2 gap-5 mt-5')], [P1, P2]),
         h3([class('font-semibold mt-6 mb-3')], 'Ações disponíveis'),
         div([class('flex flex-wrap gap-2')], [A1, A2, A3, A4, A5]),
-        p([class('text-surface-400 text-sm mt-4 leading-relaxed')],
+        p([class(HintClass)],
           'Cada roubo revela pistas da aparência atual. O disfarce pode mudar essa \c
            informação; tentar sair de uma cidade fechada causa captura.'),
         h3([class('font-semibold mt-7 mb-3')], 'Estrutura mínima'),
@@ -176,12 +185,13 @@ detective_section(Html) :-
     contract_signature('detetive_action/3',
         'detetive_action(Eventos, EstadoDoDetetive, Acao).',
         P2),
+    ui:text_class(normal, 'text-surface-400 mt-4', HintClass),
     surface('p-6 sm:p-7', section([id('agente-detetive'), class('scroll-mt-6')], [
         Header,
         div([class('grid lg:grid-cols-2 gap-5 mt-5')], [P1, P2]),
         h3([class('font-semibold mt-6 mb-3')], 'Ações disponíveis'),
         div([class('flex flex-wrap gap-2')], [A1, A2, A3, A4, A5, A6]),
-        p([class('text-surface-400 text-sm mt-4 leading-relaxed')],
+        p([class(HintClass)],
           'O mandato deve usar pistas já conhecidas, identificar um suspeito \c
            compatível e reduzir o conjunto de suspeitos possíveis a no máximo dois. \c
            Inspecionar só captura quando o mandato e a cidade estão corretos.'),
@@ -191,9 +201,11 @@ detective_section(Html) :-
 
 submission_section(Html) :-
     ui:link_class(LinkClass),
+    ui:text_class(section_title, 'mb-2', TitleClass),
+    ui:text_class(normal, 'space-y-2 text-surface-300 list-disc pl-5', ListClass),
     Html = section([class('my-8 rounded-xl border border-ufop-900 bg-ufop-950/40 p-6 sm:p-7')], [
-        h2([class('text-xl font-bold mb-2')], 'Antes de enviar'),
-        ul([class('space-y-2 text-surface-300 text-sm list-disc pl-5')], [
+        h2([class(TitleClass)], 'Antes de enviar'),
+        ul([class(ListClass)], [
             li([], 'O nome do módulo deve ter entre 3 e 60 caracteres e não pode conter / ou \\.'),
             li([], 'O papel é detectado pelos predicados exportados em module/2.'),
             li([], 'Diretivas e operações perigosas, como initialization, use_module, consult, open, process_create e shell, são bloqueadas.'),
@@ -205,59 +217,87 @@ submission_section(Html) :-
         ])
     ]).
 
-section_title(Eyebrow, Title, div([class('mb-5')], [
-    p([class('text-surface-500 text-xs uppercase tracking-wide font-semibold mb-1')], Eyebrow),
-    h2([class('text-xl sm:text-2xl font-bold')], Title)
-])).
+section_title(Eyebrow, Title, Html) :-
+    ui:text_class(badge,
+                  'text-surface-500 uppercase tracking-wide font-semibold mb-1',
+                  EyebrowClass),
+    ui:text_class(section_title, TitleClass),
+    Html = div([class('mb-5')], [
+    p([class(EyebrowClass)], Eyebrow),
+    h2([class(TitleClass)], Title)
+]).
 
-step_card(Number, Title, Text, div([class('rounded-lg bg-surface-950/60 border border-surface-800 p-4')], [
-    span([class('inline-flex items-center justify-center w-7 h-7 rounded-full \c
-                 bg-ufop-950 text-ufop-400 border border-ufop-900 text-xs font-bold mb-3')],
+step_card(Number, Title, Text, Html) :-
+    ui:text_class(badge,
+                  'inline-flex items-center justify-center w-7 h-7 rounded-full \c
+                   bg-ufop-950 text-ufop-400 border border-ufop-900 font-bold mb-3',
+                  NumberClass),
+    ui:text_class(normal, 'text-surface-400', TextClass),
+    Html = div([class('rounded-lg bg-surface-950/60 border border-surface-800 p-4')], [
+    span([class(NumberClass)],
          Number),
     h3([class('font-semibold mb-1')], Title),
-    p([class('text-surface-400 text-sm leading-relaxed')], Text)
-])).
+    p([class(TextClass)], Text)
+]).
 
 feature(Title, Text, Html) :-
+    ui:text_class(normal, 'font-semibold mb-1', TitleClass),
+    ui:text_class(normal, 'text-surface-400', TextClass),
     surface('p-4', div([], [
-        h3([class('font-semibold text-sm mb-1')], Title),
-        p([class('text-surface-400 text-sm leading-relaxed')], Text)
+        h3([class(TitleClass)], Title),
+        p([class(TextClass)], Text)
     ]), Html).
 
-contract_item(Number, Title, Text, div([class('flex gap-3')], [
+contract_item(Number, Title, Text, Html) :-
+    ui:text_class(normal, 'font-semibold', TitleClass),
+    ui:text_class(normal, 'text-surface-400 mt-1', TextClass),
+    Html = div([class('flex gap-3')], [
     span([class('text-ufop-400 font-mono font-bold')], Number),
     div([], [
-        h3([class('font-semibold text-sm')], Title),
-        p([class('text-surface-400 text-sm mt-1 leading-relaxed')], Text)
+        h3([class(TitleClass)], Title),
+        p([class(TextClass)], Text)
     ])
-])).
+]).
 
-signature(Label, Value, div([], [
-    p([class('text-surface-500 text-xs uppercase tracking-wide')], Label),
+signature(Label, Value, Html) :-
+    ui:text_class(badge, 'text-surface-500 uppercase tracking-wide', LabelClass),
+    Html = div([], [
+    p([class(LabelClass)], Label),
     code([class('text-surface-300 break-all')], Value)
-])).
+]).
 
-role_header(Accent, Title, Description, div([], [
+role_header(Accent, Title, Description, Html) :-
+    ui:eyebrow_class(Accent, AccentClass),
+    ui:text_class(page_title, 'mt-1', TitleClass),
+    Html = div([], [
     p([class(AccentClass)], 'Papel do agente'),
-    h2([class('text-2xl font-bold mt-1')], Title),
+    h2([class(TitleClass)], Title),
     p([class('text-surface-400 mt-2 max-w-2xl leading-relaxed')], Description)
-])) :-
-    ui:eyebrow_class(Accent, AccentClass).
+]).
 
-contract_signature(Name, Signature, div([class('rounded-lg bg-surface-950/70 border border-surface-800 p-4')], [
-    p([class('text-surface-500 text-xs uppercase tracking-wide mb-2')], Name),
-    code([class('text-surface-200 text-sm break-all')], Signature)
-])).
+contract_signature(Name, Signature, Html) :-
+    ui:text_class(badge,
+                  'text-surface-500 uppercase tracking-wide mb-2',
+                  NameClass),
+    ui:text_class(auxiliary, 'text-surface-200 break-all', SignatureClass),
+    Html = div([class('rounded-lg bg-surface-950/70 border border-surface-800 p-4')], [
+    p([class(NameClass)], Name),
+    code([class(SignatureClass)], Signature)
+]).
 
-action_chip(Text, code([
-    class('rounded-md bg-surface-800 border border-surface-700 px-2.5 py-1.5 \c
-           text-xs text-surface-300')
-], Text)).
+action_chip(Text, Html) :-
+    ui:text_class(badge,
+                  'rounded-md bg-surface-800 border border-surface-700 \c
+                   px-2.5 py-1.5 text-surface-300',
+                  Class),
+    Html = code([class(Class)], Text).
 
-code_block(Code, pre([
-    class('overflow-x-auto rounded-lg bg-surface-950 border border-surface-800 \c
-           p-4 text-sm text-surface-300 leading-relaxed')
-], code([], Code))).
+code_block(Code, Html) :-
+    ui:text_class(auxiliary,
+                  'overflow-x-auto rounded-lg bg-surface-950 border \c
+                   border-surface-800 p-4 text-surface-300',
+                  Class),
+    Html = pre([class(Class)], code([], Code)).
 
 surface(Extra, Content, div([class(Class)], [Content])) :-
     atomic_list_concat(['my-8', Extra], ' ', FullExtra),

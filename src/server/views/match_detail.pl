@@ -31,7 +31,7 @@ setup_section(Setup, Html) :-
     ui:surface_class('p-4 mb-8', CardClass),
     Html = div([class(CardClass)], [
         h2([class('font-semibold mb-4')], 'Configuração da partida'),
-        div([class('grid sm:grid-cols-3 gap-x-6 gap-y-4 text-sm')],
+        div([class('grid sm:grid-cols-3 gap-x-6 gap-y-4 text-base leading-6')],
             [F1, F2, F3, F4, F5, F6]),
         div([class('mt-5')], [
             p([class('text-surface-500 text-xs uppercase tracking-wide mb-2')],
@@ -51,7 +51,7 @@ appearance_chips(Setup, Chips) :-
     Attrs \= [],
     !,
     maplist(chip, Attrs, Chips).
-appearance_chips(_Setup, [span([class('text-surface-500 text-sm')], '-')]).
+appearance_chips(_Setup, [span([class('text-surface-500 text-base')], '-')]).
 
 chip(Text, span([class('inline-block rounded-full bg-surface-800 text-surface-300 \c
                         px-3 py-1 text-xs')], Text)).
@@ -60,7 +60,7 @@ events_section([], Html) :-
     !,
     Html = div([class('mb-8')], [
         h2([class('font-semibold mb-3')], 'Eventos'),
-        p([class('text-surface-500 text-sm')], 'Nenhum roubo registrado nesta partida.')
+        p([class('text-surface-500 text-base')], 'Nenhum roubo registrado nesta partida.')
     ]).
 events_section(Events, Html) :-
     maplist(event_item, Events, Items),
@@ -78,15 +78,15 @@ event_item(Event, Html) :-
     revealed_text(Event, Revealed),
     format(string(Title), "Turno ~w: roubo de ~w em ~w", [Turn, Item, City]),
     Html = li([class('rounded-lg bg-amber-950/40 border border-amber-900/60 px-3 py-2')], [
-        p([class('text-amber-200 text-sm font-medium')], Title),
-        p([class('text-amber-200/70 text-xs mt-0.5')], Revealed)
+        p([class('text-amber-200 text-base font-medium')], Title),
+        p([class('text-amber-200/70 text-sm mt-0.5')], Revealed)
     ]).
 event_item(Event, Html) :-
     field_text(Event, turn, Turn),
     field_text(Event, detail, Detail),
     format(string(Text), "Turno ~w: ~w", [Turn, Detail]),
     Html = li([class('rounded-lg bg-surface-900 border border-surface-800 px-3 py-2 \c
-                      text-surface-300 text-sm')], Text).
+                      text-surface-300 text-base')], Text).
 
 revealed_text(Event, Text) :-
     get_dict(revealed, Event, Revealed),
@@ -146,7 +146,7 @@ turns_table([], Html) :-
 turns_table(Turns, Html) :-
     maplist(turn_row, Turns, Rows),
     Html = div([class('overflow-x-auto rounded-xl border border-surface-800')], [
-        table([class('w-full text-sm')], [
+        table([class('w-full text-base')], [
             thead([class('bg-surface-900 text-surface-400')], [
                 tr([], [
                     th([class('text-left px-3 py-2')], 'Turno'),

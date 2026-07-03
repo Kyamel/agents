@@ -8,6 +8,7 @@
 :- use_module('../../views/page').
 :- use_module('../../views/page_section').
 :- use_module('../../views/pagination').
+:- use_module('../../views/agent_card').
 :- use_module('../../views/ui').
 :- use_module('../../views/match_detail', [stat_card/3, stat_card/4]).
 
@@ -49,13 +50,16 @@ render_profile(Request, Id, User, Profile) :-
     agents_section(Profile.agents, AgentsSection),
     format(atom(BaseUrl), '/users/~w', [Id]),
     pagination:pagination_nav(BaseUrl, Profile.pagination, PaginationNav),
+    users:display_name(User, DisplayName),
+    ui:text_class(page_title, 'mt-3 mb-1', TitleClass),
+    ui:text_class(badge, 'font-mono text-surface-500 mb-6 break-all', IdClass),
+    ui:text_class(section_title, 'mt-8 mb-4', SectionTitleClass),
     page:reply_page(Request, 'Perfil', [
         BackLink,
-        h1([class('text-2xl font-bold mt-3 mb-1')], User.username),
-        p([class('text-surface-400 text-sm mb-1 break-all')], User.email),
-        p([class('font-mono text-xs text-surface-500 mb-6 break-all')], User.id),
+        h1([class(TitleClass)], DisplayName),
+        p([class(IdClass)], ['Id ', User.id]),
         Summary,
-        h2([class('text-xl font-bold mt-8 mb-4')], 'Agentes enviados'),
+        h2([class(SectionTitleClass)], 'Agentes enviados'),
         AgentsSection,
         PaginationNav
     ]).
@@ -76,54 +80,18 @@ agents_section([], Html) :-
     !,
     page_section:empty_state('Nenhum agente enviado ainda.', Html).
 agents_section(AgentProfiles, Html) :-
-    maplist(agent_stats_card, AgentProfiles, Cards),
-    Html = div([class('grid sm:grid-cols-2 gap-4')], Cards).
+    maplist(agent_profile_card, AgentProfiles, Cards),
+    Html = div([class('grid sm:grid-cols-2 gap-3')], Cards).
 
-% Mesmo esqueleto do agent_card (nome + id + pill de papel); o retrospecto vira
-% uma linha discreta em vez de caixas aninhadas.
-agent_stats_card(Profile, Html) :-
-    Agent = Profile.agent,
-    role_label(Agent.role, RoleLabel),
-    record_line(Profile.stats, RecordLine),
-    ui:surface_class('p-4', CardClass),
-    Html = div([class(CardClass)], [
-        div([class('flex items-start justify-between gap-3')], [
-            div([class('min-w-0 flex-1')], [
-                h3([class('font-bold text-lg break-words')], Agent.name),
-                p([class('text-surface-500 text-xs mt-1 font-mono break-all')],
-                  ['id: ', Agent.id])
-            ]),
-            span([class('rounded-full bg-surface-800 text-surface-300 text-xs px-2.5 py-1 shrink-0')],
-                 RoleLabel)
-        ]),
-        p([class('text-surface-400 text-sm mt-3')], RecordLine)
-    ]).
-
-% Retrospecto colorido (numero destacado, letra discreta): vitoria verde,
-% derrota vermelho, empate neutro — como o resumo global.
-record_line(Stats, [W, Sep, L, Sep, D]) :-
-    Sep = span([class('text-surface-600')], ' - '),
-    stat_part(Stats.wins,   'V', 'text-emerald-300', W),
-    stat_part(Stats.losses, 'D', 'text-red-300',     L),
-    stat_part(Stats.draws,  'E', 'text-surface-300', D).
-
-stat_part(Value, Label, ColorClass, span([], [
-        span([class(NumClass)], Value),
-        span([class('text-surface-500')], LabelText)
-    ])) :-
-    atomic_list_concat([ColorClass, 'font-semibold'], ' ', NumClass),
-    atom_concat(' ', Label, LabelText).
-
-role_label(thief, 'Ladrão') :- !.
-role_label("thief", 'Ladrão') :- !.
-role_label(detective, 'Detetive') :- !.
-role_label("detective", 'Detetive') :- !.
-role_label(Other, Other).
+agent_profile_card(Profile, Html) :-
+    put_dict(stats, Profile.agent, Profile.stats, AgentWithStats),
+    agent_card:agent_card(AgentWithStats, anon, Html).
 
 render_not_found(Request) :-
     ui:link_class(LinkClass),
+    ui:text_class(page_title, 'mb-2', TitleClass),
     page:reply_page(Request, 'Usuário não encontrado', [
-        h1([class('text-2xl font-bold mb-2')], 'Usuário não encontrado'),
+        h1([class(TitleClass)], 'Usuário não encontrado'),
         a([href('/agents'), class(LinkClass)],
           'Voltar para agentes')
     ]).

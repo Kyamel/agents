@@ -22,7 +22,7 @@ handler(Request) :-
     render_page(Request, User, AgentsRich, PaginationMeta).
 
 render_page(Request, User, Agents, PaginationMeta) :-
-    card_grid(Agents, render_card(User), 'grid sm:grid-cols-2 gap-4',
+    card_grid(Agents, render_card(User), 'grid sm:grid-cols-2 gap-3',
               'Nenhum agente cadastrado ainda.', ListHtml),
     pagination:pagination_nav('/agents', PaginationMeta, Pagination),
     button_link:auth_button_link(User, '/agents/new', 'Enviar agente', Cta),

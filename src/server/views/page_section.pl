@@ -15,13 +15,15 @@ top_bar(Title, ActionHtml, Html) :-
     ]).
 
 page_heading(Title, Subtitle, Html) :-
+    ui:text_class(normal, 'text-surface-400', SubtitleClass),
     Html = div([class('mb-6')], [
         h1([class('text-2xl font-bold mb-1')], Title),
-        p([class('text-surface-400 text-sm')], Subtitle)
+        p([class(SubtitleClass)], Subtitle)
     ]).
 
 back_link(Href, Label, Html) :-
-    ui:link_class('text-sm', LinkClass),
+    ui:text_class(auxiliary, AuxiliaryClass),
+    ui:link_class(AuxiliaryClass, LinkClass),
     Html = a([href(Href), class(LinkClass)], Label).
 
 empty_state(Text, Html) :-

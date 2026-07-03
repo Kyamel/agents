@@ -74,18 +74,21 @@ render_form(Request, Email, AlertHtml) :-
     form_field:text_field(password, 'Senha', password, "", PasswordField),
     form_field:submit_button('Entrar', Submit),
     ui:link_class(FooterClass),
+    ui:text_class(page_title, 'mb-1', TitleClass),
+    ui:text_class(normal, 'text-surface-400 mb-6', DescriptionClass),
+    ui:text_class(normal, 'text-surface-400 mt-4', FooterTextClass),
     FooterLink = a([href('/signup'), class(FooterClass)],
                    'Criar conta'),
     page:reply_page(Request, 'Entrar', [
         div([class('max-w-sm mx-auto')], [
-            h1([class('text-2xl font-bold mb-1')], 'Entrar'),
-            p([class('text-surface-400 text-sm mb-6')],
+            h1([class(TitleClass)], 'Entrar'),
+            p([class(DescriptionClass)],
               'Acesse sua conta para enviar agentes e criar partidas.'),
             AlertHtml,
             form([method(post), action('/login')], [
                 EmailField, PasswordField, Submit
             ]),
-            p([class('text-surface-400 text-sm mt-4')], [
+            p([class(FooterTextClass)], [
                 'Não possui conta? ',
                 FooterLink
             ])
