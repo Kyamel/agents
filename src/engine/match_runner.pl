@@ -4,6 +4,7 @@
     scenario_engine_arg/2,
     scenario_text/2,
     scenario_graph/3,
+    scenario_treasure/4,
     disguise_count/1
 ]).
 
@@ -95,6 +96,18 @@ scenario_graph(Scenario, Cities, Edges) :-
             ( member(conectado(A, B), Terms), sort_pair(A, B, Edge) ),
             Edges0),
     sort(Edges0, Edges).
+
+%!  scenario_treasure(+Scenario, +Target, -City, -Requirements) is semidet.
+%
+%   Le a cidade e os requisitos diretos do tesouro sem consultar o cenario.
+%   Target pode chegar como string do replay ou como atomo.
+scenario_treasure(Scenario, Target, City, Requirements) :-
+    scenario_file(Scenario, File),
+    exists_file(File),
+    catch(read_scenario_terms(File, Terms), _, fail),
+    to_atom(Target, TargetAtom),
+    member(tesouro(TargetAtom, City, Requirements), Terms),
+    !.
 
 % Caminho absoluto do .prolog do cenario, mantendo a extensao (ao contrario
 % de scenario_engine_arg/2).

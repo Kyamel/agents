@@ -8,6 +8,16 @@
   var W = 920, H = 620, PAD_X = 72, PAD_Y = 62, NODE_H = 34;
   var THIEF = "#fbbf24";   // amber-400
   var DET = "#38bdf8";     // sky-400
+  var NODE_FILL = "#1e293b";
+  var NODE_STROKE = "#64748b";
+  var BLOCKED_FILL = "#dc2626";   // red-600
+  var BLOCKED_STROKE = "#fca5a5"; // red-300
+  var READY_FILL = "#059669";     // emerald-600
+  var READY_STROKE = "#6ee7b7";   // emerald-300
+  var ROBBERY_FILL = "#fbbf24";   // amber-400
+  var ROBBERY_STROKE = "#fde68a"; // amber-200
+  var NODE_TEXT = "#e2e8f0";
+  var ROBBERY_TEXT = "#0f172a";
 
   function init() {
     var dataEl = document.getElementById("match-map-data");
@@ -34,7 +44,7 @@
     // A rota fica entre as arestas do mapa e os nos, para atravessar cada
     // cidade sem encobrir seu rotulo.
     var routeLayer = group(svg);
-    drawNodes(svg, pos);
+    var nodes = drawNodes(svg, pos);
     var thief = marker(svg, THIEF, "L");
     var det = marker(svg, DET, "D");
 
@@ -57,6 +67,13 @@
       drawRoute(routeLayer, pos, f.dPath, DET, 4);
       place(thief, pos[f.t], -10);
       place(det, pos[f.d], 10);
+      paintNodes(
+        nodes,
+        f.blocked,
+        f.objectiveCity,
+        f.objectiveReady,
+        f.robberyCities
+      );
       if (label) label.textContent = f.label;
       if (thiefInfo) thiefInfo.textContent = info(f.t, f.tAct);
       if (detInfo) detInfo.textContent = info(f.d, f.dAct);
@@ -377,12 +394,25 @@
       return b.turn - a.turn;
     });
     var t = start.thief, d = start.detective;
+    var blocked = (start.blocked || []).slice();
+    var lockMode = start.lock_mode || "accumulate";
+    var objective = data.objective || {};
+    var objectiveCity = objective.city;
+    var requirements = objective.requirements || [];
+    var collected = {};
     var tPath = validCity(t) ? [t] : [];
     var dPath = validCity(d) ? [d] : [];
     var frames = [{
       label: "Início", t: t, d: d,
       tPath: tPath.slice(), dPath: dPath.slice(),
-      tAct: "", dAct: ""
+      tAct: "", dAct: "", blocked: blocked.slice(),
+      objectiveCity: objectiveCity,
+      objectiveReady: objectiveIsReady(
+        objectiveCity,
+        requirements,
+        collected
+      ),
+      robberyCities: []
     }];
     turns.forEach(function (tn) {
       if (validCity(tn.thief_pos)) {
@@ -393,16 +423,84 @@
         if (tn.detective_pos !== d) dPath.push(tn.detective_pos);
         d = tn.detective_pos;
       }
+      var lockChange = lockChangeForTurn(tn);
+      blocked = updateBlockedCities(
+        blocked,
+        lockChange.effect,
+        lockChange.city,
+        lockMode
+      );
+      (tn.stolen_items || []).forEach(function (item) {
+        collected[item] = true;
+      });
       frames.push({
         label: "Turno " + tn.turn,
         t: t, d: d,
         tPath: tPath.slice(),
         dPath: dPath.slice(),
         tAct: tn.thief_action || "",
-        dAct: tn.detective_action || ""
+        dAct: tn.detective_action || "",
+        blocked: blocked.slice(),
+        objectiveCity: objectiveCity,
+        objectiveReady: objectiveIsReady(
+          objectiveCity,
+          requirements,
+          collected
+        ),
+        robberyCities: (tn.robbery_cities || []).slice()
       });
     });
     return frames;
+  }
+
+  function objectiveIsReady(city, requirements, collected) {
+    return validCity(city) && requirements.every(function (requirement) {
+      return Boolean(collected[requirement]);
+    });
+  }
+
+  // Replays novos recebem o efeito normalizado do backend. O parser da acao
+  // mantem compatibilidade com paginas/replays gerados antes desse campo.
+  function lockChangeForTurn(turn) {
+    if (turn.lock_effect === "close" || turn.lock_effect === "open") {
+      return { effect: turn.lock_effect, city: turn.lock_city };
+    }
+    if (turn.detective_status && turn.detective_status !== "OK") {
+      return { effect: "none", city: null };
+    }
+    var action = String(turn.detective_action || "").trim();
+    var match = /^(fechar|liberar)\((.*)\)$/.exec(action);
+    if (!match) return { effect: "none", city: null };
+    return {
+      effect: match[1] === "fechar" ? "close" : "open",
+      city: unquoteAtom(match[2].trim())
+    };
+  }
+
+  function unquoteAtom(value) {
+    if (value.length >= 2) {
+      var first = value.charAt(0);
+      var last = value.charAt(value.length - 1);
+      if ((first === "'" && last === "'") ||
+          (first === '"' && last === '"')) {
+        return value.slice(1, -1);
+      }
+    }
+    return value;
+  }
+
+  function updateBlockedCities(blocked, effect, city, lockMode) {
+    if (effect === "close" && validCity(city)) {
+      if (lockMode === "single") return [city];
+      if (blocked.indexOf(city) !== -1) return blocked;
+      return blocked.concat([city]);
+    }
+    if (effect === "open" && validCity(city)) {
+      return blocked.filter(function (blockedCity) {
+        return blockedCity !== city;
+      });
+    }
+    return blocked;
   }
 
   function validCity(city) {
@@ -430,16 +528,74 @@
 
   function drawNodes(svg, pos) {
     var layer = group(svg);
+    var nodes = {};
     Object.keys(pos).forEach(function (city) {
       var p = pos[city];
       var node = group(layer);
-      node.appendChild(title(city));
-      node.appendChild(rect(
+      var nodeTitle = title(city);
+      var nodeRect = rect(
         p.x - p.w / 2, p.y - NODE_H / 2, p.w, NODE_H,
-        9, "#1e293b", "#64748b", 1.5
-      ));
-      var label = text(p.x, p.y, compactLabel(city), "#e2e8f0", 12, "600");
+        9, NODE_FILL, NODE_STROKE, 1.5
+      );
+      node.appendChild(nodeTitle);
+      node.appendChild(nodeRect);
+      var label = text(p.x, p.y, compactLabel(city), NODE_TEXT, 12, "600");
       node.appendChild(label);
+      nodes[city] = { rect: nodeRect, title: nodeTitle, label: label };
+    });
+    return nodes;
+  }
+
+  function paintNodes(
+    nodes,
+    blocked,
+    objectiveCity,
+    objectiveReady,
+    robberyCities
+  ) {
+    var blockedLookup = {};
+    (blocked || []).forEach(function (city) {
+      blockedLookup[city] = true;
+    });
+    var robberyLookup = {};
+    (robberyCities || []).forEach(function (city) {
+      robberyLookup[city] = true;
+    });
+    Object.keys(nodes).forEach(function (city) {
+      var isBlocked = Boolean(blockedLookup[city]);
+      var isReadyObjective = objectiveReady && city === objectiveCity;
+      var hasRobbery = Boolean(robberyLookup[city]);
+      var fill = NODE_FILL;
+      var stroke = NODE_STROKE;
+      var labelFill = NODE_TEXT;
+      var suffix = "";
+      if (isReadyObjective) {
+        fill = READY_FILL;
+        stroke = READY_STROKE;
+        suffix = " (objetivo liberado)";
+      }
+      if (hasRobbery) {
+        fill = ROBBERY_FILL;
+        stroke = ROBBERY_STROKE;
+        labelFill = ROBBERY_TEXT;
+        suffix = " (furto neste turno)";
+      }
+      if (isBlocked) {
+        fill = BLOCKED_FILL;
+        stroke = BLOCKED_STROKE;
+        labelFill = NODE_TEXT;
+        suffix = " (bloqueada)";
+      }
+      nodes[city].rect.setAttribute(
+        "fill",
+        fill
+      );
+      nodes[city].rect.setAttribute(
+        "stroke",
+        stroke
+      );
+      nodes[city].label.setAttribute("fill", labelFill);
+      nodes[city].title.textContent = city + suffix;
     });
   }
 

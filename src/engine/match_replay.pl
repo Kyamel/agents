@@ -219,6 +219,7 @@ setup_dict(gSt(Thief, Detective, Target, _Locks, _BOs, _Caught, MaxTurns),
         target: TargetText,
         disguises: Disguises,
         max_turns: MaxTurns,
+        lock_mode: "single",
         appearance: AppearanceText
     }.
 setup_dict(_Other, Scenario, _{scenario: Scenario}).

@@ -3,6 +3,7 @@
 :- use_module(library(apply)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/json)).
+:- use_module(library(pairs)).
 :- use_module('../../../engine/engine').
 :- use_module('../../../services/matches').
 :- use_module('../../views/page').
@@ -47,12 +48,19 @@ render_map_page(Request, Match) :-
     replay_field(Replay, setup, _{}, Setup),
     replay_field(Replay, turns, [], Turns),
     graph_for(Match.scenario, Cities, Edges),
-    map_start(Setup, StartThief, StartDetective),
+    map_start(Setup, StartThief, StartDetective, LockMode),
+    map_objective(Match.scenario, Setup, Objective),
     maplist(map_turn_frame, Turns, TurnFrames),
     Data = _{
         cities: Cities,
         edges: Edges,
-        start: _{ thief: StartThief, detective: StartDetective },
+        start: _{
+            thief: StartThief,
+            detective: StartDetective,
+            blocked: [],
+            lock_mode: LockMode
+        },
+        objective: Objective,
         turns: TurnFrames,
         winner: Match.winner
     },
@@ -81,7 +89,7 @@ render_map_page(Request, Match) :-
             ThiefInfo, DetectiveInfo
         ]),
         script([type('application/json'), id('match-map-data')], DataJson),
-        script([src('/assets/match_map.js')], [])
+        script([src('/assets/match_map.js?v=5')], [])
     ]).
 
 % Grafo do cenario, ou listas vazias se for desconhecido/ilegivel (ex.:
@@ -91,9 +99,20 @@ graph_for(Scenario, Cities, Edges) :-
     !.
 graph_for(_Scenario, [], []).
 
-map_start(Setup, Thief, Detective) :-
+map_start(Setup, Thief, Detective, LockMode) :-
     ( get_dict(thief_start, Setup, Thief0) -> Thief = Thief0 ; Thief = null ),
-    ( get_dict(detective_start, Setup, Det0) -> Detective = Det0 ; Detective = null ).
+    ( get_dict(detective_start, Setup, Det0) -> Detective = Det0 ; Detective = null ),
+    replay_field(Setup, lock_mode, "accumulate", LockMode).
+
+map_objective(Scenario, Setup, Objective) :-
+    get_dict(target, Setup, Target),
+    engine:scenario_treasure(Scenario, Target, City, Requirements),
+    !,
+    Objective = _{
+        city: City,
+        requirements: Requirements
+    }.
+map_objective(_, _, _{city: null, requirements: []}).
 
 % Projeta o turno do replay para o frame consumido pelo JS.
 map_turn_frame(Turn, Frame) :-
@@ -102,13 +121,71 @@ map_turn_frame(Turn, Frame) :-
     get_dict(detective_position, Turn, DetPos),
     get_dict(thief_action, Turn, ThiefAction),
     get_dict(detective_action, Turn, DetAction),
+    replay_field(Turn, detective_status, "", DetStatus),
+    replay_field(Turn, events, [], Events),
+    robbery_details(Events, StolenItems, RobberyCities),
+    map_lock_effect(DetAction, DetStatus, LockEffect, LockCity),
     Frame = _{
         turn: N,
         thief_pos: ThiefPos,
         detective_pos: DetPos,
         thief_action: ThiefAction,
-        detective_action: DetAction
+        detective_action: DetAction,
+        detective_status: DetStatus,
+        lock_effect: LockEffect,
+        lock_city: LockCity,
+        stolen_items: StolenItems,
+        robbery_cities: RobberyCities
     }.
+
+robbery_details(Events, Items, Cities) :-
+    findall(Item-City,
+            ( member(Event, Events),
+              get_dict(type, Event, "robbery"),
+              get_dict(item, Event, Item),
+              get_dict(city, Event, City)
+            ),
+            Pairs),
+    pairs_keys_values(Pairs, Items, Cities).
+
+% Converte as acoes validas do detetive em efeitos simples para o JavaScript.
+% O JavaScript aplica esses efeitos conforme a versao da engine registrada no
+% setup. Replays antigos acumulavam bloqueios; a engine atual mantem apenas um.
+map_lock_effect(ActionText, Status, "close", CityText) :-
+    status_ok(Status),
+    action_term(ActionText, fechar(City)),
+    !,
+    city_text(City, CityText).
+map_lock_effect(ActionText, Status, "open", CityText) :-
+    status_ok(Status),
+    action_term(ActionText, liberar(City)),
+    !,
+    city_text(City, CityText).
+map_lock_effect(_, _, "none", null).
+
+status_ok("OK").
+status_ok('OK').
+
+action_term(Term, Term) :-
+    compound(Term),
+    !.
+action_term(Text, Term) :-
+    string(Text),
+    catch(term_string(Term, Text), _, fail),
+    !.
+action_term(Atom, Term) :-
+    atom(Atom),
+    catch(atom_to_term(Atom, Term, _), _, fail).
+
+city_text(City, Text) :-
+    atom(City),
+    !,
+    atom_string(City, Text).
+city_text(City, City) :-
+    number(City),
+    !.
+city_text(City, Text) :-
+    term_string(City, Text).
 
 % Controles play/slider/intervalo; o JS liga tudo pelos ids `mm-*`.
 map_controls(Html) :-
@@ -137,15 +214,32 @@ map_controls(Html) :-
     ]).
 
 map_legend(Html) :-
-    ui:text_class(meta, 'flex items-center gap-5 mb-4', Class),
+    ui:text_class(
+        meta,
+        'grid grid-cols-2 gap-x-3 gap-y-2 mb-4 \c
+         sm:flex sm:flex-wrap sm:items-center sm:gap-x-5 sm:gap-y-2',
+        Class
+    ),
     Html = div([class(Class)], [
-        span([class('flex items-center gap-2')], [
-            span([class('inline-block w-3 h-3 rounded-full bg-amber-400')], []),
+        span([class('min-w-0 flex items-center gap-2 leading-tight')], [
+            span([class('inline-block shrink-0 w-3 h-3 rounded-full bg-amber-400')], []),
             'Rota do ladrão'
         ]),
-        span([class('flex items-center gap-2')], [
-            span([class('inline-block w-3 h-3 rounded-full bg-sky-400')], []),
+        span([class('min-w-0 flex items-center gap-2 leading-tight')], [
+            span([class('inline-block shrink-0 w-3 h-3 rounded-full bg-sky-400')], []),
             'Rota do detetive'
+        ]),
+        span([class('min-w-0 flex items-center gap-2 leading-tight')], [
+            span([class('inline-block shrink-0 w-3 h-3 rounded bg-red-500')], []),
+            'Cidade bloqueada'
+        ]),
+        span([class('min-w-0 flex items-center gap-2 leading-tight')], [
+            span([class('inline-block shrink-0 w-3 h-3 rounded bg-emerald-500')], []),
+            'Objetivo liberado'
+        ]),
+        span([class('min-w-0 flex items-center gap-2 leading-tight')], [
+            span([class('inline-block shrink-0 w-3 h-3 rounded bg-amber-400')], []),
+            'Evento de furto'
         ])
     ]).
 
