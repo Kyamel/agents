@@ -130,14 +130,13 @@ GREEN = "\033[32m"
 RED = "\033[31m"
 RESET = "\033[0m"
 
-
 def print_win_rates(
     rows: list[Row],
     thieves: list[Path],
     detectives: list[Path],
 ) -> None:
     print()
-    print("Taxas de vitória e derrota:")
+    print("Win rates:")
 
     for thief in thieves:
         thief_name = rel(thief)
@@ -163,19 +162,16 @@ def print_win_rates(
 
 
 def print_win_rate_line(label: str, rows: list[Row]) -> None:
-    total = len(rows)
     wins = sum(int(row["won"]) for row in rows)
     losses = sum(int(row["lost"]) for row in rows)
+    decided_matches = wins + losses
 
-    win_rate = wins / total if total else 0.0
-    loss_rate = losses / total if total else 0.0
+    win_rate = wins / decided_matches if decided_matches else 0.0
 
     print(
         f"{label}: "
-        f"vitórias {wins}/{total} "
-        f"({GREEN}{win_rate:.2%}{RESET}) | "
-        f"derrotas {losses}/{total} "
-        f"({RED}{loss_rate:.2%}{RESET})"
+        f"{GREEN}{win_rate:.2%}{RESET} "
+        f"({wins}/{decided_matches})"
     )
 
 def parse_args() -> argparse.Namespace:

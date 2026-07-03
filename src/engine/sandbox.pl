@@ -9,7 +9,7 @@
 validate_agent_source(SourceText) :-
     must_be(string, SourceText),
     blocked_pattern("initialization(", SourceText),
-    %blocked_pattern(":- use_module", SourceText),
+    blocked_pattern(":- use_module", SourceText),
     blocked_pattern("open(", SourceText),
     blocked_pattern("process_create(", SourceText),
     blocked_pattern("shell(", SourceText),
@@ -18,5 +18,5 @@ validate_agent_source(SourceText) :-
 blocked_pattern(Pattern, SourceText) :-
     sub_string(SourceText, _, _, _, Pattern),
     !,
-    throw(error(permission_error(load, agent_source, Pattern), _)).
+    throw(error(permission_error(load, agent_source, Pattern), _)). 
 blocked_pattern(_Pattern, _SourceText).
