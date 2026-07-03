@@ -1,14 +1,18 @@
-:- module(agents_service, [
-    delete_agent/3
+:- module(agents, [
+    delete_agent/3,
+    list_page/4,
+    list_page_with_owners/4,
+    public_view/2
 ]).
 
 :- use_module('../db/db').
 :- use_module('../engine/engine').
-:- use_module('../auth/scopes').
+:- use_module('./scopes').
+:- use_module(library(apply)).
 
 % Camada de servico do recurso "agente". Contem a regra de negocio e NUNCA
 % escreve resposta HTTP: devolve um Outcome (termo de dados) que cada rota
-% (web/api) traduz para o seu formato. Mesma logica serve aos dois mundos.
+% (web/api) traduz para o seu formato.
 
 %!  delete_agent(+User, +Id, -Outcome) is det.
 %
@@ -22,6 +26,51 @@ delete_agent(User, Id, Outcome) :-
     !,
     delete_active(User, Id, Agent, Outcome).
 delete_agent(_User, _Id, not_found).
+
+%!  list_page(+Page, +PerPage, -Agents, -Pagination) is det.
+%   Uma pagina de agentes (leitura direta, sem enriquecimento).
+list_page(Page, PerPage, Agents, Pagination) :-
+    db:list_agents_page(Page, PerPage, Agents, Pagination).
+
+%!  public_view(+Id, -Outcome) is det.
+%
+%   Visao publica de um agente. Outcome: agent(Public) | not_found. Agentes
+%   publicos expõem o codigo como `source`; privados mantem apenas metadados.
+%   `source_text` e detalhe interno do banco e nunca sai daqui.
+public_view(Id, agent(Public)) :-
+    db:get_agent(Id, Agent),
+    !,
+    public_agent(Agent, Public).
+public_view(_Id, not_found).
+
+public_agent(Agent, Public) :-
+    get_dict(source_text, Agent, Source),
+    del_dict(source_text, Agent, _, WithoutSourceText),
+    Agent.is_private == false,
+    !,
+    Public = WithoutSourceText.put(source, Source).
+public_agent(Agent, Public) :-
+    del_dict(source_text, Agent, _, Public),
+    !.
+public_agent(Agent, Agent).
+
+%!  list_page_with_owners(+Page, +PerPage, -Agents, -Pagination) is det.
+%
+%   Uma pagina de agentes, cada um enriquecido com `owner_email` (join com o
+%   dono). N+1 consciente: volumes pequenos no projeto.
+list_page_with_owners(Page, PerPage, AgentsRich, Pagination) :-
+    db:list_agents_page(Page, PerPage, Agents, Pagination),
+    maplist(with_owner_email, Agents, AgentsRich).
+
+with_owner_email(Agent, Rich) :-
+    owner_email(Agent, Email),
+    put_dict(owner_email, Agent, Email, Rich).
+
+owner_email(Agent, Email) :-
+    db:find_user_by_id(Agent.owner_user_id, Owner),
+    !,
+    Email = Owner.email.
+owner_email(_Agent, "").
 
 % Agente existe e esta ativo: decide entre excluir e negar.
 delete_active(User, Id, Agent, deleted(Id)) :-
