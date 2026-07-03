@@ -91,12 +91,12 @@ trava_prevista(Eventos, Lock) :-
 % alternativa mínima, seguimos o passo canônico (arriscar é melhor que empatar).
 rota_evasiva(Cidade, Target, Itens, Passo, PassoNovo) :-
     destino_do_passo(Cidade, Target, Itens, Passo, Destino),
-    baitt:distancia_bfs(Cidade, Destino, DAtual),
+    baitpromax:distancia_bfs(Cidade, Destino, DAtual),
     DAlvo is DAtual - 1,
     findall(W,
-        ( baitt:aresta_conhecida(Cidade, W),
+        ( baitpromax:aresta_conhecida(Cidade, W),
           W \== Passo,
-          baitt:distancia_bfs(W, Destino, DAlvo)
+          baitpromax:distancia_bfs(W, Destino, DAlvo)
         ),
         Alternativas),
     Alternativas \== [],
@@ -108,9 +108,9 @@ rota_evasiva(Cidade, Target, Itens, Passo, PassoNovo) :-
 % mínimo. Assim a rota alternativa termina exatamente onde o baitpromax queria.
 destino_do_passo(Cidade, Target, Itens, Passo, Destino) :-
     candidato_destino(Cidade, Target, Itens, Destino),
-    baitt:distancia_bfs(Cidade, Destino, DA),
+    baitpromax:distancia_bfs(Cidade, Destino, DA),
     DA > 0,
-    baitt:distancia_bfs(Passo, Destino, DP),
+    baitpromax:distancia_bfs(Passo, Destino, DP),
     DP =:= DA - 1,
     !.
 
@@ -119,8 +119,8 @@ candidato_destino(Cidade, Target, Itens, Destino) :-
     baitpromax:destino_diversificado(Cidade, Target, Itens, Destino).
 candidato_destino(_Cidade, Target, Itens, Destino) :-
     \+ member(Target, Itens),
-    baitt:proximo_objetivo(Target, Itens, Objeto),
-    baitt:cidade_do_objeto(Objeto, Destino).
+    baitpromax:proximo_objetivo(Target, Itens, Objeto),
+    baitpromax:cidade_do_objeto(Objeto, Destino).
 
 
 % ============================================================

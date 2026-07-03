@@ -30,10 +30,10 @@ ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto,
 % as clausulas de isca do baitt nunca disparem — o ladrão persegue só a cadeia
 % real do tesouro-alvo.
 desligar_isca :-
-    retractall(baitt:tesouro_isca(_)),
-    assertz(baitt:tesouro_isca(nenhum)),
-    retractall(baitt:itens_isca(_)),
-    assertz(baitt:itens_isca([])).
+    retractall(baitpromax:tesouro_isca(_)),
+    assertz(baitpromax:tesouro_isca(nenhum)),
+    retractall(baitpromax:itens_isca(_)),
+    assertz(baitpromax:itens_isca([])).
 
 
 ladrao_action(Eventos, Estado, Acao) :-
