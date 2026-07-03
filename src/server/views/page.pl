@@ -161,7 +161,7 @@ nav(anon, Nav) :-
     ui:text_class(normal, 'font-bold mr-2 hover:underline underline-offset-2', BrandClass),
     ui:text_class(meta, MetaClass),
     ui:link_class(MetaClass, NavClass),
-    ui:text_class(meta, 'text-surface-300 hover:text-white', EntrarClass),
+    ui:text_class(meta, 'text-surface-300 hover:underline', EntrarClass),
     ui:text_class(meta,
                   'rounded-lg bg-ufop-600 px-3 py-1.5 font-semibold hover:bg-ufop-500',
                   SignupClass),

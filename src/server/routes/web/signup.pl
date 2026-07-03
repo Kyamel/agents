@@ -40,11 +40,6 @@ process_signup(Request, Username, Email, Password, ConfirmPassword) :-
     !,
     render_error(Request, Username, Email, "As senhas não conferem.").
 process_signup(Request, Username, Email, Password, _) :-
-    string_length(Password, Length),
-    Length < 6,
-    !,
-    render_error(Request, Username, Email, "A senha deve ter ao menos 6 caracteres.").
-process_signup(Request, Username, Email, Password, _) :-
     safe_signup(Username, Email, Password, Outcome),
     handle_outcome(Outcome, Request, Username, Email).
 
@@ -64,6 +59,11 @@ handle_outcome(invalid_username, Request, Username, Email) :-
     render_error(Request, Username, Email,
         "O nome de usuário deve ter entre 3 e 60 caracteres e usar apenas \c
          letras, números, espaços, _, - ou .").
+handle_outcome(invalid_email, Request, Username, Email) :-
+    render_error(Request, Username, Email, "Informe um email válido.").
+handle_outcome(invalid_password, Request, Username, Email) :-
+    render_error(Request, Username, Email,
+        "A senha deve ter entre 6 e 128 caracteres.").
 handle_outcome(email_exists, Request, Username, Email) :-
     render_error(Request, Username, Email, "Esse email já está cadastrado.").
 handle_outcome(failed, Request, Username, Email) :-

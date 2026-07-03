@@ -650,9 +650,8 @@
       },
       "CreateAgentRequest": {
         "type": "object",
-        "description": "O nome do agente é extraído da diretiva `:- module(Nome, Exports).` no código Prolog.",
+        "description": "O nome e o papel do agente são derivados da diretiva `:- module(Nome, Exports).` do código Prolog: ladrão exporta `ladrao_action/3` e `ladrao_preload/7`; detetive exporta `detetive_action/3` e `detetive_preload/5`.",
         "properties": {
-          "role": { "type": "string", "enum": ["thief", "detective"] },
           "private": {
             "type": "boolean",
             "default": false,
@@ -663,7 +662,7 @@
             "example": ":- module('agenteL', [ladrao_action/3, ladrao_preload/7])."
           }
         },
-        "required": ["role", "source"]
+        "required": ["source"]
       },
       "CreateAgentResponse": {
         "type": "object",

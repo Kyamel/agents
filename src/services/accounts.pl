@@ -28,13 +28,19 @@ verify_password(Plain, Hash) :-
 %   `invalid_username`, `email_exists` ou `created(UserId, MailStatus)`.
 signup(UsernameRaw, EmailRaw, Password, Outcome) :-
     normalize_username(UsernameRaw, Username),
-    signup_validated(Username, EmailRaw, Password, Outcome).
+    normalize_email(EmailRaw, Email),
+    signup_validated(Username, Email, Password, Outcome).
 
-signup_validated(Username, _EmailRaw, _Password, invalid_username) :-
+signup_validated(Username, _Email, _Password, invalid_username) :-
     \+ valid_username(Username),
     !.
-signup_validated(Username, EmailRaw, Password, Outcome) :-
-    string_lower(EmailRaw, Email),
+signup_validated(_Username, Email, _Password, invalid_email) :-
+    \+ valid_email(Email),
+    !.
+signup_validated(_Username, _Email, Password, invalid_password) :-
+    \+ valid_password(Password),
+    !.
+signup_validated(Username, Email, Password, Outcome) :-
     do_signup(Username, Email, Password, Outcome).
 
 valid_username(Username) :-
@@ -49,6 +55,33 @@ valid_username_code(32).  % espaco
 valid_username_code(95).  % _
 valid_username_code(45).  % -
 valid_username_code(46).  % .
+
+% Validacao pragmatica de email (nao e RFC 5322 completa, mas barra lixo obvio
+% antes de gravar e tentar enviar a verificacao): 3..254 chars, sem espacos, um
+% unico '@' com partes nao vazias e um dominio com ponto interno.
+valid_email(Email) :-
+    string(Email),
+    string_length(Email, Len),
+    between(3, 254, Len),
+    \+ sub_string(Email, _, _, _, " "),
+    split_string(Email, "@", "", [Local, Domain]),
+    Local \== "",
+    Domain \== "",
+    sub_string(Domain, _, _, _, "."),
+    \+ sub_string(Domain, 0, 1, _, "."),
+    \+ sub_string(Domain, _, 1, 0, ".").
+
+% Politica de senha compartilhada por API e web: 6..128 caracteres.
+valid_password(Password) :-
+    string(Password),
+    string_length(Password, Len),
+    between(6, 128, Len).
+
+normalize_email(Raw, Email) :-
+    string(Raw),
+    !,
+    string_lower(Raw, Email).
+normalize_email(_Raw, "").
 
 normalize_username(Raw, Normalized) :-
     string(Raw),

@@ -27,39 +27,46 @@ render(_Request, created(Agent),
        json(201, _{status: "created", agent: Agent})).
 render(_Request, email_not_verified,
        json(403, _{error: "email_not_verified_or_user_not_found"})).
-render(_Request, invalid_role,
-       json(422, _{error: "invalid_role"})).
+render(_Request, invalid_agent_role,
+       json(422, _{error: "invalid_agent_role_exports"})).
 render(_Request, missing_module_directive,
        json(422, _{error: "missing_module_directive"})).
 render(_Request, invalid_agent_module_name,
        json(422, _{error: "invalid_agent_module_name"})).
 render(_Request, invalid_prolog_source,
        json(422, _{error: "invalid_prolog_source"})).
+render(_Request, blocked_source,
+       json(422, _{error: "blocked_source_pattern"})).
 
 create_agent(User, _Request, email_not_verified) :-
     User.is_verified \== true,
     !.
 create_agent(User, Request, Outcome) :-
     json_request:read_json_body(Request, Body),
-    json_request:require_string(Body, role, Role),
     json_request:require_string(Body, source, Source),
     optional_private(Body, IsPrivate),
     id_string(User.id, UserIdStr),
-    catch(register(UserIdStr, Role, Source, IsPrivate, Outcome),
+    catch(register(UserIdStr, Source, IsPrivate, Outcome),
           Error,
           register_error(Error, Outcome)).
 
-register(UserIdStr, Role, Source, IsPrivate, created(Agent)) :-
-    engine:register_agent_source_from_module(UserIdStr, Role, Source, IsPrivate, Agent).
+% O papel e o nome sao derivados da diretiva module/2 do codigo (nao de um
+% campo do corpo). A clausula de fallback traduz falha silenciosa (ex.: codigo
+% acima do limite de bytes) num 422 em vez de um 500 sem corpo.
+register(UserIdStr, Source, IsPrivate, created(Agent)) :-
+    engine:register_agent_source_from_module(UserIdStr, Source, IsPrivate, Agent),
+    !.
+register(_UserIdStr, _Source, _IsPrivate, invalid_prolog_source).
 
 % Traduz erros especificos do registro para outcomes; corpo invalido (http_reply)
 % e o resto sobem e caem no tratamento comum de api_endpoint.
-register_error(error(domain_error(role, _), _), invalid_role) :- !.
+register_error(error(domain_error(agent_role_exports, _), _), invalid_agent_role) :- !.
 register_error(error(domain_error(agent_module_directive, _), _),
                missing_module_directive) :- !.
 register_error(error(domain_error(agent_name, _), _),
                invalid_agent_module_name) :- !.
 register_error(error(syntax_error(_), _), invalid_prolog_source) :- !.
+register_error(error(permission_error(load, agent_source, _), _), blocked_source) :- !.
 register_error(Error, _) :- throw(Error).
 
 id_string(Id, Id) :- string(Id), !.

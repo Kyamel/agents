@@ -17,6 +17,8 @@ handle(post, Request, _User, _Params, Outcome) :-
 
 signup_outcome(_Username, email_exists, email_exists).
 signup_outcome(_Username, invalid_username, invalid_username).
+signup_outcome(_Username, invalid_email, invalid_email).
+signup_outcome(_Username, invalid_password, invalid_password).
 signup_outcome(Username, created(UserId, MailStatus0),
                created(NormalizedUsername, UserId, MailStatus)) :-
     accounts:normalize_username(Username, NormalizedUsername),
@@ -28,6 +30,16 @@ render(_Request, invalid_username,
            error: "invalid_username",
            message: "username must contain 3-60 characters and only letters, \c
                      numbers, spaces, underscores, hyphens or dots"
+       })).
+render(_Request, invalid_email,
+       json(400, _{
+           error: "invalid_email",
+           message: "provide a valid email address"
+       })).
+render(_Request, invalid_password,
+       json(400, _{
+           error: "invalid_password",
+           message: "password must contain between 6 and 128 characters"
        })).
 render(_Request, created(Username, UserId, MailStatus),
        json(201, _{
