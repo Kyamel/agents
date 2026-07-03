@@ -2,10 +2,7 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/html_write)).
-:- use_module(library(http/json)).
-:- use_module(library(apply)).
-:- use_module('../../../db/db').
-:- use_module('../../../engine/engine').
+:- use_module('../../../services/matches').
 :- use_module('../../views/page').
 :- use_module('../../views/match_card').
 :- use_module('../../views/match_detail').
@@ -16,10 +13,6 @@
 % Prefix em /matches/ para capturar /matches/<id>. /matches/new tem handler
 % proprio (mais especifico) e ganha por especificidade.
 :- http_handler('/matches/', handler, [method(get), prefix]).
-
-% =============================
-% Handler
-% =============================
 
 handler(Request) :-
     memberchk(path(Path), Request),
@@ -38,59 +31,33 @@ extract_id(Path, Id) :-
     Id \== new,
     \+ sub_atom(Id, _, _, _, '/').
 
-% =============================
-% Logica (DB)
-% =============================
-
+% Resolucao da partida (dados + estado) vive no service; aqui so escolhemos a
+% pagina. A pagina nao atualiza sozinha; o usuario recarrega pelo link "Atualizar".
 load_and_render(Request, Id) :-
-    db:get_match(Id, Match),
-    !,
-    render_for_status(Request, Id, Match).
-load_and_render(Request, _) :-
-    render_not_found(Request).
+    matches:match_detail(Id, Outcome),
+    render_outcome(Outcome, Request).
 
-% Partida concluida: replay completo. Caso contrario (na fila/executando/falha):
-% painel de status. A pagina nao atualiza sozinha; o usuario recarrega quando
-% quiser pelo link "Atualizar".
-render_for_status(Request, _Id, Match) :-
-    Match.status == "done",
+render_outcome(done(Match), Request) :-
     !,
     render_done(Request, Match).
-render_for_status(Request, Id, Match) :-
-    engine:job_info(Id, Info),
+render_outcome(progress(Match, Status, Elapsed), Request) :-
     !,
-    render_progress(Request, Match, Info.status, Info.elapsed_seconds).
-render_for_status(Request, _Id, Match) :-
-    render_progress(Request, Match, Match.status, "-").
+    render_progress(Request, Match, Status, Elapsed).
+render_outcome(not_found, Request) :-
+    render_not_found(Request).
 
 render_done(Request, Match) :-
-    agent_display_name(Match.thief_agent_id, ThiefName),
-    agent_display_name(Match.detective_agent_id, DetectiveName),
-    replay_data(Match.replay_json, Replay),
+    matches:agent_display_name(Match.thief_agent_id, ThiefName),
+    matches:agent_display_name(Match.detective_agent_id, DetectiveName),
+    matches:decode_replay(Match.replay_json, Replay),
     render_detail(Request, Match, ThiefName, DetectiveName, Replay).
-
-agent_display_name(AgentId, Name) :-
-    db:get_agent(AgentId, Agent),
-    !,
-    Name = Agent.name.
-agent_display_name(AgentId, AgentId).
-
-% Decodifica o replay; dict vazio se o JSON faltar ou estiver corrompido.
-replay_data(ReplayJson, Replay) :-
-    catch(atom_json_dict(ReplayJson, Replay, []), _, fail),
-    is_dict(Replay),
-    !.
-replay_data(_, _{}).
 
 replay_field(Replay, Key, _Default, Value) :-
     get_dict(Key, Replay, Value),
     !.
 replay_field(_Replay, _Key, Default, Default).
 
-% =============================
 % Resposta (HTML)
-% =============================
-
 render_detail(Request, Match, ThiefName, DetectiveName, Replay) :-
     replay_field(Replay, turns, [], Turns),
     replay_field(Replay, events, [], Events),
@@ -125,12 +92,12 @@ render_detail(Request, Match, ThiefName, DetectiveName, Replay) :-
 % Painel para partidas nao concluidas (fila/execucao) ou que falharam
 % (timeout/erro). Nao recarrega sozinha: ha um link "Atualizar".
 render_progress(Request, Match, Status, Elapsed) :-
-    agent_display_name(Match.thief_agent_id, ThiefName),
-    agent_display_name(Match.detective_agent_id, DetectiveName),
+    matches:agent_display_name(Match.thief_agent_id, ThiefName),
+    matches:agent_display_name(Match.detective_agent_id, DetectiveName),
     elapsed_text(Elapsed, ElapsedText),
     status_banner(Status, Banner),
     page_section:back_link('/matches', 'Voltar para partidas', BackLink),
-    stat_card('Ladrao', ThiefName, ThiefCard),
+    stat_card('Ladrão', ThiefName, ThiefCard),
     stat_card('Detetive', DetectiveName, DetectiveCard),
     stat_card('Tempo decorrido', ElapsedText, TimeCard),
     atom_concat('/matches/', Match.id, SelfLink),
@@ -163,17 +130,17 @@ status_banner(Status, Html) :-
     ]).
 
 status_meta("queued", 'Na fila',
-    'Aguardando um worker disponivel para iniciar a execucao.',
+    'Aguardando um worker disponível para iniciar a execução.',
     'rounded-xl bg-amber-950 p-4 border border-amber-800 text-amber-200') :- !.
-status_meta("running", 'Em execucao',
-    'A engine esta processando esta partida.',
+status_meta("running", 'Em execução',
+    'A engine está processando esta partida.',
     'rounded-xl bg-sky-950 p-4 border border-sky-800 text-sky-200') :- !.
 status_meta("timeout", 'Tempo esgotado',
     'A partida excedeu o limite de tempo e foi interrompida.',
     'rounded-xl bg-rose-950 p-4 border border-rose-800 text-rose-200') :- !.
-status_meta("error", 'Falha na execucao',
+status_meta("error", 'Falha na execução',
     'Ocorreu um erro ao executar esta partida.',
     'rounded-xl bg-rose-950 p-4 border border-rose-800 text-rose-200') :- !.
 status_meta(_Other, 'Status desconhecido',
-    'O estado desta partida nao pode ser determinado.',
+    'O estado desta partida não pode ser determinado.',
     'rounded-xl bg-surface-900 p-4 border border-surface-700 text-surface-200').

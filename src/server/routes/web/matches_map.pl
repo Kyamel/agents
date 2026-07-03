@@ -3,8 +3,8 @@
 :- use_module(library(apply)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/json)).
-:- use_module('../../../db/db').
 :- use_module('../../../engine/engine').
+:- use_module('../../../services/matches').
 :- use_module('../../views/page').
 :- use_module('../../views/match_detail', [render_not_found/1]).
 :- use_module('../../views/page_section').
@@ -24,19 +24,6 @@ extract_id(Path, Id) :-
     atom_concat('/map/', Id, Path),
     Id \== ''.
 
-agent_display_name(AgentId, Name) :-
-    db:get_agent(AgentId, Agent),
-    !,
-    Name = Agent.name.
-agent_display_name(AgentId, AgentId).
-
-% Decodifica o replay; dict vazio se o JSON faltar ou estiver corrompido.
-replay_data(ReplayJson, Replay) :-
-    catch(atom_json_dict(ReplayJson, Replay, []), _, fail),
-    is_dict(Replay),
-    !.
-replay_data(_, _{}).
-
 replay_field(Replay, Key, _Default, Value) :-
     get_dict(Key, Replay, Value),
     !.
@@ -47,7 +34,7 @@ replay_field(_Replay, _Key, Default, Default).
 % =============================
 
 render_map(Request, Id) :-
-    db:get_match(Id, Match),
+    matches:find_match(Id, Match),
     !,
     render_map_page(Request, Match).
 render_map(Request, _Id) :-
@@ -56,7 +43,7 @@ render_map(Request, _Id) :-
 % Serializa o grafo do cenario e as posicoes turno-a-turno como JSON e delega
 % o desenho/animacao ao asset estatico /assets/match_map.js.
 render_map_page(Request, Match) :-
-    replay_data(Match.replay_json, Replay),
+    matches:decode_replay(Match.replay_json, Replay),
     replay_field(Replay, setup, _{}, Setup),
     replay_field(Replay, turns, [], Turns),
     graph_for(Match.scenario, Cities, Edges),
@@ -70,20 +57,20 @@ render_map_page(Request, Match) :-
         winner: Match.winner
     },
     atom_json_dict(DataJson, Data, [width(0)]),
-    agent_display_name(Match.thief_agent_id, ThiefName),
-    agent_display_name(Match.detective_agent_id, DetectiveName),
+    matches:agent_display_name(Match.thief_agent_id, ThiefName),
+    matches:agent_display_name(Match.detective_agent_id, DetectiveName),
     atom_concat('/matches/', Match.id, DetailLink),
     page_section:back_link(DetailLink, 'Voltar para a partida', BackLink),
     map_controls(Controls),
     map_legend(Legend),
-    map_info_card('mm-thief', amber, 'Ladrao', ThiefInfo),
+    map_info_card('mm-thief', amber, 'Ladrão', ThiefInfo),
     map_info_card('mm-detective', sky, 'Detetive', DetectiveInfo),
     ui:surface_class('mb-6 overflow-hidden', GraphClass),
     page:reply_page(Request, 'Mapa da partida', [
         BackLink,
         h1([class('text-2xl font-bold mt-3 mb-1')], 'Mapa da partida'),
         p([class('text-surface-400 text-sm mb-5')], [
-            'Ladrao: ', b([], ThiefName), '  •  Detetive: ', b([], DetectiveName)
+            'Ladrão: ', b([], ThiefName), '  •  Detetive: ', b([], DetectiveName)
         ]),
         Legend,
         Controls,
@@ -132,7 +119,7 @@ map_controls(Html) :-
                class('flex-1 accent-ufop-500')]),
         span([id('mm-turn-label'),
               class('font-mono text-sm text-surface-300 min-w-[5rem] text-center')],
-             'Inicio'),
+             'Início'),
         label([class('text-sm text-surface-400 flex items-center gap-2 ml-auto')], [
             'Intervalo',
             input([type(number), id('mm-interval'), value(800), min(100),
@@ -146,7 +133,7 @@ map_controls(Html) :-
 map_legend(div([class('flex items-center gap-5 mb-4 text-sm')], [
         span([class('flex items-center gap-2')], [
             span([class('inline-block w-3 h-3 rounded-full bg-amber-400')], []),
-            'Ladrao'
+            'Ladrão'
         ]),
         span([class('flex items-center gap-2')], [
             span([class('inline-block w-3 h-3 rounded-full bg-sky-400')], []),

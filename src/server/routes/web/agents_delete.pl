@@ -1,22 +1,28 @@
 :- module(route_agents_delete, []).
 
-:- use_module('../../framework/endpoint').
+:- use_module(library(http/http_dispatch)).
+:- use_module('../../http/web_session').
 :- use_module('../../../services/agents').
 
 % Endpoint web de exclusao de agente. Mesma logica do service que a API usa; muda
-% so a auth (cookie de sessao) e o formato da resposta. O botao no card faz um
-% fetch DELETE aqui e remove o cartao no 200.
+% so a auth (cookie de sessao) e o formato da resposta (status puro, sem JSON). O
+% botao no card faz um fetch DELETE aqui e remove o cartao no 200.
+:- http_handler(root(agents/Id/delete), handler(Id), [methods([post, delete])]).
 
-style(web).
-endpoint_methods([post, delete]).
-endpoint_path(root(agents/Id/delete), [id-Id]).
-endpoint_auth(session).
+handler(Id, Request) :-
+    web_session:require_user(Request, User),
+    agents:delete_agent(User, Id, Outcome),
+    reply(Outcome).
 
-handle(_Request, User, Params, Outcome) :-
-    agents_service:delete_agent(User, Params.id, Outcome).
+reply(deleted(_)) :-
+    format("Status: 200 OK~n"),
+    format("Content-Type: text/html; charset=UTF-8~n~n").
+reply(forbidden) :-
+    reply_text(403, "Sem permissão para excluir este agente.").
+reply(not_found) :-
+    reply_text(404, "Agente não encontrado.").
 
-render(deleted(_), empty(200)).
-render(forbidden,  text(403, "Sem permissao para excluir este agente.")).
-render(not_found,  text(404, "Agente nao encontrado.")).
-
-:- endpoint:mount(route_agents_delete).
+reply_text(Status, Text) :-
+    format("Status: ~w~n", [Status]),
+    format("Content-Type: text/plain; charset=UTF-8~n~n"),
+    format("~w~n", [Text]).
