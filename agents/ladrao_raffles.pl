@@ -1,7 +1,7 @@
-:- module(ladrao_raffles, [
-    ladrao_preload/7,
-    ladrao_action/3
-]).
+% ============================================================
+% Nome: Mayker Anselmo Brito Lellis     Matrícula: 22.2.8008 
+% Nome: Lucas dos Anjos Camelo          Matrícula: 22.2.8002
+% ============================================================
 
 % ============================================================
 % AGENTE LADRAO: ladrao_raffles
@@ -36,6 +36,13 @@
 %             > tesouro > isca > cadeia real (com diversificacao)
 %             * contra-medida intercepta a sequência de itens do objetivo principal quando aplicavel
 % ============================================================
+
+
+:- module(ladrao_raffles, [
+    ladrao_preload/7,
+    ladrao_action/3
+]).
+
 
 :- dynamic aresta_conhecida/2.
 :- dynamic item_conhecido/3.
