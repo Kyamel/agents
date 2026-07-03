@@ -23,7 +23,7 @@ index_page(Request) :-
               '3. Crie partidas',
               'Coloque dois agentes para disputar e acompanhe o resultado.', Step3),
     button_link:button_link('/docs', 'Documentação da API', DocsButton),
-    ui:text_class(emphasis,'', SubTitleClass),
+    ui:text_class(emphasis,'text-surface-300 max-w-3xl', SubTitleClass),
     page:reply_page(Request, 'Scotland Yard', [
         section([class('mb-8')], [
             h1([class(HeroTitleClass)], 'Scotland Yard em Prolog'),

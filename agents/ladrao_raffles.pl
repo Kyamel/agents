@@ -46,7 +46,7 @@
 
 :- dynamic aresta_conhecida/2.
 :- dynamic item_conhecido/3.
-:- dynamic tesouro_conhecido/3.CidadeReal
+:- dynamic tesouro_conhecido/3.
 :- dynamic suspeito_conhecido/1.
 :- dynamic objetivo_atual/1.
 :- dynamic tesouro_isca/1.
