@@ -6,6 +6,7 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_cors)).
 :- use_module('../config').
+:- use_module('./http/access_log').
 
 % Rotas web
 :- use_module('./routes/web/static').
