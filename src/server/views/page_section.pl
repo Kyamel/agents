@@ -1,11 +1,24 @@
 :- module(page_section, [
     top_bar/3,
     page_heading/3,
+    eyebrow_heading/3,
     back_link/3,
     empty_state/2
 ]).
 
 :- use_module(ui).
+
+% Eyebrow (rotulo curto em maiusculas) acima de um titulo de secao. Usado em
+% paginas de conteudo (about) para separar blocos.
+eyebrow_heading(Eyebrow, Title, Html) :-
+    ui:text_class(meta,
+                  'text-surface-500 uppercase tracking-wide font-semibold mb-1',
+                  EyebrowClass),
+    ui:text_class(section, TitleClass),
+    Html = div([class('mb-5')], [
+        p([class(EyebrowClass)], Eyebrow),
+        h2([class(TitleClass)], Title)
+    ]).
 
 % Cabecalho de listagem com CTA opcional na direita.
 top_bar(Title, ActionHtml, Html) :-

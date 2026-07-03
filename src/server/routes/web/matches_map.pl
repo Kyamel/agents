@@ -119,10 +119,9 @@ map_controls(Html) :-
     ui:text_class(meta,
                   'text-surface-400 flex items-center gap-2 ml-auto',
                   IntervalClass),
+    ui:primary_button_class('rounded-lg px-4 py-2', PlayClass),
     Html = div([class(CardClass)], [
-        button([type(button), id('mm-play'),
-                class('rounded-lg bg-ufop-600 px-4 py-2 font-semibold \c
-                       hover:bg-ufop-500')], 'Reproduzir'),
+        button([type(button), id('mm-play'), class(PlayClass)], 'Reproduzir'),
         input([type(range), id('mm-slider'), min(0), max(0), value(0), step(1),
                class('flex-1 accent-ufop-500')]),
         span([id('mm-turn-label'), class(TurnClass)],

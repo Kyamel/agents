@@ -16,12 +16,7 @@ agent_card(Agent, CurrentUser, Html) :-
     actions(Agent, CurrentUser, ActionsHtml),
     ui:text_class(emphasis, 'break-words', NameClass),
     ui:text_class(meta, 'text-surface-500 font-mono', IdClass),
-    ui:text_class(meta, BadgeTextClass),
-    atomic_list_concat(
-        ['rounded-full bg-surface-800 text-surface-300 px-2.5 py-1', BadgeTextClass],
-        ' ',
-        RoleBadgeClass
-    ),
+    ui:pill_class(neutral, RoleBadgeClass),
     format(atom(DomId), 'agent-card-~w', [Agent.id]),
     ui:surface_class('px-3.5 py-3', CardClass),
     Html = div([id(DomId), class(CardClass)], [
@@ -80,7 +75,7 @@ stats_line(_Agent, '').
 record_line(Stats, [W, Sep, L, Sep, D]) :-
     Sep = span([class('text-surface-600')], ' - '),
     stat_part(Stats.wins,   'V', 'text-emerald-300', W),
-    stat_part(Stats.losses, 'D', 'text-red-300',     L),
+    stat_part(Stats.losses, 'D', 'text-rose-300',     L),
     stat_part(Stats.draws,  'E', 'text-surface-300', D).
 
 stat_part(Value, Label, ColorClass, span([], [
@@ -93,11 +88,7 @@ stat_part(Value, Label, ColorClass, span([], [
 privacy_badge(Agent, Html) :-
     get_dict(is_private, Agent, true),
     !,
-    ui:text_class(
-        meta,
-        'rounded-full bg-surface-950 text-surface-400 px-2.5 py-1 border border-surface-800',
-        Class
-    ),
+    ui:pill_class(muted, Class),
     Html = span([class(Class)],
                 'Privado').
 privacy_badge(_, '').
@@ -111,9 +102,9 @@ actions(Agent, CurrentUser, Html) :-
     delete_onclick(Agent.id, OnClick),
     ui:text_class(
         meta,
-        'rounded-md bg-red-950 px-2.5 py-1 font-semibold text-red-200 \c
-         border border-red-900 hover:bg-red-900 hover:border-red-700 \c
-         focus:outline-none focus:ring-2 focus:ring-red-500/40',
+        'rounded-md bg-rose-950 px-2.5 py-1 font-semibold text-rose-200 \c
+         border border-rose-900 hover:bg-rose-900 hover:border-rose-700 \c
+         focus:outline-none focus:ring-2 focus:ring-rose-500/40',
         ButtonClass
     ),
     Html = button([

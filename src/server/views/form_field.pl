@@ -122,9 +122,10 @@ checked_attr(true, [checked(checked)]) :- !.
 checked_attr(_, []).
 
 submit_button(Label, Html) :-
+    ui:primary_button_class('w-full rounded-xl px-4 py-2.5 text-center', Class),
     Html = button(
         [ type(submit),
-          class('w-full rounded-xl bg-ufop-600 px-4 py-2.5 font-semibold text-white hover:bg-ufop-500')
+          class(Class)
         ],
         Label
     ).

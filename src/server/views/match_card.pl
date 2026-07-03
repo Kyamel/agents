@@ -57,15 +57,7 @@ winner_label(detective, 'Vitória do detetive', Class) :- !, badge_class(sky, Cl
 winner_label("detective", 'Vitória do detetive', Class) :- !, badge_class(sky, Class).
 winner_label(_, 'Empate', Class) :- badge_class(slate, Class).
 
-badge_class(amber, Class) :-
-    ui:text_class(meta,
-        'rounded-full bg-amber-950 text-amber-300 px-2.5 py-1 whitespace-nowrap', Class).
-badge_class(emerald, Class) :-
-    ui:text_class(meta,
-        'rounded-full bg-emerald-950 text-emerald-300 px-2.5 py-1 whitespace-nowrap', Class).
-badge_class(sky, Class) :-
-    ui:text_class(meta,
-        'rounded-full bg-sky-950 text-sky-300 px-2.5 py-1 whitespace-nowrap', Class).
-badge_class(slate, Class) :-
-    ui:text_class(meta,
-        'rounded-full bg-surface-800 text-surface-300 px-2.5 py-1 whitespace-nowrap', Class).
+badge_class(amber, Class)   :- ui:pill_class(amber, Class).
+badge_class(emerald, Class) :- ui:pill_class(emerald, Class).
+badge_class(sky, Class)     :- ui:pill_class(sky, Class).
+badge_class(slate, Class)   :- ui:pill_class(neutral, Class).

@@ -154,15 +154,11 @@ winner_accent(detective, sky) :- !.
 winner_accent("detective", sky) :- !.
 winner_accent(_, slate).
 
-winner_card_class(thief, C) :- !, amber_card(C).
-winner_card_class("thief", C) :- !, amber_card(C).
-winner_card_class(detective, C) :- !, sky_card(C).
-winner_card_class("detective", C) :- !, sky_card(C).
-winner_card_class(_, 'rounded-xl bg-surface-900 p-4 border border-surface-700 text-surface-200').
-
-amber_card('rounded-xl bg-amber-950 p-4 border border-amber-800 text-amber-200').
-emerald_card('rounded-xl bg-emerald-950 p-4 border border-emerald-800 text-emerald-200').
-sky_card('rounded-xl bg-sky-950 p-4 border border-sky-800 text-sky-200').
+winner_card_class(thief, C) :- !, ui:tinted_card_class(amber, C).
+winner_card_class("thief", C) :- !, ui:tinted_card_class(amber, C).
+winner_card_class(detective, C) :- !, ui:tinted_card_class(sky, C).
+winner_card_class("detective", C) :- !, ui:tinted_card_class(sky, C).
+winner_card_class(_, C) :- ui:tinted_card_class(neutral, C).
 
 turns_table([], Html) :-
     !,

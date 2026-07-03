@@ -149,25 +149,25 @@ ufop_logo_mark(span([class(Class)], 'UFOP')) :-
     ui:text_class(emphasis, 'text-ufop-500 shrink-0', Class).
 
 footer_link(Href, Label, Html) :-
-    ui:text_class(meta,
-                  'hover:text-ufop-400 transition underline underline-offset-2',
-                  Class),
+    ui:muted_link_class(Hover),
+    ui:text_class(meta, Hover, Class),
     Html = a([ href(Href), target('_blank'), rel('noopener noreferrer'),
                class(Class) ], Label).
 
 % Barra de navegacao; os links variam conforme a sessao (anon vs logado).
 nav(anon, Nav) :-
     !,
-    ui:text_class(normal, 'font-bold mr-2 hover:underline underline-offset-2', BrandClass),
+    ui:muted_link_class('font-bold mr-2', BrandHover),
+    ui:text_class(normal, BrandHover, BrandClass),
     ui:text_class(meta, MetaClass),
     ui:link_class(MetaClass, NavClass),
-    ui:text_class(meta, 'text-surface-300 hover:underline', EntrarClass),
-    ui:text_class(meta,
-                  'rounded-lg bg-ufop-600 px-3 py-1.5 font-semibold hover:bg-ufop-500',
-                  SignupClass),
+    ui:muted_link_class('text-surface-300', EntrarHover),
+    ui:text_class(meta, EntrarHover, EntrarClass),
+    ui:primary_button_class('rounded-lg px-3 py-1.5', SignupButtonClass),
+    ui:text_class(meta, SignupButtonClass, SignupClass),
     Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2')], [
         a([href('/'), class(BrandClass)], 'Scotland Yard'),
-        a([href('/about/'), class(NavClass)], 'Sobre'),
+        a([href('/about'), class(NavClass)], 'Sobre'),
         a([href('/agents'), class(NavClass)], 'Agentes'),
         a([href('/matches'), class(NavClass)], 'Partidas'),
         div([class('ml-auto flex items-center gap-3')], [
@@ -177,16 +177,16 @@ nav(anon, Nav) :-
     ]).
 nav(User, Nav) :-
     format(atom(ProfileHref), '/users/~w', [User.id]),
-    ui:text_class(normal, 'font-bold mr-2 hover:underline underline-offset-2', BrandClass),
+    ui:muted_link_class('font-bold mr-2', BrandHover),
+    ui:text_class(normal, BrandHover, BrandClass),
     ui:text_class(meta, MetaClass),
     ui:link_class(MetaClass, NavClass),
-    ui:text_class(meta,
-                  'text-surface-500 hidden sm:inline hover:underline underline-offset-2',
-                  ProfileClass),
+    ui:muted_link_class('text-surface-500 hidden sm:inline', ProfileHover),
+    ui:text_class(meta, ProfileHover, ProfileClass),
     ui:text_class(meta, 'rounded-lg bg-surface-800 px-3 py-1.5 hover:bg-surface-700', SairClass),
     Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2')], [
         a([href('/'), class(BrandClass)], 'Scotland Yard'),
-        a([href('/about/'), class(NavClass)], 'Sobre'),
+        a([href('/about'), class(NavClass)], 'Sobre'),
         a([href('/agents'), class(NavClass)], 'Agentes'),
         a([href('/matches'), class(NavClass)], 'Partidas'),
         %a([href('/agents/new'), class('text-surface-300 hover:text-white')], 'Enviar agente'),

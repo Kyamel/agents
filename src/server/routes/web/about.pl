@@ -2,6 +2,7 @@
 
 :- use_module(library(http/http_dispatch)).
 :- use_module('../../views/page').
+:- use_module('../../views/page_section').
 :- use_module('../../views/ui').
 
 :- http_handler(root(about), handler, [method(get)]).
@@ -29,6 +30,7 @@ hero(Html) :-
     ui:text_class(title, 'tracking-tight mb-4', TitleClass),
     ui:text_class(emphasis, 'text-surface-300 max-w-3xl', LeadClass),
     ui:text_class(meta, 'flex flex-wrap gap-3 mt-6', NavClass),
+    ui:primary_button_class('rounded-lg px-3 py-2', CtaClass),
     Html = section([class('mb-10')], [
     h1([class(TitleClass)],
        'Programe um agente para Scotland Yard'),
@@ -45,8 +47,7 @@ hero(Html) :-
            class('rounded-lg bg-surface-800 border border-surface-700 px-3 py-2 \c
                   hover:border-surface-500 transition')],
           'Contrato dos agentes'),
-        a([href('/agents/new'),
-           class('rounded-lg bg-ufop-600 px-3 py-2 font-semibold hover:bg-ufop-500 transition')],
+        a([href('/agents/new'), class(CtaClass)],
           'Enviar meu agente')
     ])
 ]).
@@ -208,19 +209,14 @@ submission_section(Html) :-
         ]),
         p([class('mt-5')], [
             a([href('/agents/new'), class(LinkClass)], 'Abrir a tela Enviar agente'),
-            ' e cole o módulo completo no campo Código Prolog.'
+            ' para colar o módulo completo no campo',
+            strong([],' Código Prolog'),
+            '.'
         ])
     ]).
 
 section_title(Eyebrow, Title, Html) :-
-    ui:text_class(meta,
-                  'text-surface-500 uppercase tracking-wide font-semibold mb-1',
-                  EyebrowClass),
-    ui:text_class(section, TitleClass),
-    Html = div([class('mb-5')], [
-    p([class(EyebrowClass)], Eyebrow),
-    h2([class(TitleClass)], Title)
-]).
+    page_section:eyebrow_heading(Eyebrow, Title, Html).
 
 step_card(Number, Title, Text, Html) :-
     ui:text_class(meta,

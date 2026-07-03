@@ -126,7 +126,8 @@ elapsed_text(Elapsed, Text) :-
 elapsed_text(_Elapsed, "-").
 
 status_banner(Status, Html) :-
-    status_meta(Status, Title, Hint, Class),
+    status_meta(Status, Title, Hint, Accent),
+    ui:tinted_card_class(Accent, Class),
     ui:text_class(meta, 'opacity-80 mt-1', HintClass),
     Html = div([class(Class)], [
         p([class('font-semibold')], Title),
@@ -134,17 +135,12 @@ status_banner(Status, Html) :-
     ]).
 
 status_meta("queued", 'Na fila',
-    'Aguardando um worker disponível para iniciar a execução.',
-    'rounded-xl bg-amber-950 p-4 border border-amber-800 text-amber-200') :- !.
+    'Aguardando um worker disponível para iniciar a execução.', amber) :- !.
 status_meta("running", 'Em execução',
-    'A engine está processando esta partida.',
-    'rounded-xl bg-sky-950 p-4 border border-sky-800 text-sky-200') :- !.
+    'A engine está processando esta partida.', sky) :- !.
 status_meta("timeout", 'Tempo esgotado',
-    'A partida excedeu o limite de tempo e foi interrompida.',
-    'rounded-xl bg-rose-950 p-4 border border-rose-800 text-rose-200') :- !.
+    'A partida excedeu o limite de tempo e foi interrompida.', rose) :- !.
 status_meta("error", 'Falha na execução',
-    'Ocorreu um erro ao executar esta partida.',
-    'rounded-xl bg-rose-950 p-4 border border-rose-800 text-rose-200') :- !.
+    'Ocorreu um erro ao executar esta partida.', rose) :- !.
 status_meta(_Other, 'Status desconhecido',
-    'O estado desta partida não pode ser determinado.',
-    'rounded-xl bg-surface-900 p-4 border border-surface-700 text-surface-200').
+    'O estado desta partida não pode ser determinado.', neutral).
