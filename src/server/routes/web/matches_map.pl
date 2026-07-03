@@ -133,11 +133,11 @@ map_controls(Html) :-
 map_legend(div([class('flex items-center gap-5 mb-4 text-sm')], [
         span([class('flex items-center gap-2')], [
             span([class('inline-block w-3 h-3 rounded-full bg-amber-400')], []),
-            'Ladrão'
+            'Rota do ladrão'
         ]),
         span([class('flex items-center gap-2')], [
             span([class('inline-block w-3 h-3 rounded-full bg-sky-400')], []),
-            'Detetive'
+            'Rota do detetive'
         ])
     ])).
 
