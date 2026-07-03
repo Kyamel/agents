@@ -17,7 +17,7 @@ match_card(Match, Html) :-
     ui:text_class(meta,
                   'mt-1 min-w-0 text-surface-500 truncate',
                   CreatedClass),
-    ui:surface_class('p-3 hover:border-surface-500 transition',
+    ui:surface_class('p-3 transition',
                      CardClass),
     ui:local_time(Match.created_at, CreatedTime),
     Html = article([class(CardClass)], [
