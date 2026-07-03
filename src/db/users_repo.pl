@@ -14,8 +14,8 @@
 
 % username/role NULL ou antigos caem para fallback (email / "user").
 user_fields([
-    id-raw, username-optional, email-raw, password_hash-raw,
-    is_verified-bool, role-optional, created_at-raw
+    id-int, username-optional, email-text, password_hash-text,
+    is_verified-bool, role-optional, created_at-text
 ]).
 
 create_user(Username, Email, PasswordHash, UserId, CreatedAt) :-

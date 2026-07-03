@@ -51,9 +51,7 @@ agent_name(Match, _NameKey, IdKey, Name) :-
     get_dict(IdKey, Match, Name).
 
 % Vencedor -> rotulo + classe da etiqueta. Reutilizado por match_detail.
-winner_label(thief, 'Vitória do ladrão', Class) :- !, badge_class(amber, Class).
 winner_label("thief", 'Vitória do ladrão', Class) :- !, badge_class(amber, Class).
-winner_label(detective, 'Vitória do detetive', Class) :- !, badge_class(sky, Class).
 winner_label("detective", 'Vitória do detetive', Class) :- !, badge_class(sky, Class).
 winner_label(_, 'Empate', Class) :- badge_class(slate, Class).
 

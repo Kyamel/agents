@@ -160,8 +160,6 @@ normalize_id(X, S) :- atom(X), !, atom_string(X, S).
 normalize_id(X, X) :- string(X), !.
 normalize_id(X, S) :- term_string(X, S).
 
-role_label(thief, 'Ladrão') :- !.
 role_label("thief", 'Ladrão') :- !.
-role_label(detective, 'Detetive') :- !.
 role_label("detective", 'Detetive') :- !.
 role_label(Other, Other).

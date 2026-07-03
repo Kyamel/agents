@@ -110,8 +110,8 @@ match_detail(_Id, not_found).
 match_progress(_Id, Match, done(Match)) :-
     Match.status == "done",
     !.
-match_progress(Id, Match, progress(Match, Status, Elapsed)) :-
-    engine:job_info(Id, Info),
+match_progress(_Id, Match, progress(Match, Status, Elapsed)) :-
+    engine:job_info(Match.id, Info),
     !,
     Status = Info.status,
     Elapsed = Info.elapsed_seconds.

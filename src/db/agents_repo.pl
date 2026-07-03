@@ -18,13 +18,13 @@
 
 % Colunas completas (inclui source_text) -> usado para materializar o cache.
 agent_full_fields([
-    id-raw, owner_user_id-raw, name-raw, role-raw,
-    source_text-raw, is_private-bool, deleted_at-optional, created_at-raw
+    id-int, owner_user_id-int, name-text, role-text,
+    source_text-text, is_private-bool, deleted_at-optional, created_at-text
 ]).
 
 % Metadados leves (sem source_text), para listagens.
 agent_list_fields([
-    id-raw, owner_user_id-raw, name-raw, role-raw, created_at-raw, is_private-bool
+    id-int, owner_user_id-int, name-text, role-text, created_at-text, is_private-bool
 ]).
 
 %!  save_agent(+OwnerUserId, +Name, +Role, +SourceText, +IsPrivate, -AgentId) is det.

@@ -148,15 +148,11 @@ winner_card(Winner, Html) :-
         p([class(ResultClass)], Text)
     ]).
 
-winner_accent(thief, amber) :- !.
 winner_accent("thief", amber) :- !.
-winner_accent(detective, sky) :- !.
 winner_accent("detective", sky) :- !.
 winner_accent(_, slate).
 
-winner_card_class(thief, C) :- !, ui:tinted_card_class(amber, C).
 winner_card_class("thief", C) :- !, ui:tinted_card_class(amber, C).
-winner_card_class(detective, C) :- !, ui:tinted_card_class(sky, C).
 winner_card_class("detective", C) :- !, ui:tinted_card_class(sky, C).
 winner_card_class(_, C) :- ui:tinted_card_class(neutral, C).
 

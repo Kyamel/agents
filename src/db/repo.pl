@@ -9,6 +9,7 @@
     quote/2,
     now_iso/1,
     int_of_bool/2,
+    int/2,
     text/2,
     count_rows/3,
     paginate/4
@@ -78,7 +79,10 @@ row_to_dict(Fields, Row, Dict) :-
 decode_field(Name-Decoder, Raw, Name-Value) :-
     decode(Decoder, Raw, Value).
 
-decode(raw, Value, Value).
+% Decoders por tipo de coluna do SQLite. Regra unica do projeto: coluna INTEGER
+% vira inteiro (`int`), coluna TEXT vira string (`text`/`optional`). O driver
+% devolve INTEGER como inteiro e TEXT como atom.
+decode(int, Raw, Int) :- to_int(Raw, Int).
 decode(text, Raw, Text) :- to_text(Raw, Text).
 decode(bool, Raw, Bool) :- bool_of_int(Raw, Bool).
 decode(optional, '$null$', "") :- !.
@@ -100,6 +104,14 @@ text(Raw, Text) :- to_text(Raw, Text).
 to_text(Raw, Raw) :- string(Raw), !.
 to_text(Raw, Text) :- atom(Raw), !, atom_string(Raw, Text).
 to_text(Raw, Text) :- format(string(Text), "~w", [Raw]).
+
+%!  int(+Raw, -Int) is det.   Converte qualquer valor do driver em inteiro.
+int(Raw, Int) :- to_int(Raw, Int).
+
+to_int(Raw, Raw)  :- integer(Raw), !.
+to_int(Raw, Int)  :- float(Raw), !, Int is truncate(Raw).
+to_int(Raw, Int)  :- atom(Raw), !, atom_number(Raw, N), Int is integer(N).
+to_int(Raw, Int)  :- string(Raw), !, number_string(N, Raw), Int is integer(N).
 
 % Paginacao (generica)
 
