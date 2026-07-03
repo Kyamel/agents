@@ -1,7 +1,6 @@
 :- module(users, [
     profile/2,
-    profile_page/4,
-    display_name/2
+    profile_page/4
 ]).
 
 :- use_module('../db/db').
@@ -41,28 +40,6 @@ profile_page(_, _, _, not_found).
 
 agent_stat_pair(Agent, stat(Agent, Record)) :-
     db:agent_record(Agent.id, Record).
-
-%!  display_name(+User, -Name) is det.
-%
-%   Nome seguro para exibicao publica. Contas atuais usam `username`; contas
-%   antigas que salvaram o email nesse campo recebem apenas a parte antes de
-%   `@`, sem expor o endereco completo.
-display_name(User, Name) :-
-    get_dict(username, User, RawUsername),
-    text_value(RawUsername, Username),
-    Username \== "",
-    \+ sub_string(Username, _, _, _, "@"),
-    !,
-    Name = Username.
-display_name(User, Name) :-
-    get_dict(email, User, RawEmail),
-    text_value(RawEmail, Email),
-    split_string(Email, "@", "", [LocalPart|_]),
-    LocalPart \== "",
-    !,
-    Name = LocalPart.
-display_name(User, Name) :-
-    format(string(Name), "Usuário ~w", [User.id]).
 
 text_value(Value, Value) :- string(Value), !.
 text_value(Value, Text) :- atom(Value), !, atom_string(Value, Text).

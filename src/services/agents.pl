@@ -71,7 +71,7 @@ with_owner_and_stats(Agent, Rich) :-
 owner_name(Agent, Name) :-
     db:find_user_by_id(Agent.owner_user_id, Owner),
     !,
-    users:display_name(Owner, Name).
+    Name = Owner.username.
 owner_name(_Agent, "").
 
 % Agente existe e esta ativo: decide entre excluir e negar.
