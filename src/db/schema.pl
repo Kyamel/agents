@@ -53,7 +53,8 @@ migrate :-
     );"),
     migrate_users_columns,
     migrate_agents_columns,
-    migrate_matches_columns.
+    migrate_matches_columns,
+    migrate_indexes.
 
 migrate_users_columns :-
     catch(sql_exec("ALTER TABLE users ADD COLUMN username TEXT;"), _, true),
@@ -71,3 +72,12 @@ migrate_matches_columns :-
                         "started_at TEXT", "finished_at TEXT"]),
            ( format(string(SQL), "ALTER TABLE matches ADD COLUMN ~s;", [Def]),
              catch(sql_exec(SQL), _, true) )).
+
+% Indices para as agregacoes por agente/dono (retrospecto do perfil) e para as
+% listagens filtradas por dono. Idempotente via IF NOT EXISTS.
+migrate_indexes :-
+    forall(member(SQL, [
+        "CREATE INDEX IF NOT EXISTS idx_matches_thief ON matches(thief_agent_id);",
+        "CREATE INDEX IF NOT EXISTS idx_matches_detective ON matches(detective_agent_id);",
+        "CREATE INDEX IF NOT EXISTS idx_agents_owner ON agents(owner_user_id);"
+    ]), catch(sql_exec(SQL), _, true)).
