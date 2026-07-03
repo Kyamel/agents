@@ -1,5 +1,5 @@
 % ============================================================
-% Nome: Mayker Anselmo Brito Lellis     Matrícula: 22.2.8008 
+% Nome: Mayker Anselmo Brito Lellis     Matrícula: 22.2.8008
 % Nome: Lucas dos Anjos Camelo          Matrícula: 22.2.8002
 % ============================================================
 
@@ -21,20 +21,16 @@
 %    chave por valores de outro suspeito, fazendo o ladrao parecer
 %    uma identidade completamente diferente.
 %
-% 5. ISCA: rouba itens de tesouro secundario quando o desvio de
-%    rota e pequeno, confundindo o detetive sobre o objetivo real.
+% 5. BAIT STRATEGY: escolhe automaticamente um tesouro secundario
+%    e coleta seus itens quando o desvio de rota e pequeno, confundindo
+%    o detetive sobre o objetivo real sem depender de nomes do mapa.
 %
 % 6. DIVERSIFICACAO DE ROTA: quando ha itens pendentes a distancia
 %    equivalente ao item canonico, escolhe um alternativo, evitando
 %    que o detetive antecipe e bloqueie a proxima cidade obrigatoria.
 %
-% 7. CONTRA-MEDIDA ESPECIFICA: para cenarios com item critico de
-%    bloqueio, prioriza sua coleta antes dos demais itens da cadeia,
-%    neutralizando estrategias de fechamento antecipado.
-%
 % Prioridade: disfarce forte > fuga > disfarce inicial
-%             > tesouro > isca > cadeia real (com diversificacao)
-%             * contra-medida intercepta a sequência de itens do objetivo principal quando aplicavel
+%             > tesouro > bait strategy > cadeia real (com diversificacao)
 % ============================================================
 
 
@@ -48,12 +44,11 @@
 :- dynamic item_conhecido/3.
 :- dynamic tesouro_conhecido/3.
 :- dynamic suspeito_conhecido/1.
-:- dynamic objetivo_atual/1.
 :- dynamic tesouro_isca/1.
 :- dynamic itens_isca/1.
 :- dynamic disfarce_inicial_feito/0.
 :- dynamic disfarces_usados/1.
-:- dynamic plano_disfarce_forte/1.
+:- dynamic plano_disfarce_forte/3.
 :- dynamic disfarce_forte_feito/0.
 
 % ============================================================
@@ -70,14 +65,11 @@ ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto, LadraoID, ObjetivoLadr
            assertz(tesouro_conhecido(Tesouro, Cidade, Requisitos))),
     forall(member(Suspeito, Suspeitos),
            assertz(suspeito_conhecido(Suspeito))),
-    escolher_identidade(Suspeitos, IdOriginal),
-    escolher_tesouro(ObjetivoOriginal),
-    assertz(objetivo_atual(ObjetivoOriginal)),
+    escolher_identidade(Suspeitos, LadraoID),
+    preparar_planos_disfarce_forte(Suspeitos, LadraoID),
+    escolher_tesouro(ObjetivoLadrao),
     assertz(disfarces_usados(0)),
-    escolher_isca(ObjetivoOriginal),
-    escolher_identidade_segura(Suspeitos, IdOriginal, LadraoID, PlanoDisfarce),
-    assertz(plano_disfarce_forte(PlanoDisfarce)),
-    configurar_anti_marple(ObjetivoLadrao).
+    configurar_bait_strategy(ObjetivoLadrao).
 
 % ============================================================
 % AÇÃO (wrapper de diversificação de objetivo)
@@ -157,29 +149,14 @@ cidade_isca_ativa(Cidade, Target, Itens, CidadeIsca) :-
 % BASE DE DECISÃO — ordem de prioridade
 % ============================================================
 
-% Disfarce forte inicial
+% Antes do primeiro roubo, procura o melhor plano forte que
+% possa ser executado com os pontos de disfarce disponíveis.
 acao_base(_, thief(_, _, _, _, Itens, Dsg),
           disfarce(Modificacoes)) :-
     Itens == [],
     \+ disfarce_forte_feito,
-    plano_disfarce_forte(Modificacoes),
-    Modificacoes \= [],
-    length(Modificacoes, Quantidade),
-    Quantidade =< Dsg,
-    marcar_disfarce_feito,
-    !.
-
-acao_base(_, thief(loc(whitechapel), _, _, obra_de_arte, Itens, _),
-          roubar(codigo_alarme)) :-
-    \+ memberchk(codigo_alarme, Itens),
-    memberchk(radio_policial, Itens),
-    !.
-acao_base(_, thief(loc(Cidade), _, _, obra_de_arte, Itens, _),
-          move(Cidade, Proxima)) :-
-    \+ memberchk(codigo_alarme, Itens),
-    memberchk(radio_policial, Itens),
-    Cidade \= whitechapel,
-    proximo_passo(Cidade, whitechapel, Proxima),
+    melhor_plano_disfarce_forte(Dsg, Modificacoes, Quantidade),
+    marcar_disfarce_feito(Quantidade),
     !.
 
 %  Fuga
@@ -256,10 +233,14 @@ acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _), move(Cidade, ProximaCid
 acao_base(_, _, nada).
 
 % ============================================================
-% ESCOLHA DE ISCA
+% BAIT STRATEGY / ESCOLHA DE ISCA
 % ============================================================
+%
+% Escolhe um tesouro secundario apenas a partir dos tesouros e
+% requisitos recebidos no preload. Nenhum nome de cidade, item,
+% tesouro ou agente adversario e conhecido antecipadamente.
 
-escolher_isca(Target) :-
+configurar_bait_strategy(Target) :-
     findall(N-T,
         ( tesouro_conhecido(T, _, Reqs),
           T \= Target,
@@ -274,7 +255,7 @@ escolher_isca(Target) :-
     requisitos_totais(ReqsIsca, TodosItensIsca),
     assertz(itens_isca(TodosItensIsca)),
     !.
-escolher_isca(_) :-
+configurar_bait_strategy(_) :-
     assertz(tesouro_isca(nenhum)),
     assertz(itens_isca([])).
 
@@ -315,44 +296,186 @@ valor_de_outro_suspeito(Functor, ValorAtual, ValorFalso) :-
     !.
 
 % ============================================================
-% DISFARCE FORTE / IDENTIDADE SEGURA 
+% DISFARCE FORTE / IDENTIDADE SEGURA
 % ============================================================
 
-escolher_identidade_segura(Suspeitos, _IdOriginal, 9, Plano) :-
-    aparencia_suspeito(9, Suspeitos,
-        [A1, A2, OlhosReais, CabeloReal, UltimoReal]),
-    aparencia_suspeito(1, Suspeitos,
-        [A1, A2, OlhosFalsos, CabeloFalso | _]),
-    Plano = [
-        trocar(OlhosReais, OlhosFalsos),
-        trocar(CabeloReal, CabeloFalso),
-        omitir(UltimoReal)
-    ],
-    !.
-escolher_identidade_segura(_Suspeitos, IdOriginal, IdOriginal, []).
+% Gera planos para fazer a identidade real se parecer com cada
+% um dos outros suspeitos.
+%
+% Um plano só é considerado forte quando exige pelo menos duas
+% modificações. Planos com apenas uma modificação são deixados
+% para a estratégia de disfarce simples.
+preparar_planos_disfarce_forte(Suspeitos, IdReal) :-
+    retractall(plano_disfarce_forte(_, _, _)),
+    aparencia_suspeito(IdReal, Suspeitos, AparenciaReal),
 
-marcar_disfarce_feito :-
+    forall(
+        (
+            aparencia_suspeito(IdIsca, Suspeitos, AparenciaIsca),
+            IdIsca \== IdReal,
+
+            construir_plano_disfarce(
+                AparenciaReal,
+                AparenciaIsca,
+                Plano
+            ),
+
+            length(Plano, Custo),
+            Custo >= 2,
+
+            pontuacao_ambiguidade(
+                AparenciaIsca,
+                Suspeitos,
+                AmbiguidadeIsca
+            ),
+
+            comprimento_prefixo_igual(
+                AparenciaReal,
+                AparenciaIsca,
+                PrefixoIgual
+            ),
+
+            % A ambiguidade da identidade imitada tem maior peso.
+            % Em caso de empate, favorece aparências que já possuem
+            % um prefixo semelhante e exigem menos modificações.
+            Pontuacao is
+                AmbiguidadeIsca * 1000 +
+                PrefixoIgual * 100 -
+                Custo
+        ),
+        assertz(
+            plano_disfarce_forte(
+                Pontuacao,
+                IdIsca,
+                Plano
+            )
+        )
+    ).
+
+
+% Seleciona, entre os planos preparados, aquele com maior
+% pontuação que caiba nos pontos de disfarce disponíveis.
+melhor_plano_disfarce_forte(
+    PontosDisponiveis,
+    MelhorPlano,
+    Quantidade
+) :-
+    findall(
+        Pontuacao-Plano,
+        (
+            plano_disfarce_forte(
+                Pontuacao,
+                _IdIsca,
+                Plano
+            ),
+            length(Plano, Custo),
+            Custo =< PontosDisponiveis
+        ),
+        PlanosAplicaveis
+    ),
+
+    PlanosAplicaveis \= [],
+    keysort(PlanosAplicaveis, PlanosOrdenados),
+    last(PlanosOrdenados, _-MelhorPlano),
+    length(MelhorPlano, Quantidade).
+
+
+% Compara as duas aparências atributo por atributo.
+%
+% Quando os atributos têm o mesmo tipo, mas valores diferentes,
+% cria uma troca. Por exemplo:
+%
+%     cor_olhos(verde) -> cor_olhos(azul)
+%
+% Os atributos precisam aparecer na mesma ordem nas duas
+% aparências, pois a investigação também considera essa ordem.
+construir_plano_disfarce([], [], []).
+
+construir_plano_disfarce(
+    [AtributoReal | Reais],
+    [AtributoIsca | Iscas],
+    Plano
+) :-
+    mesmo_tipo_atributo(AtributoReal, AtributoIsca),
+
+    (
+        AtributoReal == AtributoIsca
+    ->
+        Plano = RestoPlano
+    ;
+        Plano = [
+            trocar(AtributoReal, AtributoIsca)
+            | RestoPlano
+        ]
+    ),
+
+    construir_plano_disfarce(
+        Reais,
+        Iscas,
+        RestoPlano
+    ).
+
+
+% Se a identidade real possui atributos adicionais que não
+% existem na identidade imitada, eles precisam ser ocultados.
+construir_plano_disfarce(
+    [AtributoReal | Reais],
+    [],
+    [omitir(AtributoReal) | RestoPlano]
+) :-
+    construir_plano_disfarce(
+        Reais,
+        [],
+        RestoPlano
+    ).
+
+
+% Dois atributos são do mesmo tipo quando possuem o mesmo
+% functor. Os valores podem ser diferentes.
+%
+% Exemplos compatíveis:
+%     cor_olhos(verde)
+%     cor_olhos(azul)
+%
+% Exemplos incompatíveis:
+%     cor_olhos(verde)
+%     cor_cabelo(preto)
+mesmo_tipo_atributo(AtributoA, AtributoB) :-
+    AtributoA =.. [Tipo, _],
+    AtributoB =.. [Tipo, _].
+
+
+% Conta quantos atributos idênticos existem consecutivamente
+% no início das duas aparências.
+comprimento_prefixo_igual(
+    [Atributo | RestoA],
+    [Atributo | RestoB],
+    Quantidade
+) :-
+    !,
+    comprimento_prefixo_igual(
+        RestoA,
+        RestoB,
+        QuantidadeResto
+    ),
+    Quantidade is QuantidadeResto + 1.
+
+comprimento_prefixo_igual(_, _, 0).
+
+
+% Registra quantos pontos foram efetivamente gastos pelo plano.
+% Também impede que o disfarce simples seja aplicado depois.
+marcar_disfarce_feito(Quantidade) :-
     assertz(disfarce_forte_feito),
+
     retractall(disfarce_inicial_feito),
     assertz(disfarce_inicial_feito),
-    retractall(disfarces_usados(_)),
-    assertz(disfarces_usados(3)).
 
-configurar_anti_marple(obra_de_arte) :-
-    tesouro_conhecido(obra_de_arte, _, _),
-    item_conhecido(codigo_alarme, _, _),
-    !,
-    retractall(objetivo_atual(_)),
-    assertz(objetivo_atual(obra_de_arte)),
-    retractall(tesouro_isca(_)),
-    assertz(tesouro_isca(ouro_do_banco)),
-    retractall(itens_isca(_)),
-    assertz(itens_isca([codigo_alarme])).
-configurar_anti_marple(Objetivo) :-
-    objetivo_atual(Objetivo).
+    retractall(disfarces_usados(_)),
+    assertz(disfarces_usados(Quantidade)).
 
 limpar_memoria_local :-
-    retractall(plano_disfarce_forte(_)),
+    retractall(plano_disfarce_forte(_, _, _)),
     retractall(disfarce_forte_feito).
 
 % ============================================================
@@ -364,7 +487,6 @@ limpar_memoria :-
     retractall(item_conhecido(_, _, _)),
     retractall(tesouro_conhecido(_, _, _)),
     retractall(suspeito_conhecido(_)),
-    retractall(objetivo_atual(_)),
     retractall(tesouro_isca(_)),
     retractall(itens_isca(_)),
     retractall(disfarce_inicial_feito),
