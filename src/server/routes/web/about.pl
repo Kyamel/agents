@@ -26,15 +26,10 @@ handler(Request) :-
     ]).
 
 hero(Html) :-
-    ui:text_class(meta,
-                  'text-ufop-400 uppercase tracking-[0.2em] font-semibold mb-3',
-                  EyebrowClass),
     ui:text_class(title, 'tracking-tight mb-4', TitleClass),
     ui:text_class(emphasis, 'text-surface-300 max-w-3xl', LeadClass),
     ui:text_class(meta, 'flex flex-wrap gap-3 mt-6', NavClass),
     Html = section([class('mb-10')], [
-    p([class(EyebrowClass)],
-      'Guia do jogo'),
     h1([class(TitleClass)],
        'Programe um agente para Scotland Yard'),
     p([class(LeadClass)],
