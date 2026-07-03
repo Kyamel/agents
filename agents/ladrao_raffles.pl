@@ -1,11 +1,8 @@
-:- module(baitpromax, [
+:- module(ladrao_raffles, [
     ladrao_preload/7,
     ladrao_action/3
 ]).
 
-% baitpromax AUTOCONTIDO: contém toda a lógica do baitt + baittpro INLINE (sem
-% importar nada) e adiciona DIVERSIFICAÇÃO DE OBJETIVO.
-%
 % Motivação (medida em replays): o detetive_crenca não prende o ladrão pela ROTA
 % — ele TRANCA a CIDADE do próximo item e espera. Mudar o caminho até a cidade não
 % adianta: a cidade é obrigatória. O que engana é ir para uma cidade DIFERENTE da
