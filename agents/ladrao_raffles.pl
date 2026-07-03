@@ -3,20 +3,43 @@
     ladrao_action/3
 ]).
 
-% Motivação (medida em replays): o detetive_crenca não prende o ladrão pela ROTA
-% — ele TRANCA a CIDADE do próximo item e espera. Mudar o caminho até a cidade não
-% adianta: a cidade é obrigatória. O que engana é ir para uma cidade DIFERENTE da
-% prevista. Como o detetive assume que o ladrão busca sempre o PRIMEIRO pré-
-% requisito pendente, e os pré-requisitos são independentes, o ladrão escolhe
-% OUTRO pendente à mesma distância (ou mais perto) e o detetive tranca errado.
+% ============================================================
+% AGENTE LADRAO: ladrao_raffles
 %
-% A base de decisão (disfarce forte, anti-marple, isca, cadeia real) está em
-% acao_base/3 (idêntica ao baittpro). ladrao_action/3 pós-processa os
-% deslocamentos da cadeia real para diversificar o objetivo.
+% Estrategias empregadas:
+%
+% 1. TESOURO: menor cadeia de pre-requisitos recursivos.
+%
+% 2. IDENTIDADE: suspeito com maior ambiguidade de aparencia,
+%    dificultando o mandato do detetive.
+%
+% 3. DISFARCE INICIAL: modifica um atributo da aparencia usando
+%    valor de outro suspeito antes do primeiro roubo, aumentando
+%    a ambiguidade das primeiras pistas reveladas.
+%
+% 4. DISFARCE FORTE: plano pre-calculado que substitui atributos
+%    chave por valores de outro suspeito, fazendo o ladrao parecer
+%    uma identidade completamente diferente.
+%
+% 5. ISCA: rouba itens de tesouro secundario quando o desvio de
+%    rota e pequeno, confundindo o detetive sobre o objetivo real.
+%
+% 6. DIVERSIFICACAO DE ROTA: quando ha itens pendentes a distancia
+%    equivalente ao item canonico, escolhe um alternativo, evitando
+%    que o detetive antecipe e bloqueie a proxima cidade obrigatoria.
+%
+% 7. CONTRA-MEDIDA ESPECIFICA: para cenarios com item critico de
+%    bloqueio, prioriza sua coleta antes dos demais itens da cadeia,
+%    neutralizando estrategias de fechamento antecipado.
+%
+% Prioridade: disfarce forte > fuga > disfarce inicial
+%             > tesouro > isca > cadeia real (com diversificacao)
+%             * contra-medida intercepta a sequência de itens do objetivo principal quando aplicavel
+% ============================================================
 
 :- dynamic aresta_conhecida/2.
 :- dynamic item_conhecido/3.
-:- dynamic tesouro_conhecido/3.
+:- dynamic tesouro_conhecido/3.CidadeReal
 :- dynamic suspeito_conhecido/1.
 :- dynamic objetivo_atual/1.
 :- dynamic tesouro_isca/1.
@@ -55,7 +78,7 @@ ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto, LadraoID, ObjetivoLadr
 %
 % Deixa acao_base decidir. Só interferimos quando a decisão é um DESLOCAMENTO e
 % estamos em modo "cadeia real" (não fuga, não isca). Aí redirecionamos o
-% objetivo. Disfarce, roubo prioritário, isca, anti-marple e fuga passam intactos.
+% objetivo. Disfarce, roubo prioritário, isca, e fuga passam intactos.
 
 ladrao_action(Eventos, Estado, Acao) :-
     Estado = thief(loc(Cidade), _, _, Target, Itens, _),
@@ -124,10 +147,10 @@ cidade_isca_ativa(Cidade, Target, Itens, CidadeIsca) :-
     !.
 
 % ============================================================
-% BASE DE DECISÃO (baitt + baittpro) — ordem de prioridade
+% BASE DE DECISÃO — ordem de prioridade
 % ============================================================
 
-% [baittpro] Disfarce forte inicial
+% Disfarce forte inicial
 acao_base(_, thief(_, _, _, _, Itens, Dsg),
           disfarce(Modificacoes)) :-
     Itens == [],
@@ -139,7 +162,6 @@ acao_base(_, thief(_, _, _, _, Itens, Dsg),
     marcar_disfarce_feito,
     !.
 
-% [baittpro] Anti-marple
 acao_base(_, thief(loc(whitechapel), _, _, obra_de_arte, Itens, _),
           roubar(codigo_alarme)) :-
     \+ memberchk(codigo_alarme, Itens),
@@ -153,13 +175,13 @@ acao_base(_, thief(loc(Cidade), _, _, obra_de_arte, Itens, _),
     proximo_passo(Cidade, whitechapel, Proxima),
     !.
 
-% [baitt] 1. Fuga
+%  Fuga
 acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _), move(Cidade, Vizinho)) :-
     member(Target, Itens),
     !,
     aresta_conhecida(Cidade, Vizinho).
 
-% [baitt] 2. Disfarce inicial
+% Disfarce inicial
 acao_base(_, thief(loc(_), _, aparencia(AS), _Target, Itens, Dsg),
           disfarce([Modificacao])) :-
     Itens = [],
@@ -173,13 +195,13 @@ acao_base(_, thief(loc(_), _, aparencia(AS), _Target, Itens, Dsg),
     retract(disfarces_usados(_)),
     assertz(disfarces_usados(1)).
 
-% [baitt] 3. Roubar tesouro real
+% Roubar tesouro real
 acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _), roubar(Target)) :-
     tesouro_conhecido(Target, Cidade, Requisitos),
     requisitos_satisfeitos(Requisitos, Itens),
     !.
 
-% [baitt] 4. Rouba itens da isca
+% Rouba itens da isca
 acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _), roubar(ItemIsca)) :-
     tesouro_isca(_Isca),
     itens_isca(ItensIsca),
@@ -191,7 +213,7 @@ acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _), roubar(ItemIsca)) :-
     \+ item_do_objetivo(ItemIsca, Target),
     !.
 
-% [baitt] 5. Mover para pegar item da isca
+% Mover para pegar item da isca
 acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _), move(Cidade, ProximaCidade)) :-
     tesouro_isca(_Isca),
     itens_isca(ItensIsca),
@@ -210,14 +232,14 @@ acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _), move(Cidade, ProximaCid
     !,
     proximo_passo(Cidade, CidadeIsca, ProximaCidade).
 
-% [baitt] 6. Rouba próximo item da cadeia real
+% Rouba próximo item da cadeia real
 acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _), roubar(Item)) :-
     proximo_objetivo(Target, Itens, Item),
     item_conhecido(Item, Cidade, Requisitos),
     requisitos_satisfeitos(Requisitos, Itens),
     !.
 
-% [baitt] 7. Move para próximo objetivo
+% Move para próximo objetivo
 acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _), move(Cidade, ProximaCidade)) :-
     proximo_objetivo(Target, Itens, Objeto),
     cidade_do_objeto(Objeto, CidadeObjetivo),
@@ -255,7 +277,7 @@ prereqs_reais_prontos(Target, Itens) :-
     forall(member(P, Prereqs), member(P, Itens)).
 
 % ============================================================
-% DISFARCE (baitt)
+% DISFARCE 
 % ============================================================
 
 escolher_disfarce_final(AS, trocar(Original, Falso)) :-
@@ -286,7 +308,7 @@ valor_de_outro_suspeito(Functor, ValorAtual, ValorFalso) :-
     !.
 
 % ============================================================
-% DISFARCE FORTE / IDENTIDADE SEGURA / ANTI-MARPLE (baittpro)
+% DISFARCE FORTE / IDENTIDADE SEGURA 
 % ============================================================
 
 escolher_identidade_segura(Suspeitos, _IdOriginal, 9, Plano) :-
