@@ -18,9 +18,12 @@
 hash_password(Plain, Hash) :-
     crypto_password_hash(Plain, Hash).
 
-% Com Hash ligado, crypto_password_hash/2 valida a senha contra ele.
+% Com Hash ligado, crypto_password_hash/2 valida a senha contra ele. O hash vem
+% do banco como string (coluna TEXT -> string, ver db/repo.pl), mas
+% crypto_password_hash/2 exige o hash como ATOM (string lanca type_error(atom,_)).
 verify_password(Plain, Hash) :-
-    crypto_password_hash(Plain, Hash).
+    atom_string(HashAtom, Hash),
+    crypto_password_hash(Plain, HashAtom).
 
 %!  signup(+Username, +EmailRaw, +Password, -Outcome) is det.
 %
