@@ -91,9 +91,7 @@ ladrao_action(Eventos, Estado, Acao) :-
     ).
 
 % Quando a ação base é um deslocamento da cadeia real, tenta
-% redirecioná-la para outro objetivo pendente. O corte impede
-% que a cláusula de fallback devolva a ação canônica depois que
-% essa condição já foi reconhecida.
+% redirecioná-la para outro objetivo pendente.
 ajustar_acao_cadeia(
     Cidade,
     Target,
@@ -260,7 +258,7 @@ acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _), move(Cidade, ProximaCid
 acao_base(_, _, nada).
 
 % ============================================================
-% BAIT STRATEGY / ESCOLHA DE ISCA
+% ESTRATÉGIA DE ISCA
 % ============================================================
 %
 % Escolhe um tesouro secundario apenas a partir dos tesouros e
@@ -409,17 +407,11 @@ melhor_plano_disfarce_forte(
 % Compara as duas aparências atributo por atributo.
 %
 % Quando os atributos têm o mesmo tipo, mas valores diferentes,
-% cria uma troca. Por exemplo:
-%
-%     cor_olhos(verde) para cor_olhos(azul)
-%
-% Os atributos precisam aparecer na mesma ordem nas duas
+% cria uma troca. Os atributos precisam aparecer na mesma ordem nas duas
 % aparências.
 construir_plano_disfarce([], [], []).
 
-% Atributos idênticos não exigem modificação. O casamento
-% de padrões reconhece essa situação diretamente, e o corte
-% impede que a cláusula seguinte tente criar uma troca inútil.
+% Atributos idênticos não exigem modificação.
 construir_plano_disfarce(
     [Atributo | Reais],
     [Atributo | Iscas],
