@@ -3,7 +3,7 @@
     ladrao_action/3
 ]).
 
-% evasort = ladrao_raffles + EVASÃO ATIVA CONTRA O shortestd.
+% evasort = ladrao_raffles_old + EVASÃO ATIVA CONTRA O shortestd.
 %
 % Ideia: o ladrão roda DENTRO de si a mesma predição do shortestd
 % (`cidade_predita_para_bloqueio`) para saber EXATAMENTE qual cidade o detetive
@@ -25,7 +25,7 @@
 % travas já feitas (sd_lock) — nunca toca no módulo shortestd real, então
 % funciona mesmo quando o adversário É o shortestd (mesmo processo Prolog).
 
-:- use_module('ladrao_raffles.pl', []).
+:- use_module('ladrao_raffles_old.pl', []).
 
 :- dynamic sd_edge/2.
 :- dynamic sd_item/3.
@@ -35,7 +35,7 @@
 
 % ============================================================
 % PRELOAD — popula a memória da réplica com o MESMO mapa e delega o resto ao
-% ladrao_raffles (que carrega baittpro/baitt).
+% ladrao_raffles_old (que carrega baittpro/baitt).
 % ============================================================
 
 ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto,
@@ -48,7 +48,7 @@ ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto,
     baipromax_preload(Grafo, Suspeitos, Itens, Tesouros, LadraoID, ObjetivoLadrao).
 
 baipromax_preload(Grafo, Suspeitos, Itens, Tesouros, LadraoID, ObjetivoLadrao) :-
-    ladrao_raffles:ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto,
+    ladrao_raffles_old:ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto,
                               LadraoID, ObjetivoLadrao).
 
 limpar_sd :-
@@ -64,7 +64,7 @@ limpar_sd :-
 
 ladrao_action(Eventos, Estado, Acao) :-
     Estado = thief(loc(Cidade), _, _, Target, Itens, _),
-    ladrao_raffles:ladrao_action(Eventos, Estado, AcaoBase),
+    ladrao_raffles_old:ladrao_action(Eventos, Estado, AcaoBase),
     trava_prevista(Eventos, LockPrevisto),   % o que o shortestd vai fechar agora
     ( AcaoBase = move(Cidade, Passo),
       LockPrevisto \== nenhum,
@@ -91,36 +91,36 @@ trava_prevista(Eventos, Lock) :-
 % alternativa mínima, seguimos o passo canônico (arriscar é melhor que empatar).
 rota_evasiva(Cidade, Target, Itens, Passo, PassoNovo) :-
     destino_do_passo(Cidade, Target, Itens, Passo, Destino),
-    ladrao_raffles:distancia_bfs(Cidade, Destino, DAtual),
+    ladrao_raffles_old:distancia_bfs(Cidade, Destino, DAtual),
     DAlvo is DAtual - 1,
     findall(W,
-        ( ladrao_raffles:aresta_conhecida(Cidade, W),
+        ( ladrao_raffles_old:aresta_conhecida(Cidade, W),
           W \== Passo,
-          ladrao_raffles:distancia_bfs(W, Destino, DAlvo)
+          ladrao_raffles_old:distancia_bfs(W, Destino, DAlvo)
         ),
         Alternativas),
     Alternativas \== [],
     last(Alternativas, PassoNovo).
 
-% Descobre para qual cidade o passo (travado) do ladrao_raffles estava indo: testa os
-% mesmos candidatos que o ladrao_raffles usa (objetivo diversificado e, depois, o
+% Descobre para qual cidade o passo (travado) do ladrao_raffles_old estava indo: testa os
+% mesmos candidatos que o ladrao_raffles_old usa (objetivo diversificado e, depois, o
 % canônico) e fica com aquele para o qual Passo é de fato um passo de caminho
-% mínimo. Assim a rota alternativa termina exatamente onde o ladrao_raffles queria.
+% mínimo. Assim a rota alternativa termina exatamente onde o ladrao_raffles_old queria.
 destino_do_passo(Cidade, Target, Itens, Passo, Destino) :-
     candidato_destino(Cidade, Target, Itens, Destino),
-    ladrao_raffles:distancia_bfs(Cidade, Destino, DA),
+    ladrao_raffles_old:distancia_bfs(Cidade, Destino, DA),
     DA > 0,
-    ladrao_raffles:distancia_bfs(Passo, Destino, DP),
+    ladrao_raffles_old:distancia_bfs(Passo, Destino, DP),
     DP =:= DA - 1,
     !.
 
 candidato_destino(Cidade, Target, Itens, Destino) :-
     \+ member(Target, Itens),
-    ladrao_raffles:destino_diversificado(Cidade, Target, Itens, Destino).
+    ladrao_raffles_old:destino_diversificado(Cidade, Target, Itens, Destino).
 candidato_destino(_Cidade, Target, Itens, Destino) :-
     \+ member(Target, Itens),
-    ladrao_raffles:proximo_objetivo(Target, Itens, Objeto),
-    ladrao_raffles:cidade_do_objeto(Objeto, Destino).
+    ladrao_raffles_old:proximo_objetivo(Target, Itens, Objeto),
+    ladrao_raffles_old:cidade_do_objeto(Objeto, Destino).
 
 
 % ============================================================
