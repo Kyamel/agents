@@ -1,46 +1,23 @@
 :- module(api_matches_show, []).
 
-:- use_module(library(http/http_dispatch)).
-:- use_module(library(http/json)).
 :- use_module('../../http/api_endpoint').
-:- use_module('../../../db/db').
+:- use_module('../../../services/matches').
 
-% Prefix em /api/v1/matches/ para capturar o ID. /api/v1/matches (sem barra)
-% tem handler proprio (lista) e ganha pela especificidade.
-:- http_handler('/api/v1/matches/', handler,
-                [methods([get, options]), prefix]).
+path(root(api/v1/matches/Id), [id-Id]).
+accept(get, none).
 
-handler(Request) :-
-    api_handle(Request, [get, options], dispatch).
+handle(get, _Request, _User, Params, Outcome) :-
+    load_match(Params.id, Outcome).
 
-dispatch(get, Request) :-
-    memberchk(path(Path), Request),
-    handle_get(Path).
+render(_Request, match(Json), json(200, _{match: Json})).
+render(_Request, not_found,   json(404, _{error: "match_not_found"})).
 
-handle_get(Path) :-
-    extract_id(Path, Id),
+% Anexa o replay decodificado ao dict da partida; `{}` quando ausente/corrompido.
+load_match(Id, match(Json)) :-
+    matches:find_match(Id, Match),
     !,
-    load_match(Id, Status, Payload),
-    reply_json(Status, Payload).
-handle_get(_) :-
-    reply_json(404, _{error: "not_found"}).
+    matches:decode_replay(Match.replay_json, Replay),
+    Json = Match.put(replay, Replay).
+load_match(_, not_found).
 
-extract_id(Path, Id) :-
-    atom_concat('/api/v1/matches/', Id, Path),
-    Id \== ''.
-
-% =============================
-% Logica (DB)
-% =============================
-
-load_match(Id, 200, _{match: Json}) :-
-    db:get_match(Id, Match),
-    !,
-    match_with_replay(Match, Json).
-load_match(_, 404, _{error: "match_not_found"}).
-
-% Decodifica o replay JSON persistido e o anexa ao dict da partida.
-match_with_replay(Match, Match.put(replay, Replay)) :-
-    catch(atom_json_dict(Match.replay_json, Replay, []), _, fail),
-    !.
-match_with_replay(Match, Match).
+:- api_endpoint:mount(api_matches_show).

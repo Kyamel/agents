@@ -1,74 +1,46 @@
 :- module(api_matches_list, []).
 
-:- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_parameters)).
 :- use_module('../../http/api_endpoint').
-:- use_module('../../http/authz').
 :- use_module('../../http/json_request').
-:- use_module('../../../db/db').
-:- use_module('../../../engine/engine').
 :- use_module('../../../config').
+:- use_module('../../../services/matches').
 
-:- http_handler(root(api/v1/matches), handler, [methods([get, post, options])]).
+% GET e publico; POST exige bearer. O recipe resolve auth por metodo.
+path(root(api/v1/matches), []).
+accept(get, none).
+accept(post, bearer).
 
-handler(Request) :-
-    api_handle(Request, [get, post, options], dispatch).
-
-dispatch(get, Request) :-
+handle(get, Request, _User, _Params, matches(Matches, Pagination)) :-
     http_parameters(Request, [
         page(Page0, [integer, default(1)]),
         perPage(PerPage0, [integer, default(10)])
     ]),
     clamp_pagination(Page0, PerPage0, Page, PerPage),
-    db:list_matches_page(Page, PerPage, Matches, Pagination),
-    reply_json(200, _{matches: Matches, pagination: Pagination}).
-dispatch(post, Request) :-
-    authz:require_bearer_token(Request, _UserId),
-    catch(create_match(Request, Status, Payload),
-          Error,
-          api_error(Error, Status, Payload)),
-    reply_json(Status, Payload).
-
-% =============================
-% Logica (validacao + enfileiramento)
-% =============================
-%
-% A partida nao roda na request: ela e enfileirada e executada em background num
-% subprocesso (ver engine/engine). A resposta e 202 com o id da partida; o
-% progresso e consultado em GET /api/v1/jobs/<id> e o resultado em
-% GET /api/v1/matches/<id>.
-
-create_match(Request, Status, Payload) :-
+    matches:list_page(Page, PerPage, Matches, Pagination).
+handle(post, Request, _User, _Params, Outcome) :-
     json_request:read_json_body(Request, Body),
     require_id(Body, thief_agent_id, ThiefId),
     require_id(Body, detective_agent_id, DetectiveId),
     scenario_of(Body, Scenario),
-    validate_and_enqueue(ThiefId, DetectiveId, Scenario, Status, Payload).
+    matches:create_match(ThiefId, DetectiveId, Scenario, Outcome).
 
-validate_and_enqueue(ThiefId, _, _, 404, _{error: "thief_agent_not_found"}) :-
-    \+ db:get_agent(ThiefId, _),
-    !.
-validate_and_enqueue(_, DetectiveId, _, 404, _{error: "detective_agent_not_found"}) :-
-    \+ db:get_agent(DetectiveId, _),
-    !.
-validate_and_enqueue(_, _, Scenario, 422, _{error: "invalid_scenario"}) :-
-    \+ engine:valid_scenario(Scenario),
-    !.
-validate_and_enqueue(ThiefId, DetectiveId, Scenario, Status, Payload) :-
-    db:get_agent(ThiefId, Thief),
-    db:get_agent(DetectiveId, Detective),
-    enqueue_if_roles_ok(ThiefId, DetectiveId, Thief, Detective, Scenario, Status, Payload).
-
-enqueue_if_roles_ok(_, _, Thief, Detective, _, 422, _{error: "invalid_agent_roles"}) :-
-    \+ valid_roles(Thief, Detective),
-    !.
-enqueue_if_roles_ok(ThiefId, DetectiveId, _, _, Scenario, 202,
-                    _{status: "queued", match_id: MatchId}) :-
-    engine:enqueue_match(ThiefId, DetectiveId, Scenario, MatchId).
-
-valid_roles(Thief, Detective) :-
-    Thief.role == "thief",
-    Detective.role == "detective".
+render(_Request, matches(Matches, Pagination),
+       json(200, _{matches: Matches, pagination: Pagination})).
+render(_Request, created(MatchId),
+       json(202, _{status: "queued", match_id: MatchId})).
+render(_Request, missing_agents,
+       json(400, _{error: "missing_agents"})).
+render(_Request, thief_not_found,
+       json(404, _{error: "thief_agent_not_found"})).
+render(_Request, detective_not_found,
+       json(404, _{error: "detective_agent_not_found"})).
+render(_Request, invalid_scenario,
+       json(422, _{error: "invalid_scenario"})).
+render(_Request, invalid_roles,
+       json(422, _{error: "invalid_agent_roles"})).
+render(_Request, enqueue_failed,
+       json(500, _{error: "match_enqueue_failed"})).
 
 % Cenario opcional no corpo; cai no padrao configurado quando ausente.
 scenario_of(Body, Scenario) :-
@@ -99,3 +71,5 @@ id_value(Value, Value) :-
 clamp_pagination(Page0, PerPage0, Page, PerPage) :-
     Page is max(1, Page0),
     PerPage is max(1, min(100, PerPage0)).
+
+:- api_endpoint:mount(api_matches_list).

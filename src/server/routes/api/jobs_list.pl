@@ -1,17 +1,17 @@
 :- module(api_jobs_list, []).
 
-:- use_module(library(http/http_dispatch)).
 :- use_module('../../http/api_endpoint').
-:- use_module('../../../engine/engine').
+:- use_module('../../../services/jobs').
 
 % Lista os jobs de partida ATIVOS (na fila + executando), com tempo decorrido.
 % Partidas ja concluidas/falhas saem deste registro em memoria; o estado final
 % delas vive em `matches` (GET /api/v1/matches/<id>).
-:- http_handler('/api/v1/jobs', handler, [methods([get, options])]).
+path(root(api/v1/jobs), []).
+accept(get, none).
 
-handler(Request) :-
-    api_handle(Request, [get, options], dispatch).
+handle(get, _Request, _User, _Params, jobs(Jobs)) :-
+    jobs:snapshot(Jobs).
 
-dispatch(get, _Request) :-
-    engine:job_snapshot(Jobs),
-    reply_json(200, _{jobs: Jobs}).
+render(_Request, jobs(Jobs), json(200, _{jobs: Jobs})).
+
+:- api_endpoint:mount(api_jobs_list).

@@ -1,50 +1,23 @@
 :- module(api_jobs_show, []).
 
-:- use_module(library(http/http_dispatch)).
 :- use_module('../../http/api_endpoint').
-:- use_module('../../../engine/engine').
-:- use_module('../../../db/db').
+:- use_module('../../../services/jobs').
 
 % Detalhe de um job pelo id da partida. Se o job ainda esta ativo, devolve o
 % estado em memoria (com elapsed_seconds em tempo real); se ja terminou, cai no
 % estado persistido em `matches` (status final, elapsed nulo).
-:- http_handler('/api/v1/jobs/', handler, [methods([get, options]), prefix]).
+path(root(api/v1/jobs/Id), [id-Id]).
+accept(get, none).
 
-handler(Request) :-
-    api_handle(Request, [get, options], dispatch).
+handle(get, _Request, _User, Params, Outcome) :-
+    load_job(Params.id, Outcome).
 
-dispatch(get, Request) :-
-    memberchk(path(Path), Request),
-    handle_get(Path).
+render(_Request, job(Info),  json(200, _{job: Info})).
+render(_Request, not_found,  json(404, _{error: "job_not_found"})).
 
-handle_get(Path) :-
-    extract_id(Path, Id),
-    !,
-    load_job(Id, Status, Payload),
-    reply_json(Status, Payload).
-handle_get(_) :-
-    reply_json(404, _{error: "not_found"}).
-
-extract_id(Path, Id) :-
-    atom_concat('/api/v1/jobs/', Id, Path),
-    Id \== ''.
-
-load_job(Id, 200, _{job: Info}) :-
-    engine:job_info(Id, Info),
+load_job(Id, job(Info)) :-
+    jobs:find_job(Id, job(Info)),
     !.
-load_job(Id, 200, _{job: Info}) :-
-    db:get_match(Id, Match),
-    !,
-    match_to_job(Match, Info).
-load_job(_, 404, _{error: "job_not_found"}).
+load_job(_, not_found).
 
-% Partida finalizada no mesmo formato de um job ativo (elapsed/pid nulos).
-match_to_job(Match, _{
-    match_id: Match.id,
-    status: Match.status,
-    elapsed_seconds: null,
-    pid: null,
-    thief_id: Match.thief_agent_id,
-    detective_id: Match.detective_agent_id,
-    scenario: Match.scenario
-}).
+:- api_endpoint:mount(api_jobs_show).

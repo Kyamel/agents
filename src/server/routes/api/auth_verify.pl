@@ -1,21 +1,22 @@
 :- module(api_auth_verify, []).
 
-:- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_parameters)).
 :- use_module('../../http/api_endpoint').
-:- use_module('../../../auth/auth').
+:- use_module('../../../services/accounts').
 
-:- http_handler(root(api/v1/auth/verify), handler, [methods([get, options])]).
+path(root(api/v1/auth/verify), []).
+accept(get, none).
 
-handler(Request) :-
-    api_handle(Request, [get, options], dispatch).
+handle(get, Request, _User, _Params, Outcome) :-
+    verify(Request, Outcome).
 
-dispatch(get, Request) :-
-    verify_from_request(Request, Status, Payload),
-    reply_json(Status, Payload).
-
-verify_from_request(Request, 200, _{status: "verified", user_id: UserId}) :-
+verify(Request, verified(UserId)) :-
     http_parameters(Request, [token(Token, [string])]),
-    auth:verify_email_token(Token, verified(UserId)),
+    accounts:verify_email_token(Token, verified(UserId)),
     !.
-verify_from_request(_Request, 400, _{error: "invalid_or_expired_token"}).
+verify(_Request, invalid).
+
+render(_Request, verified(UserId), json(200, _{status: "verified", user_id: UserId})).
+render(_Request, invalid,          json(400, _{error: "invalid_or_expired_token"})).
+
+:- api_endpoint:mount(api_auth_verify).

@@ -1,32 +1,26 @@
 :- module(api_auth_login, []).
 
-:- use_module(library(http/http_dispatch)).
 :- use_module('../../http/api_endpoint').
-:- use_module('../../../auth/auth').
 :- use_module('../../http/json_request').
+:- use_module('../../../services/accounts').
 
-:- http_handler(root(api/v1/auth/login), handler, [methods([post, options])]).
+path(root(api/v1/auth/login), []).
+accept(post, none).
 
-handler(Request) :-
-    api_handle(Request, [post, options], dispatch).
-
-dispatch(post, Request) :-
-    login_from_request(Request, Status, Payload),
-    reply_json(Status, Payload).
-
-login_from_request(Request, Status, Payload) :-
+handle(post, Request, _User, _Params, Outcome) :-
     json_request:read_json_body(Request, Body),
     json_request:require_string(Body, email, Email),
     json_request:require_string(Body, password, Password),
-    auth:login(Email, Password, Outcome),
-    login_payload(Outcome, Status, Payload).
+    accounts:login(Email, Password, Outcome).
 
-login_payload(invalid_credentials, 401, _{error: "invalid_credentials"}).
-login_payload(email_not_verified, 403, _{error: "email_not_verified"}).
-login_payload(ok(Token, UserId, ExpiresAt), 200, Payload) :-
-    Payload = _{
-        status: "ok",
-        token: Token,
-        user_id: UserId,
-        expires_at: ExpiresAt
-    }.
+render(_Request, invalid_credentials, json(401, _{error: "invalid_credentials"})).
+render(_Request, email_not_verified,  json(403, _{error: "email_not_verified"})).
+render(_Request, ok(Token, UserId, ExpiresAt),
+       json(200, _{
+           status: "ok",
+           token: Token,
+           user_id: UserId,
+           expires_at: ExpiresAt
+       })).
+
+:- api_endpoint:mount(api_auth_login).
