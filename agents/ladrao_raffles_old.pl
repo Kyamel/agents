@@ -72,7 +72,7 @@ ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto, LadraoID, ObjetivoLadr
     configurar_bait_strategy(ObjetivoLadrao).
 
 % ============================================================
-% AÇÃO (wrapper de diversificação de objetivo)
+% AÇÃO (diversificação de objetivo)
 % ============================================================
 %
 % Deixa acao_base decidir. Só interferimos quando a decisão é um DESLOCAMENTO e
@@ -82,11 +82,38 @@ ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto, LadraoID, ObjetivoLadr
 ladrao_action(Eventos, Estado, Acao) :-
     Estado = thief(loc(Cidade), _, _, Target, Itens, _),
     acao_base(Eventos, Estado, AcaoBase),
-    ( AcaoBase = move(Cidade, PassoCanonico),
-      modo_cadeia_real(Cidade, Target, Itens)
-    -> acao_cadeia_real(Cidade, Target, Itens, PassoCanonico, Acao)
-    ;  Acao = AcaoBase
+    ajustar_acao_cadeia(
+        Cidade,
+        Target,
+        Itens,
+        AcaoBase,
+        Acao
     ).
+
+% Quando a ação base é um deslocamento da cadeia real, tenta
+% redirecioná-la para outro objetivo pendente. O corte impede
+% que a cláusula de fallback devolva a ação canônica depois que
+% essa condição já foi reconhecida.
+ajustar_acao_cadeia(
+    Cidade,
+    Target,
+    Itens,
+    move(Cidade, PassoCanonico),
+    Acao
+) :-
+    modo_cadeia_real(Cidade, Target, Itens),
+    !,
+    acao_cadeia_real(
+        Cidade,
+        Target,
+        Itens,
+        PassoCanonico,
+        Acao
+    ).
+
+% Disfarces, roubos, fuga, isca e movimentos que não pertencem
+% à cadeia real são mantidos sem alteração.
+ajustar_acao_cadeia(_, _, _, Acao, Acao).
 
 modo_cadeia_real(Cidade, Target, Itens) :-
     \+ member(Target, Itens),
@@ -146,7 +173,7 @@ cidade_isca_ativa(Cidade, Target, Itens, CidadeIsca) :-
     !.
 
 % ============================================================
-% BASE DE DECISÃO — ordem de prioridade
+% Ordem de prioridade de decisões
 % ============================================================
 
 % Antes do primeiro roubo, procura o melhor plano forte que
@@ -237,8 +264,7 @@ acao_base(_, _, nada).
 % ============================================================
 %
 % Escolhe um tesouro secundario apenas a partir dos tesouros e
-% requisitos recebidos no preload. Nenhum nome de cidade, item,
-% tesouro ou agente adversario e conhecido antecipadamente.
+% requisitos recebidos no preload.
 
 configurar_bait_strategy(Target) :-
     findall(N-T,
@@ -385,30 +411,36 @@ melhor_plano_disfarce_forte(
 % Quando os atributos têm o mesmo tipo, mas valores diferentes,
 % cria uma troca. Por exemplo:
 %
-%     cor_olhos(verde) -> cor_olhos(azul)
+%     cor_olhos(verde) para cor_olhos(azul)
 %
 % Os atributos precisam aparecer na mesma ordem nas duas
-% aparências, pois a investigação também considera essa ordem.
+% aparências.
 construir_plano_disfarce([], [], []).
 
+% Atributos idênticos não exigem modificação. O casamento
+% de padrões reconhece essa situação diretamente, e o corte
+% impede que a cláusula seguinte tente criar uma troca inútil.
+construir_plano_disfarce(
+    [Atributo | Reais],
+    [Atributo | Iscas],
+    Plano
+) :-
+    !,
+    construir_plano_disfarce(
+        Reais,
+        Iscas,
+        Plano
+    ).
+
+% Quando os atributos ocupam a mesma posição e possuem o mesmo
+% tipo, mas valores diferentes, registra uma troca.
 construir_plano_disfarce(
     [AtributoReal | Reais],
     [AtributoIsca | Iscas],
-    Plano
+    [trocar(AtributoReal, AtributoIsca) | RestoPlano]
 ) :-
     mesmo_tipo_atributo(AtributoReal, AtributoIsca),
-
-    (
-        AtributoReal == AtributoIsca
-    ->
-        Plano = RestoPlano
-    ;
-        Plano = [
-            trocar(AtributoReal, AtributoIsca)
-            | RestoPlano
-        ]
-    ),
-
+    !,
     construir_plano_disfarce(
         Reais,
         Iscas,
@@ -432,14 +464,6 @@ construir_plano_disfarce(
 
 % Dois atributos são do mesmo tipo quando possuem o mesmo
 % functor. Os valores podem ser diferentes.
-%
-% Exemplos compatíveis:
-%     cor_olhos(verde)
-%     cor_olhos(azul)
-%
-% Exemplos incompatíveis:
-%     cor_olhos(verde)
-%     cor_cabelo(preto)
 mesmo_tipo_atributo(AtributoA, AtributoB) :-
     AtributoA =.. [Tipo, _],
     AtributoB =.. [Tipo, _].

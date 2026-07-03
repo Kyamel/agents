@@ -6,39 +6,24 @@
 % ============================================================
 % AGENTE LADRAO: ladrao_raffles
 %
-% Estrategias empregadas:
+% O ladrao_raffles monta um plano sem depender de nomes de mapas,
+% cidades ou detetives. Ele escolhe uma identidade dificil de deduzir
+% e um tesouro de cadeia curta, confunde a leitura dos roubos com
+% cobertura, isca e variacao na ordem dos objetivos, e adapta cada
+% deslocamento aos bloqueios que podem ocorrer. Depois do roubo final,
+% escolhe uma saida pouco previsivel para concluir a fuga.
 %
-% 1. TESOURO: escolhe uma das menores cadeias de pre-requisitos
-%    recursivos, reduzindo o numero de roubos necessarios.
+% A estrategia pode ser entendida em cinco partes:
 %
-% 2. IDENTIDADE: escolhe um suspeito cujas primeiras pistas
-%    mantenham o maior numero de identidades compativeis.
+% 1. Preparacao: memoriza o cenario e escolhe identidade e tesouro.
+% 2. Disfarce: altera as primeiras pistas antes do primeiro roubo.
+% 3. Objetivos: combina cadeia real, cobertura, isca e diversificacao.
+% 4. Movimento: evita bloqueios previstos e rotas muito obvias.
+% 5. Fuga: randomiza a saida depois de obter o tesouro.
 %
-% 3. DISFARCE FORTE: compara a identidade real com todos os
-%    outros suspeitos e gera planos para imitar suas primeiras
-%    caracteristicas. O plano escolhido deve caber nos pontos de
-%    disfarce disponiveis e dificultar um mandato correto.
-%
-% 4. DISFARCE SIMPLES: quando nenhum plano forte pode ser usado,
-%    altera uma das primeiras caracteristicas, priorizando a
-%    modificacao que mais confunde as primeiras pistas.
-%
-% 5. BAIT STRATEGY: coleta no maximo um item de uma cadeia
-%    secundaria quando o desvio espacial e pequeno.
-%
-% 6. DIVERSIFICACAO DE OBJETIVO: quando existem folhas pendentes
-%    independentes, pode visitar uma folha diferente daquela
-%    escolhida pela ordem canonica dos requisitos.
-%
-% 7. ROTA EVASIVA: depois de cada roubo, tenta construir uma rota
-%    curta que evita o inicio do caminho minimo previsivel.
-%
-% 8. FUGA IMPREVISIVEL: depois de roubar o tesouro, evita a saida
-%    canonica e o retorno imediato, randomizando entre alternativas.
-%
-% 9. COBERTURA DE OBJETIVO: prepara tambem a cadeia de um segundo
-%    tesouro. Assim, observar os roubos nao identifica de forma unica
-%    qual cidade final deve ser bloqueada.
+% Em cada turno, o agente prepara a memoria, decide uma acao basica,
+% diversifica o objetivo quando for vantajoso, adapta o movimento e
+% avanca sua previsao dos bloqueios.
 %
 % ============================================================
 
@@ -47,12 +32,13 @@
     ladrao_action/3
 ]).
 
+% Conhecimento estatico copiado do cenario durante o preload.
 :- dynamic aresta_conhecida/2.
 :- dynamic item_conhecido/3.
 :- dynamic tesouro_conhecido/3.
 :- dynamic suspeito_conhecido/1.
 
-:- dynamic tesouro_isca/1.
+% Estado das estrategias de objetivo secundario e bloqueios previstos.
 :- dynamic itens_isca/1.
 :- dynamic bait_usado/0.
 :- dynamic tesouro_cobertura/1.
@@ -63,15 +49,16 @@
 :- dynamic armadilha_gulosa_prevista/1.
 :- dynamic origem_roubo_recente/1.
 
+% Planos e marcadores das estrategias de disfarce.
 :- dynamic plano_disfarce_forte/3.
 :- dynamic disfarce_forte_feito/0.
 :- dynamic disfarce_inicial_feito/0.
 
+% Memoria usada para variar rotas e manter decisoes entre turnos.
 :- dynamic cidade_anterior/1.
 :- dynamic total_itens_observado/1.
 :- dynamic rota_evasiva/1.
 :- dynamic destino_rota_evasiva/1.
-:- dynamic rota_bfs_prevista/1.
 :- dynamic escolha_diversificada/3.
 
 % Quantos passos extras uma rota evasiva pode custar.
@@ -86,6 +73,8 @@ limite_pistas_avaliadas(5).
 % ============================================================
 % PRELOAD
 % ============================================================
+% Executado uma vez antes da partida. Copia o cenario para a memoria,
+% escolhe identidade e objetivo e inicializa todos os planos auxiliares.
 
 ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto,
                LadraoID, ObjetivoLadrao) :-
@@ -112,17 +101,18 @@ ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto,
     assertz(total_itens_observado(0)),
     assertz(rota_evasiva([])),
     assertz(destino_rota_evasiva(nenhum)),
-    assertz(rota_bfs_prevista([])),
     assertz(fila_bloqueios_prevista([])),
     inicializar_armadilha_gulosa.
 
 % ============================================================
 % ACAO PRINCIPAL
 % ============================================================
+% Pipeline executado em cada turno. A acao base decide o que fazer;
+% os passos seguintes apenas refinam objetivo, rota e previsao.
 
-ladrao_action(Eventos, Estado, AcaoFinal) :-
+ladrao_action(_Eventos, Estado, AcaoFinal) :-
     preparar_turno(Estado),
-    acao_base(Eventos, Estado, AcaoInicial),
+    acao_base(Estado, AcaoInicial),
     ajustar_acao_cadeia(Estado, AcaoInicial, AcaoAjustada),
     adaptar_movimento(Estado, AcaoAjustada, AcaoFinal),
     avancar_modelo_bloqueios,
@@ -132,6 +122,8 @@ ladrao_action(_, _, nada).
 % ============================================================
 % MEMORIA DE ROUBOS E PLANEJAMENTO EVASIVO
 % ============================================================
+% Detecta um novo roubo pelo aumento do inventario. Esse evento atualiza
+% os riscos conhecidos e prepara a rota para o proximo objetivo.
 
 % O inventario aumenta depois de cada roubo. No turno seguinte,
 % o agente usa essa mudanca para planejar uma rota diferente do
@@ -139,16 +131,25 @@ ladrao_action(_, _, nada).
 preparar_turno(thief(loc(Cidade), _, _, Target, Itens, _)) :-
     length(Itens, TotalAtual),
     total_itens_observado(TotalAnterior),
-    (   TotalAtual > TotalAnterior
-    ->  retractall(total_itens_observado(_)),
-        assertz(total_itens_observado(TotalAtual)),
-        atualizar_cidade_cobertura_perigosa(Itens),
-        atualizar_modelo_bloqueios(Cidade, Itens),
-        planejar_apos_roubo(Cidade, Target, Itens)
-    ;   true
+    processar_novo_roubo(
+        TotalAtual,
+        TotalAnterior,
+        Cidade,
+        Target,
+        Itens
     ),
     !.
 preparar_turno(_).
+
+processar_novo_roubo(TotalAtual, TotalAnterior, Cidade, Target, Itens) :-
+    TotalAtual > TotalAnterior,
+    !,
+    retractall(total_itens_observado(_)),
+    assertz(total_itens_observado(TotalAtual)),
+    atualizar_cidade_cobertura_perigosa(Itens),
+    atualizar_modelo_bloqueios(Cidade, Itens),
+    planejar_apos_roubo(Cidade, Target, Itens).
+processar_novo_roubo(_, _, _, _, _).
 
 planejar_apos_roubo(_, Target, Itens) :-
     memberchk(Target, Itens),
@@ -165,10 +166,12 @@ planejar_apos_roubo(_, _, _) :-
 % ============================================================
 % BASE DE DECISAO
 % ============================================================
+% Define a prioridade das acoes: disfarcar, fugir com o tesouro,
+% roubar o objetivo disponivel ou caminhar ate ele.
 
 % Aplica o melhor plano de duas ou mais modificacoes antes do
 % primeiro roubo. O plano precisa caber nos pontos restantes.
-acao_base(_, thief(_, _, _, _, Itens, Dsg),
+acao_base(thief(_, _, _, _, Itens, Dsg),
           disfarce(Modificacoes)) :-
     Itens == [],
     \+ disfarce_forte_feito,
@@ -180,7 +183,7 @@ acao_base(_, thief(_, _, _, _, Itens, Dsg),
 % Quando o tesouro ja foi obtido, basta sair de sua cidade.
 % adaptar_movimento/3 substitui esta primeira aresta por uma
 % saida menos previsivel quando houver alternativa.
-acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _),
+acao_base(thief(loc(Cidade), _, _, Target, Itens, _),
           move(Cidade, Vizinho)) :-
     memberchk(Target, Itens),
     aresta_conhecida(Cidade, Vizinho),
@@ -188,7 +191,7 @@ acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _),
 
 % Fallback de um unico disfarce. Diferentemente da versao antiga,
 % avalia as primeiras caracteristicas, que sao reveladas primeiro.
-acao_base(_, thief(_, Id, aparencia(Aparencia), _, Itens, Dsg),
+acao_base(thief(_, Id, aparencia(Aparencia), _, Itens, Dsg),
           disfarce([Modificacao])) :-
     Itens == [],
     \+ disfarce_inicial_feito,
@@ -199,7 +202,7 @@ acao_base(_, thief(_, Id, aparencia(Aparencia), _, Itens, Dsg),
 
 % Rouba o tesouro real assim que todos os requisitos estiverem
 % satisfeitos e o ladrao estiver na cidade correta.
-acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _),
+acao_base(thief(loc(Cidade), _, _, Target, Itens, _),
           roubar(Target)) :-
     tesouro_conhecido(Target, Cidade, Requisitos),
     requisitos_satisfeitos(Requisitos, Itens),
@@ -207,7 +210,7 @@ acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _),
 
 % A bait strategy pode produzir apenas um roubo secundario por
 % partida, evitando entregar pistas demais ao detetive.
-acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _),
+acao_base(thief(loc(Cidade), _, _, Target, Itens, _),
           roubar(ItemIsca)) :-
     \+ bait_usado,
     item_isca_disponivel(Cidade, Target, Itens, ItemIsca),
@@ -216,7 +219,7 @@ acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _),
 
 % Move para o unico item de isca permitido quando o desvio total
 % em relacao a cadeia real e pequeno.
-acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _),
+acao_base(thief(loc(Cidade), _, _, Target, Itens, _),
           move(Cidade, ProximaCidade)) :-
     \+ bait_usado,
     cidade_isca_ativa(Cidade, Target, Itens, CidadeIsca),
@@ -224,7 +227,7 @@ acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _),
     !.
 
 % Rouba a proxima folha da cadeia real.
-acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _),
+acao_base(thief(loc(Cidade), _, _, Target, Itens, _),
           roubar(Item)) :-
     proximo_objetivo(Target, Itens, Item),
     item_conhecido(Item, Cidade, Requisitos),
@@ -232,18 +235,20 @@ acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _),
     !.
 
 % Segue para o proximo item ou para o tesouro.
-acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _),
+acao_base(thief(loc(Cidade), _, _, Target, Itens, _),
           move(Cidade, ProximaCidade)) :-
     proximo_objetivo(Target, Itens, Objeto),
     cidade_do_objeto(Objeto, CidadeObjetivo),
     proximo_passo(Cidade, CidadeObjetivo, ProximaCidade),
     !.
 
-acao_base(_, _, nada).
+acao_base(_, nada).
 
 % ============================================================
 % DIVERSIFICACAO DA CADEIA REAL
 % ============================================================
+% Pode trocar a proxima folha da cadeia por outra igualmente barata.
+% A escolha fica estavel ate o inventario mudar, evitando zigue-zague.
 
 % A decisao base segue a primeira dependencia pendente. Este
 % pos-processamento pode trocar o objetivo por outra folha pronta
@@ -253,14 +258,11 @@ ajustar_acao_cadeia(
     move(Cidade, PassoCanonico),
     Acao
 ) :-
-    modo_cadeia_real(Cidade, Target, Itens),
+    \+ memberchk(Target, Itens),
+    \+ cidade_isca_ativa(Cidade, Target, Itens, _),
     !,
     acao_cadeia_real(Cidade, Target, Itens, PassoCanonico, Acao).
 ajustar_acao_cadeia(_, Acao, Acao).
-
-modo_cadeia_real(Cidade, Target, Itens) :-
-    \+ memberchk(Target, Itens),
-    \+ cidade_isca_ativa(Cidade, Target, Itens, _).
 
 % Se o desvio anterior levou a uma folha pronta, rouba-a.
 acao_cadeia_real(Cidade, Target, Itens, _, roubar(Item)) :-
@@ -332,6 +334,8 @@ objetivo_pendente(Target, Itens, Folha) :-
 % ============================================================
 % ADAPTACAO DOS MOVIMENTOS
 % ============================================================
+% Recebe o movimento escolhido pela decisao base e substitui somente
+% seu proximo passo, mantendo o mesmo objetivo estrategico.
 
 % Depois do tesouro, evita a saida canonica e o retorno imediato.
 adaptar_movimento(
@@ -377,13 +381,16 @@ adaptar_movimento(_, Acao, Acao).
 % base de decisao: isca, folha diversificada e objetivo canonico.
 destino_estrategico(Cidade, Target, Itens, Destino) :-
     \+ memberchk(Target, Itens),
-    (   cidade_isca_ativa(Cidade, Target, Itens, Destino)
-    ->  true
-    ;   destino_diversificado(Cidade, Target, Itens, Destino)
-    ->  true
-    ;   proximo_objetivo(Target, Itens, Objeto),
-        cidade_do_objeto(Objeto, Destino)
-    ).
+    cidade_isca_ativa(Cidade, Target, Itens, Destino),
+    !.
+destino_estrategico(Cidade, Target, Itens, Destino) :-
+    \+ memberchk(Target, Itens),
+    destino_diversificado(Cidade, Target, Itens, Destino),
+    !.
+destino_estrategico(_, Target, Itens, Destino) :-
+    \+ memberchk(Target, Itens),
+    proximo_objetivo(Target, Itens, Objeto),
+    cidade_do_objeto(Objeto, Destino).
 
 escolher_passo_para_destino(Cidade, Destino, _, Proxima) :-
     passo_evitando_riscos(Cidade, Destino, Proxima),
@@ -423,8 +430,8 @@ cidade_a_evitar(Cidade) :-
 
 % ============================================================
 % ROTA ANTI-CAMINHO-MINIMO
-% ============================================================
-
+% Depois de um roubo, compara a rota BFS previsivel com pequenos
+% desvios. O desvio so e aceito quando permanece dentro da folga.
 % Calcula o caminho BFS previsivel e procura uma rota curta que
 % nao atravesse os primeiros vertices internos desse caminho.
 planejar_rota_anti_bfs(Origem, Destino) :-
@@ -433,21 +440,27 @@ planejar_rota_anti_bfs(Origem, Destino) :-
     RotaPrevista = [Origem | Cauda],
     internos_da_rota(Cauda, Destino, Internos),
 
-    retractall(rota_bfs_prevista(_)),
-    assertz(rota_bfs_prevista(RotaPrevista)),
-
-    (   encontrar_desvio_controlado(
-            Origem,
-            Destino,
-            RotaPrevista,
-            Internos,
-            RotaAlternativa
-        )
-    ->  salvar_rota_evasiva(Destino, RotaAlternativa)
-    ;   limpar_rota_evasiva
+    salvar_desvio_controlado(
+        Origem,
+        Destino,
+        RotaPrevista,
+        Internos
     ),
     !.
 planejar_rota_anti_bfs(_, _) :-
+    limpar_rota_evasiva.
+
+salvar_desvio_controlado(Origem, Destino, RotaPrevista, Internos) :-
+    encontrar_desvio_controlado(
+        Origem,
+        Destino,
+        RotaPrevista,
+        Internos,
+        RotaAlternativa
+    ),
+    !,
+    salvar_rota_evasiva(Destino, RotaAlternativa).
+salvar_desvio_controlado(_, _, _, _) :-
     limpar_rota_evasiva.
 
 % Tenta primeiro bloquear um prefixo maior da rota prevista e
@@ -600,6 +613,8 @@ bfs_evasivo(
 % ============================================================
 % VARIACAO DE CAMINHO E FUGA
 % ============================================================
+% Em deslocamentos normais, varia entre primeiros passos de mesma
+% distancia. Na fuga final, prioriza saidas nao canonicas e sem retorno.
 
 % Procura outro primeiro passo que preserve a distancia minima.
 % Prefere nao usar o passo canonico nem voltar a cidade anterior.
@@ -747,10 +762,10 @@ candidatos_saida(
     sort(Candidatos0, Candidatos).
 
 nao_eh_retorno(Cidade) :-
-    (   cidade_anterior(Anterior)
-    ->  Cidade \== Anterior
-    ;   true
-    ).
+    cidade_anterior(Anterior),
+    !,
+    Cidade \== Anterior.
+nao_eh_retorno(_).
 
 grau_cidade(Cidade, Grau) :-
     findall(Vizinho,
@@ -764,8 +779,10 @@ registrar_saida(Cidade) :-
     assertz(cidade_anterior(Cidade)).
 
 % ============================================================
-% BAIT STRATEGY
+% ESTRATEGIA DE ISCA
 % ============================================================
+% Quando nao existe uma cobertura completa viavel, permite no maximo
+% um roubo secundario cujo desvio espacial seja pequeno.
 
 % A cobertura completa de um segundo objetivo substitui a antiga
 % isca de um unico item. Misturar as duas politicas acrescentaria
@@ -773,7 +790,6 @@ registrar_saida(Cidade) :-
 configurar_bait_strategy(_) :-
     tesouro_cobertura(Cobertura),
     Cobertura \== nenhum,
-    assertz(tesouro_isca(nenhum)),
     assertz(itens_isca([])),
     assertz(bait_usado),
     !.
@@ -798,13 +814,11 @@ configurar_bait_strategy(Target) :-
     sort(Melhores0, Melhores),
     random_member(Isca, Melhores),
 
-    assertz(tesouro_isca(Isca)),
     tesouro_conhecido(Isca, _, RequisitosIsca),
     requisitos_totais(RequisitosIsca, TodosItensIsca),
     assertz(itens_isca(TodosItensIsca)),
     !.
 configurar_bait_strategy(_) :-
-    assertz(tesouro_isca(nenhum)),
     assertz(itens_isca([])).
 
 item_isca_disponivel(Cidade, Target, Itens, ItemIsca) :-
@@ -847,6 +861,8 @@ prereqs_reais_prontos(Target, Itens) :-
 % ============================================================
 % DISFARCE FORTE
 % ============================================================
+% Precalcula planos com duas ou mais mudancas que aproximam a aparencia
+% real do prefixo de outro suspeito e escolhe o plano mais ambiguo.
 
 % Gera varios planos para imitar prefixos de todos os outros
 % suspeitos. Nao existe dependencia de IDs especificos.
@@ -969,6 +985,8 @@ marcar_disfarce_forte :-
 % ============================================================
 % DISFARCE SIMPLES
 % ============================================================
+% Fallback para cenarios em que nenhum plano forte cabe nos pontos
+% disponiveis. Altera apenas uma das primeiras caracteristicas.
 
 % Tenta primeiro uma troca valida nas tres primeiras posicoes e
 % escolhe a que produz a melhor aparencia simulada.
@@ -1019,6 +1037,8 @@ valor_alternativo_mesmo_tipo(Original, Falso) :-
 % ============================================================
 % SIMULACAO E PONTUACAO DE APARENCIA
 % ============================================================
+% Simula cada plano sem alterar o estado real. A pontuacao favorece
+% prefixos que impedem o detetive de emitir um mandato correto.
 
 aplicar_plano_simulado(Aparencia, [], Aparencia).
 aplicar_plano_simulado(Aparencia, [Modificacao | Resto], Resultado) :-
@@ -1045,11 +1065,6 @@ aplicar_modificacao_simulada(
     Resultado
 ) :-
     substituir_primeiro(Aparencia, Original, none, Resultado).
-aplicar_modificacao_simulada(
-    Aparencia,
-    adicionar(Novo),
-    [Novo | Aparencia]
-).
 
 substituir_primeiro([Original | Resto], Original, Novo,
                     [Novo | Resto]) :-
@@ -1157,6 +1172,8 @@ suspeitos_da_memoria(Suspeitos) :-
 % ============================================================
 % ESCOLHA DE IDENTIDADE
 % ============================================================
+% Escolhe o suspeito que permanece compativel com mais identidades
+% durante a revelacao progressiva das primeiras pistas.
 
 % A pontuacao usa o mesmo modelo de compatibilidade empregado
 % pelo motor para validar mandatos, mas da maior peso aos prefixos
@@ -1255,6 +1272,8 @@ atributos_do_suspeito(
 % ============================================================
 % ESCOLHA DE TESOURO
 % ============================================================
+% Prefere objetivos resolviveis com menos requisitos recursivos e,
+% quando o mapa comporta, prepara uma segunda cadeia como cobertura.
 
 % Randomiza entre tesouros empatados com a menor quantidade de
 % requisitos recursivos, evitando uma escolha fixa desnecessaria.
@@ -1361,6 +1380,8 @@ requisito_recursivo(Requisitos, RequisitoIndireto) :-
 % ============================================================
 % REQUISITOS E PROXIMO OBJETIVO
 % ============================================================
+% Percorre as dependencias de itens e tesouros, encontra folhas prontas
+% e converte qualquer objetivo logico em sua cidade correspondente.
 
 requisitos_satisfeitos([], _).
 requisitos_satisfeitos([Requisito | Resto], Itens) :-
@@ -1431,16 +1452,21 @@ avancar_modelo_bloqueios :-
     !,
     retractall(fila_bloqueios_prevista(_)),
     assertz(fila_bloqueios_prevista(Resto)),
-    (   cidade_ja_bloqueada_prevista(Cidade)
-    ->  true
-    ;   assertz(cidade_ja_bloqueada_prevista(Cidade))
-    ),
+    lembrar_cidade_bloqueada(Cidade),
     retractall(bloqueio_persistente_previsto(_)),
-    (   Resto == []
-    ->  assertz(bloqueio_persistente_previsto(Cidade))
-    ;   true
-    ).
+    registrar_bloqueio_persistente(Resto, Cidade).
 avancar_modelo_bloqueios.
+
+lembrar_cidade_bloqueada(Cidade) :-
+    cidade_ja_bloqueada_prevista(Cidade),
+    !.
+lembrar_cidade_bloqueada(Cidade) :-
+    assertz(cidade_ja_bloqueada_prevista(Cidade)).
+
+registrar_bloqueio_persistente([], Cidade) :-
+    !,
+    assertz(bloqueio_persistente_previsto(Cidade)).
+registrar_bloqueio_persistente(_, _).
 
 inicializar_armadilha_gulosa :-
     findall(Score-Cidade,
@@ -1459,15 +1485,17 @@ inicializar_armadilha_gulosa.
 atualizar_armadilha_gulosa(Cidade, Itens) :-
     retractall(armadilha_gulosa_prevista(_)),
     melhor_alvo_previsto(Cidade, Itens, CidadeAlvo),
-    (   Cidade == CidadeAlvo
-    ->  Armadilha = Cidade
-    ;   caminho_mais_curto(Cidade, CidadeAlvo,
-                           [Cidade, Armadilha | _])
-    ),
+    primeira_cidade_para_alvo(Cidade, CidadeAlvo, Armadilha),
     assertz(armadilha_gulosa_prevista(Armadilha)),
     !.
 atualizar_armadilha_gulosa(_, _) :-
     retractall(armadilha_gulosa_prevista(_)).
+
+primeira_cidade_para_alvo(Cidade, CidadeAlvo, Cidade) :-
+    Cidade == CidadeAlvo,
+    !.
+primeira_cidade_para_alvo(Cidade, CidadeAlvo, Proxima) :-
+    caminho_mais_curto(Cidade, CidadeAlvo, [Cidade, Proxima | _]).
 
 melhor_alvo_previsto(Cidade, Itens, CidadeAlvo) :-
     findall(Score-Objeto-CidadeObjeto,
@@ -1533,6 +1561,8 @@ item_do_objetivo(Item, Target) :-
 % ============================================================
 % BFS
 % ============================================================
+% Implementa os caminhos minimos usados para decidir destinos, medir
+% desvios e construir rotas que ignoram cidades consideradas perigosas.
 
 proximo_passo(Origem, Destino, ProximaCidade) :-
     caminho_mais_curto(
@@ -1630,16 +1660,18 @@ bfs_dist([[Atual, Distancia] | Fila], Visitados,
 % ============================================================
 % UTILITARIOS E LIMPEZA
 % ============================================================
+% Mantem o grafo sem arestas duplicadas, oferece operacoes de lista e
+% remove todo estado dinamico antes de uma nova partida.
 
 lembrar_aresta(A, B) :-
-    (   aresta_conhecida(A, B)
-    ->  true
-    ;   assertz(aresta_conhecida(A, B))
-    ),
-    (   aresta_conhecida(B, A)
-    ->  true
-    ;   assertz(aresta_conhecida(B, A))
-    ).
+    lembrar_aresta_direcionada(A, B),
+    lembrar_aresta_direcionada(B, A).
+
+lembrar_aresta_direcionada(A, B) :-
+    aresta_conhecida(A, B),
+    !.
+lembrar_aresta_direcionada(A, B) :-
+    assertz(aresta_conhecida(A, B)).
 
 primeiros_n(N, Lista, Primeiros) :-
     N > 0,
@@ -1661,7 +1693,6 @@ limpar_memoria :-
     retractall(tesouro_conhecido(_, _, _)),
     retractall(suspeito_conhecido(_)),
 
-    retractall(tesouro_isca(_)),
     retractall(itens_isca(_)),
     retractall(bait_usado),
     retractall(tesouro_cobertura(_)),
@@ -1680,5 +1711,4 @@ limpar_memoria :-
     retractall(total_itens_observado(_)),
     retractall(rota_evasiva(_)),
     retractall(destino_rota_evasiva(_)),
-    retractall(rota_bfs_prevista(_)),
     retractall(escolha_diversificada(_, _, _)).
