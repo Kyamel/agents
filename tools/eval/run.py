@@ -126,20 +126,37 @@ def main() -> int:
     return 0
 
 
-def print_win_rates(rows: list[Row], thieves: list[Path], detectives: list[Path]) -> None:
+GREEN = "\033[32m"
+RED = "\033[31m"
+RESET = "\033[0m"
+
+
+def print_win_rates(
+    rows: list[Row],
+    thieves: list[Path],
+    detectives: list[Path],
+) -> None:
     print()
-    print("Taxas de vitoria e derrota:")
+    print("Taxas de vitória e derrota:")
+
     for thief in thieves:
         thief_name = rel(thief)
-        thief_rows = [row for row in rows if row["thief_agent"] == thief_name]
+        thief_rows = [
+            row for row in rows
+            if row["thief_agent"] == thief_name
+        ]
+
         print(f"- {thief_name}")
+
         for detective in detectives:
             detective_name = rel(detective)
             matchup = [
                 row for row in thief_rows
                 if row["detective_agent"] == detective_name
             ]
+
             print_win_rate_line(f"  vs {detective_name}", matchup)
+
         print_win_rate_line("  GLOBAL", thief_rows)
 
     print_win_rate_line("- GLOBAL GERAL", rows)
@@ -149,13 +166,17 @@ def print_win_rate_line(label: str, rows: list[Row]) -> None:
     total = len(rows)
     wins = sum(int(row["won"]) for row in rows)
     losses = sum(int(row["lost"]) for row in rows)
+
     win_rate = wins / total if total else 0.0
     loss_rate = losses / total if total else 0.0
-    print(
-        f"{label}: vitorias {wins}/{total} ({win_rate:.2%}) | "
-        f"derrotas {losses}/{total} ({loss_rate:.2%})"
-    )
 
+    print(
+        f"{label}: "
+        f"vitórias {wins}/{total} "
+        f"({GREEN}{win_rate:.2%}{RESET}) | "
+        f"derrotas {losses}/{total} "
+        f"({RED}{loss_rate:.2%}{RESET})"
+    )
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate thief agents against detective agents on cenario1.")
