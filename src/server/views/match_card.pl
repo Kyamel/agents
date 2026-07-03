@@ -8,7 +8,7 @@
 match_card(Match, Html) :-
     Id = Match.id,
     atom_concat('/matches/', Id, Href),
-    winner_label(Match.winner, WinnerText, BadgeClass),
+    match_badge(Match.status, Match.winner, WinnerText, BadgeClass),
     agent_name(Match, thief_agent_name, thief_agent_id, ThiefName),
     agent_name(Match, detective_agent_name, detective_agent_id, DetectiveName),
     ui:text_class(normal, 'font-mono font-semibold', MatchLinkTextClass),
@@ -50,12 +50,34 @@ agent_name(Match, NameKey, _IdKey, Name) :-
 agent_name(Match, _NameKey, IdKey, Name) :-
     get_dict(IdKey, Match, Name).
 
+% Enquanto a partida nao terminou, o card mostra o estado da execucao em vez
+% de interpretar o vencedor vazio como empate.
+match_badge("queued", _Winner, 'Na fila', Class) :-
+    !,
+    badge_class(amber, Class).
+match_badge("running", _Winner, 'Em execução', Class) :-
+    !,
+    badge_class(sky, Class).
+match_badge("timeout", _Winner, 'Tempo esgotado', Class) :-
+    !,
+    badge_class(rose, Class).
+match_badge("error", _Winner, 'Falha na execução', Class) :-
+    !,
+    badge_class(rose, Class).
+match_badge("done", Winner, Text, Class) :-
+    !,
+    winner_label(Winner, Text, Class).
+match_badge(_Status, _Winner, 'Status desconhecido', Class) :-
+    badge_class(slate, Class).
+
 % Vencedor -> rotulo + classe da etiqueta. Reutilizado por match_detail.
 winner_label("thief", 'Vitória do ladrão', Class) :- !, badge_class(amber, Class).
 winner_label("detective", 'Vitória do detetive', Class) :- !, badge_class(sky, Class).
-winner_label(_, 'Empate', Class) :- badge_class(slate, Class).
+winner_label("draw", 'Empate', Class) :- !, badge_class(slate, Class).
+winner_label(_, 'Resultado indisponível', Class) :- badge_class(slate, Class).
 
 badge_class(amber, Class)   :- ui:pill_class(amber, Class).
 badge_class(emerald, Class) :- ui:pill_class(emerald, Class).
+badge_class(rose, Class)    :- ui:pill_class(rose, Class).
 badge_class(sky, Class)     :- ui:pill_class(sky, Class).
 badge_class(slate, Class)   :- ui:pill_class(neutral, Class).
