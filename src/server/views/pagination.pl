@@ -68,7 +68,7 @@ page_control(BasePath, Page, true, Label, Html) :-
               class('inline-flex min-h-9 items-center justify-center rounded-lg bg-surface-800 px-3 py-1.5 text-center hover:bg-surface-700')],
              Label).
 page_control(_, _, false, Label, Html) :-
-    Html = span([class('inline-flex min-h-9 items-center justify-center rounded-lg border border-surface-800 bg-surface-900 px-3 py-1.5 text-center text-surface-600')],
+    Html = span([class('inline-flex min-h-9 items-center justify-center rounded-lg border border-surface-700 bg-surface-900 px-3 py-1.5 text-center text-surface-600')],
                 Label).
 
 page_window(BasePath, Meta, Html) :-
@@ -127,6 +127,6 @@ page_number(BasePath, _CurrentPage, Page, Html) :-
     format(atom(Label), 'Ir para a página ~w', [Page]),
     Html = a([
         href(Href),
-        class('inline-flex h-8 min-w-8 items-center justify-center rounded-lg border border-surface-800 bg-surface-900 px-1 hover:border-surface-600 hover:bg-surface-800 sm:h-9 sm:min-w-9 sm:px-2'),
+        class('inline-flex h-8 min-w-8 items-center justify-center rounded-lg border border-surface-700 bg-surface-900 px-1 hover:border-surface-500 hover:bg-surface-800 sm:h-9 sm:min-w-9 sm:px-2'),
         'aria-label'(Label)
     ], Page).

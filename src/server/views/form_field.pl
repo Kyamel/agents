@@ -16,7 +16,7 @@
 input_class(Class) :-
     ui:text_class(
         normal,
-        'w-full rounded-lg bg-surface-900 border border-surface-700 px-3 py-2 \c
+        'w-full rounded-lg bg-surface-900 border border-surface-600 px-3 py-2 \c
          text-surface-100 placeholder-surface-500 focus:outline-none focus:border-ufop-500',
         Class
     ).
@@ -98,7 +98,7 @@ checkbox_field(Name, Label, Help, Checked, Html) :-
     checked_attr(Checked, CheckedAttrs),
     ui:text_class(
         normal,
-        'mb-4 flex items-start gap-3 rounded-lg border border-surface-800 \c
+        'mb-4 flex items-start gap-3 rounded-lg border border-surface-700 \c
          bg-surface-950/40 p-3 text-surface-300',
         FieldClass
     ),
@@ -107,7 +107,7 @@ checkbox_field(Name, Label, Help, Checked, Html) :-
         name(Name),
         id(Name),
         value("true"),
-        class('h-4 w-4 rounded border-surface-700 bg-surface-900 text-ufop-600 focus:ring-ufop-500')
+        class('h-4 w-4 rounded border-surface-600 bg-surface-900 text-ufop-600 focus:ring-ufop-500')
     ], CheckedAttrs, Attrs),
     Html = label([for(Name), class(FieldClass)],
                  [

@@ -35,7 +35,7 @@ index_page(Request) :-
     ]).
 
 info_card(Href, Title, Text, Html) :-
-    ui:surface_class('p-5 hover:border-surface-600 transition', CardClass),
+    ui:surface_class('p-5 hover:border-surface-500 transition', CardClass),
     ui:link_class(LinkClass),
     ui:text_class(normal, 'text-surface-400', TextClass),
     Html = div([class(CardClass)], [

@@ -130,7 +130,7 @@ map_controls(Html) :-
             'Intervalo',
             input([type(number), id('mm-interval'), value(800), min(100),
                    step(100),
-                   class('w-24 rounded-lg bg-surface-800 border border-surface-700 \c
+                   class('w-24 rounded-lg bg-surface-800 border border-surface-600 \c
                           px-2 py-1 text-surface-200')]),
             'ms'
         ])

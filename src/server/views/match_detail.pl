@@ -97,7 +97,7 @@ event_item(Event, Html) :-
     field_text(Event, detail, Detail),
     format(string(Text), "Turno ~w: ~w", [Turn, Detail]),
     ui:text_class(normal,
-                  'rounded-lg bg-surface-900 border border-surface-800 px-3 py-2 \c
+                  'rounded-lg bg-surface-900 border border-surface-700 px-3 py-2 \c
                    text-surface-300',
                   LiClass),
     Html = li([class(LiClass)], Text).
@@ -166,7 +166,7 @@ turns_table([], Html) :-
 turns_table(Turns, Html) :-
     maplist(turn_row, Turns, Rows),
     ui:text_class(normal, 'w-full', TableClass),
-    Html = div([class('overflow-x-auto rounded-xl border border-surface-800')], [
+    Html = div([class('overflow-x-auto rounded-xl border border-surface-700')], [
         table([class(TableClass)], [
             thead([class('bg-surface-900 text-surface-400')], [
                 tr([], [
@@ -181,7 +181,7 @@ turns_table(Turns, Html) :-
         ])
     ]).
 
-turn_row(Turn, tr([class('border-t border-surface-800')], [
+turn_row(Turn, tr([class('border-t border-surface-700')], [
         td([class('px-3 py-2 text-surface-400')], TurnNo),
         td([class(ThiefClass)], ThiefAction),
         td([class('px-3 py-2 text-surface-400')], ThiefPos),

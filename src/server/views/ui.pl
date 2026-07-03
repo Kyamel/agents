@@ -20,7 +20,7 @@
 % fragmentos de DOM inteiros viram componentes próprios (agent_card, alert, ...).
 
 % Aparência de cartão usada em todo o app.
-surface_base('rounded-xl bg-surface-900 border border-surface-800').
+surface_base('rounded-xl bg-surface-900 border border-surface-700').
 
 surface_class(Class) :-
     surface_base(Class).
@@ -66,7 +66,7 @@ tinted_card_tone(amber,   'bg-amber-950 border-amber-800 text-amber-200').
 tinted_card_tone(sky,     'bg-sky-950 border-sky-800 text-sky-200').
 tinted_card_tone(emerald, 'bg-emerald-950 border-emerald-800 text-emerald-200').
 tinted_card_tone(rose,    'bg-rose-950 border-rose-800 text-rose-200').
-tinted_card_tone(neutral, 'bg-surface-900 border-surface-700 text-surface-200').
+tinted_card_tone(neutral, 'bg-surface-900 border-surface-600 text-surface-200').
 
 % Pill/etiqueta arredondada curta (badges de vencedor, papel, privacidade).
 pill_class(Accent, Class) :-
@@ -79,7 +79,7 @@ pill_tone(sky,     'bg-sky-950 text-sky-300').
 pill_tone(emerald, 'bg-emerald-950 text-emerald-300').
 pill_tone(rose,    'bg-rose-950 text-rose-300').
 pill_tone(neutral, 'bg-surface-800 text-surface-300').
-pill_tone(muted,   'bg-surface-950 text-surface-400 border border-surface-800').
+pill_tone(muted,   'bg-surface-950 text-surface-400 border border-surface-700').
 
 % Escala tipografica semantica do app (5 niveis, do menor ao maior):
 %   meta      14 px — datas, autoria, rotulos, pills e informacao secundaria;

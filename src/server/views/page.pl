@@ -100,11 +100,11 @@ layout(User, Content, Body) :-
     ui:text_class(meta, 'mt-0.5', FooterLineClass),
     Body = [
         div([class('min-h-screen bg-surface-950 text-surface-200 flex flex-col')], [
-            header([class('border-b border-surface-800')], [
+            header([class('border-b border-surface-700')], [
                 div([class('max-w-4xl mx-auto w-full p-4')], [Nav])
             ]),
             main([class(MainClass)], Content),
-            footer([class('border-t border-surface-800')], [
+            footer([class('border-t border-surface-700')], [
                 div([class('max-w-4xl mx-auto w-full p-6 flex flex-col sm:flex-row \c
                              items-center gap-4 text-surface-500')], [
                     Logo,

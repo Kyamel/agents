@@ -40,12 +40,12 @@ hero(Html) :-
        e registra cada ação para replay.'),
     nav([class(NavClass)], [
         a([href('#como-funciona'),
-           class('rounded-lg bg-surface-800 border border-surface-700 px-3 py-2 \c
-                  hover:border-surface-500 transition')],
+           class('rounded-lg bg-surface-800 border border-surface-600 px-3 py-2 \c
+                  hover:border-surface-400 transition')],
           'Como funciona'),
         a([href('#programar-agente'),
-           class('rounded-lg bg-surface-800 border border-surface-700 px-3 py-2 \c
-                  hover:border-surface-500 transition')],
+           class('rounded-lg bg-surface-800 border border-surface-600 px-3 py-2 \c
+                  hover:border-surface-400 transition')],
           'Contrato dos agentes'),
         a([href('/agents/new'), class(CtaClass)],
           'Enviar meu agente')
@@ -126,7 +126,7 @@ data_shapes(Html) :-
     signature('Estado do detetive',
               'detective(loc(Cidade), Mandato, Pistas)', S7),
     ui:text_class(normal, 'grid lg:grid-cols-2 gap-x-8 gap-y-3', ShapesClass),
-    Html = div([class('mt-7 border-t border-surface-800 pt-6')], [
+    Html = div([class('mt-7 border-t border-surface-700 pt-6')], [
     h3([class('font-semibold mb-3')], 'Dados recebidos da engine'),
     div([class(ShapesClass)], [
         S1, S2, S3, S4, S5, S6, S7
@@ -224,7 +224,7 @@ step_card(Number, Title, Text, Html) :-
                    bg-ufop-950 text-ufop-400 border border-ufop-900 font-bold mb-3',
                   NumberClass),
     ui:text_class(normal, 'text-surface-400', TextClass),
-    Html = div([class('rounded-lg bg-surface-950/60 border border-surface-800 p-4')], [
+    Html = div([class('rounded-lg bg-surface-950/60 border border-surface-700 p-4')], [
     span([class(NumberClass)],
          Number),
     h3([class('font-semibold mb-1')], Title),
@@ -271,14 +271,14 @@ contract_signature(Name, Signature, Html) :-
                   'text-surface-500 uppercase tracking-wide mb-2',
                   NameClass),
     ui:text_class(meta, 'text-surface-200 break-all', SignatureClass),
-    Html = div([class('rounded-lg bg-surface-950/70 border border-surface-800 p-4')], [
+    Html = div([class('rounded-lg bg-surface-950/70 border border-surface-700 p-4')], [
     p([class(NameClass)], Name),
     code([class(SignatureClass)], Signature)
 ]).
 
 action_chip(Text, Html) :-
     ui:text_class(meta,
-                  'rounded-md bg-surface-800 border border-surface-700 \c
+                  'rounded-md bg-surface-800 border border-surface-600 \c
                    px-2.5 py-1.5 text-surface-300',
                   Class),
     Html = code([class(Class)], Text).
@@ -286,7 +286,7 @@ action_chip(Text, Html) :-
 code_block(Code, Html) :-
     ui:text_class(meta,
                   'overflow-x-auto rounded-lg bg-surface-950 border \c
-                   border-surface-800 p-4 text-surface-300',
+                   border-surface-700 p-4 text-surface-300',
                   Class),
     Html = pre([class(Class)], code([], Code)).
 
