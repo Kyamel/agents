@@ -57,7 +57,7 @@ match_badge("queued", _Winner, 'Na fila', Class) :-
     badge_class(amber, Class).
 match_badge("running", _Winner, 'Em execução', Class) :-
     !,
-    badge_class(sky, Class).
+    badge_class(emerald, Class).
 match_badge("timeout", _Winner, 'Tempo esgotado', Class) :-
     !,
     badge_class(rose, Class).

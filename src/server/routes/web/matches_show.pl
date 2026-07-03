@@ -137,7 +137,7 @@ status_banner(Status, Html) :-
 status_meta("queued", 'Na fila',
     'Aguardando um worker disponível para iniciar a execução.', amber) :- !.
 status_meta("running", 'Em execução',
-    'A engine está processando esta partida.', sky) :- !.
+    'A engine está processando esta partida.', emerald) :- !.
 status_meta("timeout", 'Tempo esgotado',
     'A partida excedeu o limite de tempo e foi interrompida.', rose) :- !.
 status_meta("error", 'Falha na execução',
