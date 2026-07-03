@@ -1,0 +1,23 @@
+# Caddy na frente do app, terminando HTTPS. O app so fala HTTP (porta 8080).
+#
+# SITE_ADDRESS define o host servido (default: localhost). Ex. em producao:
+#   SITE_ADDRESS=agents.seudominio.com
+#
+# TLS: por padrao usa a CA interna do Caddy (certificado self-signed). Funciona
+# bem atras do cloudflared tunnel — aponte o tunnel para https://<caddy>:443
+# com "noTLSVerify: true" (o Cloudflare ja entrega HTTPS valido na ponta).
+# Para certificados reais via Let's Encrypt, veja o README.
+
+{
+	# Nao expor a admin API do Caddy.
+	admin off
+}
+
+{$SITE_ADDRESS:localhost} {
+	encode zstd gzip
+
+	# Caddy ja injeta X-Forwarded-For / -Proto / -Host no upstream.
+	reverse_proxy app:8080
+
+	tls internal
+}

@@ -1,0 +1,53 @@
+# Imagem do app (SWI-Prolog + SQLite via prosqlite). Debian slim, so as
+# dependencias necessarias. Caddy roda em container proprio na frente (ver
+# compose.yaml); este processo so fala HTTP na 8080.
+FROM docker.io/library/debian:bookworm-slim
+
+# Locale UTF-8: sem isto o SWI-Prolog le os fontes .pl em locale C e quebra nos
+# acentos ("Illegal multibyte Sequence"). C.UTF-8 ja vem no Debian, sem instalar
+# o pacote locales.
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+# swi-prolog-nox = SWI-Prolog sem a GUI (xpce). Ja traz http/ssl/crypto.
+# libsqlite3-0 = biblioteca nativa que o prosqlite carrega em runtime.
+# ca-certificates = TLS para chamadas externas (ex.: envio de email por HTTPS).
+#
+# APT::Sandbox::User "root": desliga o sandbox do apt (que troca para o usuario
+# _apt). Necessario ao buildar com podman rootless sem /etc/subuid (mapeamento
+# de uid unico), como e o caso deste host NixOS.
+RUN echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/01-no-sandbox \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        swi-prolog-nox \
+        libsqlite3-0 \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# So o que o app precisa em runtime. O prosqlite ja vem com o .so pre-compilado
+# para linux-x86_64/aarch64 em packs/prosqlite/lib (carregado via pack_attach).
+COPY src    ./src
+COPY packs  ./packs
+COPY maps   ./maps
+COPY assets ./assets
+
+# Diretorios graváveis (montados como volumes no compose para persistir).
+RUN mkdir -p data uploads/agents
+
+# Falha o build cedo se a lib nativa do prosqlite nao carregar com este
+# swipl/libsqlite3 (ex.: incompatibilidade de ABI do .so pre-compilado).
+RUN swipl -q -g "use_module('src/db/connection'), \
+        ( catch(db_connection:ensure_prosqlite, E, (print_message(error, E), halt(1))) \
+          -> writeln('prosqlite: OK') ; halt(1) ), halt"
+
+EXPOSE 8080
+
+# initialization(main) sobe o servidor; main_foreground bloqueia a thread
+# principal para o container nao encerrar.
+#
+# ATENCAO: as opcoes (-g/-t) vem ANTES do arquivo. Tudo que vem depois do script
+# o swipl trata como argumento do script (nao como opcao) — se -g/-t ficam
+# depois, o swipl cai no toplevel interativo, le EOF do stdin e encerra.
+CMD ["swipl", "-g", "main_foreground", "-t", "halt(1)", "/app/src/main.pl"]

@@ -1,0 +1,17 @@
+# Contexto de build da imagem (deploy/Containerfile). O Containerfile copia
+# apenas src/ packs/ maps/ assets/, mas isto evita mandar peso desnecessario
+# para o daemon e acelera o build.
+.git
+.git/**
+.vscode
+.codex
+.mypy_cache
+prototipe
+docs
+tools
+node_modules
+*.pdf
+data/*.db
+data/runs
+uploads/agents/*
+shell.nix

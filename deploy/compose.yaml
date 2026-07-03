@@ -1,0 +1,48 @@
+# Deploy: app (SWI-Prolog) + Caddy na frente (HTTPS). Para podman-compose ou
+# `podman compose`. Rode a partir da pasta deploy/.
+#
+#   SITE_ADDRESS=localhost podman-compose up -d --build
+#
+# O contexto de build e a raiz do projeto (..), usando deploy/Containerfile.
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Containerfile
+    image: agents-app:latest
+    restart: unless-stopped
+    # So acessivel pela rede interna; quem publica pra fora e o Caddy.
+    expose:
+      - "8080"
+    volumes:
+      - app_data:/app/data
+      - app_uploads:/app/uploads
+    networks:
+      - web
+
+  caddy:
+    image: docker.io/library/caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: "${SITE_ADDRESS:-localhost}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - web
+
+networks:
+  web:
+
+volumes:
+  app_data:
+  app_uploads:
+  caddy_data:
+  caddy_config:
