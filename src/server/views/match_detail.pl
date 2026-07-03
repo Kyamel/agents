@@ -1,5 +1,6 @@
 :- module(match_detail, [
     stat_card/3,
+    stat_card/4,
     winner_card/2,
     setup_section/2,
     events_section/2,
@@ -104,11 +105,22 @@ field_text(Dict, Key, Text) :-
 field_text(_Dict, _Key, "-").
 
 stat_card(Label, Value, Html) :-
-    ui:surface_class('p-4', CardClass),
-    Html = div([class(CardClass)], [
+    stat_card(Label, Value, '', Html).
+
+% ValueColor: classe de cor extra para o numero (ex.: 'text-emerald-300');
+% '' mantem o valor neutro (aparencia padrao do resto do app).
+stat_card(Label, Value, '', Html) :-
+    !,
+    render_stat(Label, Value, 'font-semibold mt-1 break-all', Html).
+stat_card(Label, Value, ValueColor, Html) :-
+    atomic_list_concat(['font-semibold mt-1 break-all', ValueColor], ' ', ValueClass),
+    render_stat(Label, Value, ValueClass, Html).
+
+render_stat(Label, Value, ValueClass, div([class(CardClass)], [
         p([class('text-surface-500 text-xs uppercase tracking-wide')], Label),
-        p([class('font-semibold mt-1 break-all')], Value)
-    ]).
+        p([class(ValueClass)], Value)
+    ])) :-
+    ui:surface_class('p-4', CardClass).
 
 winner_card(Winner, Html) :-
     match_card:winner_label(Winner, Text, _),
