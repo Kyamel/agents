@@ -116,6 +116,7 @@ def main() -> int:
     best_worst_rows = best_worst(all_rows)
     write_csv(out_dir / "best_worst.csv", best_worst_rows)
 
+    print_win_rates(all_rows, thieves, detectives)
     print()
     print(f"Resultados salvos em: {out_dir}")
     print(f"- {out_dir / 'matches.csv'}")
@@ -123,6 +124,37 @@ def main() -> int:
     print(f"- {out_dir / 'best_worst.csv'}")
     print(f"- {raw_dir}/")
     return 0
+
+
+def print_win_rates(rows: list[Row], thieves: list[Path], detectives: list[Path]) -> None:
+    print()
+    print("Taxas de vitoria e derrota:")
+    for thief in thieves:
+        thief_name = rel(thief)
+        thief_rows = [row for row in rows if row["thief_agent"] == thief_name]
+        print(f"- {thief_name}")
+        for detective in detectives:
+            detective_name = rel(detective)
+            matchup = [
+                row for row in thief_rows
+                if row["detective_agent"] == detective_name
+            ]
+            print_win_rate_line(f"  vs {detective_name}", matchup)
+        print_win_rate_line("  GLOBAL", thief_rows)
+
+    print_win_rate_line("- GLOBAL GERAL", rows)
+
+
+def print_win_rate_line(label: str, rows: list[Row]) -> None:
+    total = len(rows)
+    wins = sum(int(row["won"]) for row in rows)
+    losses = sum(int(row["lost"]) for row in rows)
+    win_rate = wins / total if total else 0.0
+    loss_rate = losses / total if total else 0.0
+    print(
+        f"{label}: vitorias {wins}/{total} ({win_rate:.2%}) | "
+        f"derrotas {losses}/{total} ({loss_rate:.2%})"
+    )
 
 
 def parse_args() -> argparse.Namespace:

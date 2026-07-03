@@ -80,7 +80,8 @@ action(roubar(I),thf , GSt ,GSt1) :-
 action(disfarce(LS),thf, GSt, GSt1) :-
    getSt(thf,GSt,thief(L,Id,aparencia(AS),Target,Itens,Dsg)),
    vestir(LS,AS,AS1),
-   Dsg1 is Dsg-1,
+   length(LS,K),
+   Dsg1 is Dsg-K,
    setSt(thf,thief(L,Id,aparencia(AS1),Target,Itens,Dsg1),GSt,GSt1).
 
 action(despir_disfarce,thf, GSt, GSt1) :-
@@ -100,8 +101,9 @@ action(inspecionar,det,GSt, GSt1) :-
     ;
     setSt(det,detective(loc(A),M,Clues),GSt,GSt1)).
 
-action(fechar(C),det,gSt(TSt,DSt,Tobj,Locks,BOs,Caugth,Turn),gSt(TSt,DSt,Tobj,[C|Locks],BOs,Caugth,Turn)) :- \+member(C,Locks),!.
+action(fechar(C),det,gSt(TSt,DSt,Tobj,Locks,BOs,Caugth,Turn),gSt(TSt,DSt,Tobj,[C],BOs,Caugth,Turn)) :- \+member(C,Locks),!.
 action(fechar(C),det,gSt(TSt,DSt,Tobj,Locks,BOs,Caugth,Turn),gSt(TSt,DSt,Tobj,Locks,BOs,Caugth,Turn)) :- member(C,Locks),!.
+
 action(liberar(C),det,gSt(TSt,DSt,Tobj,Locks,BOs,Caugth,Turn),gSt(TSt,DSt,Tobj,Locks1,BOs,Caugth,Turn)) :-
            append(XS,[C|YS],Locks),!,
            append(XS,YS,Locks1).
@@ -120,12 +122,20 @@ setSt(thf,TSt1, gSt(_,DSt,Tobj,Locks,BOs,Caugth,Turn),gSt(TSt1,DSt,Tobj,Locks,BO
 setSt(det,DSt1, gSt(TSt,_,Tobj,Locks,BOs,Caugth,Turn),gSt(TSt,DSt1,Tobj,Locks,BOs,Caugth,Turn)).
 caugth(gSt(TSt,DSt,Tobj,Locks,BOs,_,Turn),gSt(TSt,DSt,Tobj,Locks,BOs,capturado,Turn) ).
 stepTurn(gSt(TSt,DSt,Tobj,Locks,BOs,Caugth,Turn),gSt(TSt,DSt,Tobj,Locks,BOs,Caugth,Turn1)) :- Turn > 0, Turn1 is Turn -1.
-getEvents(gSt(_,_,_,_,EV,_,_),EV).
 
-emitirEvento(gSt(TSt,detective(L,M,CS),Tobj,Locks,BOs,Caugth,Turn),E,gSt(TSt,detective(L,M,CS1),Tobj,Locks,[E|BOs],Caugth,Turn)) :-
+getEvents(gSt(_,_,_,_,evt(_,EV),_,_),EV).
+performPendingEvents(gSt(TSt,detective(L,M,CS),Tobj,Locks,evt([E],BOs),Caugth,Turn), gSt(TSt,detective(L,M,CS1),Tobj,Locks,evt([],[E|BOs]),Caugth,Turn)) :-
    collect(E,ZS),
-   write('\n  >>>> Evento '), write(E), nl,
    union(CS,ZS,CS1).
+performPendingEvents(gSt(TSt,detective(L,M,CS),Tobj,Locks,evt([],BOs),Caugth,Turn), gSt(TSt,detective(L,M,CS),Tobj,Locks,evt([],BOs),Caugth,Turn)).
+
+emitirEvento(gSt(TSt,detective(L,M,CS),Tobj,Locks,evt(_,BOs),Caugth,Turn),E,gSt(TSt,detective(L,M,CS),Tobj,Locks,evt([E],BOs),Caugth,Turn)) :-
+   write('\n  >>>> Evento '), write(E), nl.
+
+% emitirEvento(gSt(TSt,detective(L,M,CS),Tobj,Locks,BOs,Caugth,Turn),E,gSt(TSt,detective(L,M,CS1),Tobj,Locks,[E|BOs],Caugth,Turn)) :-
+%    collect(E,ZS),
+%    write('\n  >>>> Evento '), write(E), nl,
+%    union(CS,ZS,CS1).
 
 getlocks(gSt(_,_,_,Locks,_,_,_),Locks).
 getCaugth(gSt(_,_,_,_,_,C,_),C).
@@ -216,7 +226,7 @@ buildInitalState(CS,ThiefID,ThiefObj, Qdis,State)
        ThSt = thief(loc(C1),ThiefID,AP,ThiefObj,[],Qdis),
        DSt = detective(loc(C2),nenhum,[]),
        max_turnos(MT),
-       State=gSt(ThSt,DSt,ThiefObj,[],[],livre,MT).
+       State=gSt(ThSt,DSt,ThiefObj,[],evt([],[]),livre,MT).
 
 loadThiefAgent(ThfModule) :- atomic(ThfModule), use_module(ThfModule).
 loadDetectiveAgent(DetModule) :- atomic(DetModule), use_module(DetModule).
@@ -239,8 +249,9 @@ agentMove(det,S,V) :-
        validar(A,DSt,R),
        turnos(S,T),
        (R=t,!,action(A,det,S,S1) ,logar(T,det,A,'OK'); logar(T,det,A,'Ilegal'), S1=S),
-       stepTurn(S1,S2),!,
-       agentMove(thf,S2,V).
+       performPendingEvents(S1,S2),
+       stepTurn(S2,S3),!,
+       agentMove(thf,S3,V).
 
 
 logar(N,det,A,OBS) :- write(N),write(' '),write('detetive: '),write(A),write('['),write(OBS), write(']'),nl.

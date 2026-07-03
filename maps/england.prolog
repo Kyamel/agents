@@ -19,6 +19,114 @@
 % mapa_tuneis:
 %   ouro_do_banco, obra_de_arte
 
+
+:- dynamic item/3.
+:- dynamic tesouro/3.
+:- dynamic roubado/2.
+
+% =========================================================
+% LIMITE DE TURNOS
+% =========================================================
+
+
+% =========================================================
+% SUSPEITOS
+% =========================================================
+
+procurado(0,'Helena Fox',
+    aparencia([
+        altura(alta),
+        genero(gen2),
+        cor_olhos(verde),
+        cor_cabelo(preto),
+        marca(cicatriz_rosto)
+    ])).
+
+procurado(1,'Victor Graves',
+    aparencia([
+        altura(media),
+        genero(gen1),
+        cor_olhos(castanho),
+        cor_cabelo(loiro),
+        nariz(longo)
+    ])).
+
+procurado(2,'Luna Mirage',
+    aparencia([
+        altura(baixa),
+        genero(gen2),
+        cor_olhos(azul),
+        cor_cabelo(ruivo),
+        tatuagem(braco_direito)
+    ])).
+
+procurado(3,'Dante Crow',
+    aparencia([
+        altura(alta),
+        genero(gen1),
+        cor_olhos(escuro),
+        cor_cabelo(preto),
+        barba
+    ])).
+
+procurado(4,'Selene Noir',
+    aparencia([
+        altura(media),
+        genero(gen2),
+        cor_olhos(verde),
+        cor_cabelo(castanho),
+        piercing(nariz)
+    ])).
+
+procurado(5,'Otto Kane',
+    aparencia([
+        altura(alta),
+        genero(gen1),
+        cor_olhos(azul),
+        cor_cabelo(grisalho),
+        marca(tatuagem_pescoco)
+    ])).
+
+procurado(6,'Bianca Vale',
+    aparencia([
+        altura(baixa),
+        genero(gen2),
+        cor_olhos(castanho),
+        cor_cabelo(preto),
+        oculos
+    ])).
+
+procurado(7,'Marcus Reed',
+    aparencia([
+        altura(media),
+        genero(gen1),
+        cor_olhos(verde),
+        cor_cabelo(ruivo),
+        nariz(curto)
+    ])).
+
+procurado(8,'Nina Frost',
+    aparencia([
+        altura(alta),
+        genero(gen2),
+        cor_olhos(azul),
+        cor_cabelo(loiro),
+        cicatriz(sobrancelha)
+    ])).
+
+procurado(9,'Edgar Wolfe',
+    aparencia([
+        altura(media),
+        genero(gen1),
+        cor_olhos(escuro),
+        cor_cabelo(castanho),
+        atletico
+    ])).
+
+
+max_turnos(30).
+
+
 tesouro(joias_da_coroa, tower_of_london,
     [
         chave_mestra,
