@@ -128,7 +128,7 @@ map_controls(Html) :-
              'Início'),
         label([class(IntervalClass)], [
             'Intervalo',
-            input([type(number), id('mm-interval'), value(800), min(100),
+            input([type(number), id('mm-interval'), value(500), min(100),
                    step(100),
                    class('w-24 rounded-lg bg-surface-800 border border-surface-600 \c
                           px-2 py-1 text-surface-200')]),
