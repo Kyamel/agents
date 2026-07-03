@@ -17,7 +17,7 @@ index_page(Request) :-
               'Cadastre-se e verifique seu email para liberar o envio de agentes.', Step1),
     info_card('/agents/new',
               '2. Envie um agente',
-              'Suba o codigo Prolog do seu detetive ou do seu ladrão.', Step2),
+              'Suba o código Prolog do seu detetive ou do seu ladrão.', Step2),
     info_card('/matches/new',
               '3. Crie partidas',
               'Coloque dois agentes para disputar e acompanhe o resultado.', Step3),

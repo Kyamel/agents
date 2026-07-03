@@ -12,10 +12,6 @@
 
 :- http_handler(root(agents/new), handler, [methods([get, post])]).
 
-% =============================
-% Handler
-% =============================
-
 handler(Request) :-
     memberchk(method(Method), Request),
     web_session:require_user(Request, User),
@@ -31,10 +27,6 @@ dispatch(post, Request, User) :-
     checkbox_bool(PrivateRaw, IsPrivate),
     Values = _{source: Source, private: IsPrivate},
     process_post(Request, User, Values).
-
-% =============================
-% Logica (validacao + DB)
-% =============================
 
 process_post(Request, User, Values) :-
     User.is_verified \== true,
@@ -71,13 +63,13 @@ register_or_fail(UserId, V, ok) :-
     engine:register_agent_source_from_module(UserId, V.source, V.private, _),
     !.
 register_or_fail(_, _,
-    error("Nao foi possivel registrar o agente \c
-           (código muito grande ou invalido).")).
+    error("Não foi possível registrar o agente \c
+           (código muito grande ou inválido).")).
 
 register_error(error(permission_error(load, agent_source, Pattern), _), error(Message)) :-
     !,
     format(string(Message),
-           "Código bloqueado pela validação de seguranca: padrão proibido '~w'.",
+           "Código bloqueado pela validação de segurança: padrão proibido '~w'.",
            [Pattern]).
 register_error(error(domain_error(agent_role_exports, _), _),
                error("Não foi possível identificar o papel pelo código. \c
@@ -97,10 +89,7 @@ checkbox_bool("true", true) :- !.
 checkbox_bool("on", true) :- !.
 checkbox_bool(_, false).
 
-% =============================
 % Resposta (HTML)
-% =============================
-
 render_form(Request, User, _State) :-
     User.is_verified \== true,
     !,

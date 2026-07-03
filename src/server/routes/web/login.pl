@@ -6,15 +6,11 @@
 :- use_module('../../views/form_field').
 :- use_module('../../views/alert').
 :- use_module('../../views/ui').
-:- use_module('../../../auth/auth').
+:- use_module('../../../services/accounts').
 :- use_module('../../http/web_session').
 :- use_module('../../http/rate_limit').
 
 :- http_handler(root(login), handler, [methods([get, post])]).
-
-% =============================
-% Handler
-% =============================
 
 handler(Request) :-
     memberchk(method(Method), Request),
@@ -32,10 +28,6 @@ dispatch(post, Request) :-
     ]),
     process_login(Request, Email, Password).
 
-% =============================
-% Logica (validacao, calculo, DB)
-% =============================
-
 process_login(Request, "", _) :- !,
     render_error(Request, "", "Informe email e senha.").
 process_login(Request, Email, "") :- !,
@@ -45,37 +37,34 @@ process_login(Request, Email, Password) :-
     handle_outcome(Outcome, Request, Email).
 
 safe_login(Email, Password, Outcome) :-
-    catch(auth:login(Email, Password, Outcome),
+    catch(accounts:login(Email, Password, Outcome),
           _,
           Outcome = failed).
 
 handle_outcome(ok(Token, _UserId, _ExpiresAt), _Request, _Email) :-
     web_session:send_session_redirect(Token, '/').
 handle_outcome(invalid_credentials, Request, Email) :-
-    render_error(Request, Email, "Email ou senha invalidos.").
+    render_error(Request, Email, "Email ou senha inválidos.").
 handle_outcome(email_not_verified, Request, Email) :-
     render_error(Request, Email,
         "Seu email ainda não foi verificado. Confira sua caixa de entrada.").
 handle_outcome(failed, Request, Email) :-
-    render_error(Request, Email, "Não foi possivel entrar. Tente novamente.").
+    render_error(Request, Email, "Não foi possível entrar. Tente novamente.").
 
 notice_alert("signup_ok", Html) :-
     !,
     alert:alert(success,
-        "Conta criada. Verifique seu email para ativar o cadastro e depois faca login.",
+        "Conta criada. Verifique seu email para ativar o cadastro e depois faça login.",
         Html).
 notice_alert("login_required", Html) :-
     !,
-    alert:alert(info, "Faca login para acessar essa pagina.", Html).
+    alert:alert(info, "Faça login para acessar essa página.", Html).
 notice_alert("logged_out", Html) :-
     !,
-    alert:alert(info, "Voce saiu da sua conta.", Html).
+    alert:alert(info, "Você saiu da sua conta.", Html).
 notice_alert(_, '').
 
-% =============================
 % Resposta (HTML)
-% =============================
-
 render_error(Request, Email, Message) :-
     alert:alert(error, Message, AlertHtml),
     render_form(Request, Email, AlertHtml).

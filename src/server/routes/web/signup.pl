@@ -6,14 +6,10 @@
 :- use_module('../../views/form_field').
 :- use_module('../../views/alert').
 :- use_module('../../views/ui').
-:- use_module('../../../auth/auth').
+:- use_module('../../../services/accounts').
 :- use_module('../../http/rate_limit').
 
 :- http_handler(root(signup), handler, [methods([get, post])]).
-
-% =============================
-% Handler
-% =============================
 
 handler(Request) :-
     memberchk(method(Method), Request),
@@ -31,12 +27,8 @@ dispatch(post, Request) :-
     ]),
     process_signup(Request, Username, Email, Password, ConfirmPassword).
 
-% =============================
-% Logica (validacao, calculo, DB)
-% =============================
-
 process_signup(Request, "", Email, _, _) :- !,
-    render_error(Request, "", Email, "Informe seu nome de usuario.").
+    render_error(Request, "", Email, "Informe seu nome de usuário.").
 process_signup(Request, Username, "", _, _) :- !,
     render_error(Request, Username, "", "Informe email e senha.").
 process_signup(Request, Username, Email, "", _) :- !,
@@ -46,7 +38,7 @@ process_signup(Request, Username, Email, _, "") :- !,
 process_signup(Request, Username, Email, Password, ConfirmPassword) :-
     Password \== ConfirmPassword,
     !,
-    render_error(Request, Username, Email, "As senhas nao conferem.").
+    render_error(Request, Username, Email, "As senhas não conferem.").
 process_signup(Request, Username, Email, Password, _) :-
     string_length(Password, Length),
     Length < 6,
@@ -57,7 +49,7 @@ process_signup(Request, Username, Email, Password, _) :-
     handle_outcome(Outcome, Request, Username, Email).
 
 safe_signup(Username, Email, Password, Outcome) :-
-    catch(auth:signup(Username, Email, Password, Outcome),
+    catch(accounts:signup(Username, Email, Password, Outcome),
           Error,
           log_and_fail(Email, Error, Outcome)).
 
@@ -69,21 +61,18 @@ log_and_fail(Email, Error, failed) :-
 handle_outcome(created(_, _), Request, _, _) :-
     http_redirect(see_other, '/login?notice=signup_ok', Request).
 handle_outcome(email_exists, Request, Username, Email) :-
-    render_error(Request, Username, Email, "Esse email ja esta cadastrado.").
+    render_error(Request, Username, Email, "Esse email já está cadastrado.").
 handle_outcome(failed, Request, Username, Email) :-
     render_error(Request, Username, Email,
-        "Nao foi possivel concluir o cadastro. Tente novamente.").
+        "Não foi possível concluir o cadastro. Tente novamente.").
 
-% =============================
 % Resposta (HTML)
-% =============================
-
 render_error(Request, Username, Email, Message) :-
     alert:alert(error, Message, AlertHtml),
     render_form(Request, Username, Email, AlertHtml).
 
 render_form(Request, Username, Email, AlertHtml) :-
-    form_field:text_field(username, 'Nome de usuario', text, Username, UsernameField),
+    form_field:text_field(username, 'Nome de usuário', text, Username, UsernameField),
     form_field:text_field(email, 'Email', email, Email, EmailField),
     form_field:text_field(password, 'Senha', password, "", PasswordField),
     form_field:text_field(confirm_password, 'Confirmar senha', password, "", ConfirmPasswordField),
@@ -101,7 +90,7 @@ render_form(Request, Username, Email, AlertHtml) :-
                 UsernameField, EmailField, PasswordField, ConfirmPasswordField, Submit
             ]),
             p([class('text-surface-400 text-sm mt-4')], [
-                'Ja tem conta? ',
+                'Já tem conta? ',
                 FooterLink
             ])
         ])
