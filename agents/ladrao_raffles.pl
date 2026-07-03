@@ -1,5 +1,5 @@
 % ============================================================
-% Nome: Mayker Anselmo Brito Lellis     Matricula: 22.2.8008
+% Nome: Mayke Anselmo Brito Lellis     Matricula: 22.2.8008
 % Nome: Lucas dos Anjos Camelo          Matricula: 22.2.8002
 % ============================================================
 

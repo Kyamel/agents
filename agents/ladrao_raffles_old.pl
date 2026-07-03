@@ -1,5 +1,5 @@
 % ============================================================
-% Nome: Mayker Anselmo Brito Lellis     Matrícula: 22.2.8008
+% Nome: Mayke Anselmo Brito Lellis     Matrícula: 22.2.8008
 % Nome: Lucas dos Anjos Camelo          Matrícula: 22.2.8002
 % ============================================================
 
