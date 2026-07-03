@@ -6,7 +6,7 @@
 :- use_module('./db/db').
 :- use_module('./server/server').
 :- use_module('./engine/engine').
-:- use_module('./auth/scopes').
+:- use_module('./services/scopes').
 
 :- dynamic app_started/0.
 

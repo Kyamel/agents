@@ -10,13 +10,15 @@
 :- use_module('../config').
 :- use_module('../db/db').
 
-% Camada de autorizacao baseada em papel. O papel mora na coluna `users.role`;
+% Servico de autorizacao baseada em papel. O papel mora na coluna `users.role`;
 % os scopes sao derivados dele. Admin e designado pela lista admin_emails/1 do
 % config, sincronizada no boot (sync_admin_roles/0) e no cadastro
 % (promote_if_admin/1).
 
-user_scopes(User, Scopes) :-
-    ( is_admin(User) -> Scopes = ['agent:delete:any'] ; Scopes = [] ).
+user_scopes(User, ['agent:delete:any']) :-
+    is_admin(User),
+    !.
+user_scopes(_User, []).
 
 has_scope(User, Scope) :-
     user_scopes(User, Scopes),
@@ -27,9 +29,7 @@ is_admin(User) :-
     get_dict(role, User, Role),
     normalize_text(Role, "admin").
 
-% =============================
 % Designacao via config (admin_emails)
-% =============================
 
 is_admin_email(Email) :-
     config:admin_emails(Emails),
@@ -50,15 +50,15 @@ sync_admin_roles :-
 
 %!  promote_if_admin(+Email) is det.
 %
-%   Promove imediatamente o usuário recém-cadastrado caso seu e-mail esteja
-%   na lista de administradores. Caso contrário, não realiza nenhuma ação.
+%   Promove imediatamente o usuario recem-cadastrado caso seu email esteja na
+%   lista de administradores. Caso contrario, nao faz nada.
 promote_if_admin(Email) :-
     is_admin_email(Email),
     !,
     db:set_user_role_by_email(Email, "admin").
 promote_if_admin(_).
 
-% Converte Value para string e retorna sua representação em letras minúsculas.
+% Converte Value para string em letras minusculas.
 normalize_text(Value, Lower) :-
     value_string(Value, String),
     string_lower(String, Lower).

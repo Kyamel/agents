@@ -8,14 +8,14 @@
 ]).
 
 :- use_module('../../db/db').
-:- use_module('../../auth/auth').
+:- use_module('../../infra/tokens').
 
 session_cookie_name(agents_session).
 
 % Resolve o usuario logado a partir do cookie de sessao da requisicao.
 current_user(Request, User) :-
     session_token_from_request(Request, Token),
-    auth:token_hash(Token, TokenHash),
+    tokens:token_hash(Token, TokenHash),
     db:find_user_id_by_session_token_hash(TokenHash, UserId),
     db:find_user_by_id(UserId, User).
 
@@ -53,7 +53,7 @@ cookie_value_string(Value, Str) :-
 revoke_web_session(Request) :-
     session_token_from_request(Request, Token),
     !,
-    auth:token_hash(Token, TokenHash),
+    tokens:token_hash(Token, TokenHash),
     catch(db:revoke_auth_session(TokenHash), _, true).
 revoke_web_session(_Request).
 
