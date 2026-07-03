@@ -8,6 +8,7 @@
 :- use_module('../../views/alert').
 :- use_module('../../views/form_field').
 :- use_module('../../views/page_section').
+:- use_module('../../views/ui').
 :- use_module('../../http/web_session').
 
 :- http_handler(root(agents/new), handler, [methods([get, post])]).
@@ -104,9 +105,16 @@ render_form(Request, _User, State) :-
     error_alert(State, AlertHtml),
     state_value(State, source, Source),
     state_bool(State, private, IsPrivate),
+    ui:link_class(LinkClass),
     page_section:page_heading(
         'Enviar agente',
-        'O papel é detectado pelo código: ladrão exporta ladrao_action/3 e ladrao_preload/7; detetive exporta detetive_action/3 e detetive_preload/5.',
+        [
+            'O papel é detectado pelo código: ladrão exporta ladrao_action/3 e \c
+             ladrao_preload/7; detetive exporta detetive_action/3 e \c
+             detetive_preload/5. ',
+            a([href('/about/#programar-agente'), class(LinkClass)],
+              'Veja como programar seu agente.')
+        ],
         Heading
     ),
     form_field:textarea_field(source, 'Código Prolog', Source, SourceField),

@@ -132,6 +132,7 @@ nav(anon, Nav) :-
     ui:link_class(NavClass),
     Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2 text-sm')], [
         a([href('/'), class('font-bold text-base mr-2 hover:underline underline-offset-2')], 'Scotland Yard'),
+        a([href('/about/'), class(NavClass)], 'Sobre'),
         a([href('/agents'), class(NavClass)], 'Agentes'),
         a([href('/matches'), class(NavClass)], 'Partidas'),
         div([class('ml-auto flex items-center gap-3')], [
@@ -146,6 +147,7 @@ nav(User, Nav) :-
     ui:link_class(NavClass),
     Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2 text-sm')], [
         a([href('/'), class('font-bold text-base mr-2 hover:underline underline-offset-2')], 'Scotland Yard'),
+        a([href('/about/'), class(NavClass)], 'Sobre'),
         a([href('/agents'), class(NavClass)], 'Agentes'),
         a([href('/matches'), class(NavClass)], 'Partidas'),
         %a([href('/agents/new'), class('text-surface-300 hover:text-white')], 'Enviar agente'),

@@ -21,7 +21,7 @@ match_card(Match, Html) :-
         ]),
         dl([class('mt-3 grid gap-1 text-xs')], [
             div([class('grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2')], [
-                dt([class('text-surface-500')], 'Ladrao'),
+                dt([class('text-surface-500')], 'Ladrão'),
                 dd([title(Match.thief_agent_id), class('min-w-0 truncate font-mono text-surface-400')],
                    Match.thief_agent_id)
             ]),
@@ -35,15 +35,17 @@ match_card(Match, Html) :-
     ]).
 
 % Vencedor -> rotulo + classe da etiqueta. Reutilizado por match_detail.
-winner_label(thief, 'Vitoria do ladrao', Class) :- !, badge_class(amber, Class).
-winner_label("thief", 'Vitoria do ladrao', Class) :- !, badge_class(amber, Class).
-winner_label(detective, 'Vitoria do detetive', Class) :- !, badge_class(emerald, Class).
-winner_label("detective", 'Vitoria do detetive', Class) :- !, badge_class(emerald, Class).
+winner_label(thief, 'Vitória do ladrão', Class) :- !, badge_class(amber, Class).
+winner_label("thief", 'Vitória do ladrão', Class) :- !, badge_class(amber, Class).
+winner_label(detective, 'Vitória do detetive', Class) :- !, badge_class(sky, Class).
+winner_label("detective", 'Vitória do detetive', Class) :- !, badge_class(sky, Class).
 winner_label(_, 'Empate', Class) :- badge_class(slate, Class).
 
 badge_class(amber,
     'rounded-full bg-amber-950 text-amber-300 text-xs px-2.5 py-1 whitespace-nowrap').
 badge_class(emerald,
     'rounded-full bg-emerald-950 text-emerald-300 text-xs px-2.5 py-1 whitespace-nowrap').
+badge_class(sky,
+    'rounded-full bg-sky-950 text-sky-300 text-xs px-2.5 py-1 whitespace-nowrap').
 badge_class(slate,
     'rounded-full bg-surface-800 text-surface-300 text-xs px-2.5 py-1 whitespace-nowrap').

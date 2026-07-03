@@ -37,4 +37,5 @@ eyebrow_class(Accent, Class) :-
 
 accent_color(amber, 'text-amber-400').
 accent_color(sky,   'text-sky-400').
+accent_color(emerald, 'text-emerald-400').
 accent_color(slate, 'text-surface-500').

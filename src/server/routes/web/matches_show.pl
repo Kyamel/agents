@@ -85,9 +85,6 @@ render_detail(Request, Match, ThiefName, DetectiveName, Replay) :-
         TableHtml
     ]).
 
-% =============================
-% Pagina de partida em andamento / falha
-% =============================
 
 % Painel para partidas nao concluidas (fila/execucao) ou que falharam
 % (timeout/erro). Nao recarrega sozinha: ha um link "Atualizar".
