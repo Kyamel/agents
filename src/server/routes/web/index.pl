@@ -39,7 +39,7 @@ info_card(Href, Title, Text, Html) :-
     ui:link_class(LinkClass),
     ui:text_class(normal, 'text-surface-400', TextClass),
     Html = div([class(CardClass)], [
-        h3([class('font-semibold mb-1')], [
+        h2([class('font-semibold mb-1')], [
             a([href(Href), class(LinkClass)], Title)
         ]),
         p([class(TextClass)], Text)

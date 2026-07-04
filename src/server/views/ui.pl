@@ -70,7 +70,13 @@ link_class(Extra, Class) :-
     link_base(Base),
     atomic_list_concat([Base, Extra], ' ', Class).
 
-link_base('text-ufop-400 hover:underline underline-offset-2').
+link_base(
+    'text-ufop-400 hover:underline underline-offset-2 \c
+     focus-visible:outline-none focus-visible:ring-2 \c
+     focus-visible:ring-ufop-400 focus-visible:ring-offset-2 \c
+     focus-visible:ring-offset-surface-950 rounded-sm \c
+     motion-reduce:transition-none'
+).
 
 % Link neutro: herda a cor por padrao e fica vermelho UFOP (com sublinhado) so
 % no hover. Para nav/footer, onde o link nao deve competir visualmente ate o
@@ -81,7 +87,13 @@ muted_link_class(Extra, Class) :-
     muted_link_base(Base),
     atomic_list_concat([Base, Extra], ' ', Class).
 
-muted_link_base('hover:text-ufop-400 hover:underline underline-offset-2 transition').
+muted_link_base(
+    'hover:text-ufop-400 hover:underline underline-offset-2 transition \c
+     focus-visible:outline-none focus-visible:ring-2 \c
+     focus-visible:ring-ufop-400 focus-visible:ring-offset-2 \c
+     focus-visible:ring-offset-surface-950 rounded-sm \c
+     motion-reduce:transition-none'
+).
 
 % Botao primario (acao institucional preenchida).
 primary_button_class(Class) :-
@@ -94,7 +106,12 @@ primary_button_class(Variant, Extra, Class) :-
     atomic_list_concat([Layout, Extra], ' ', FullLayout),
     primary_button_class(FullLayout, Class).
 
-primary_button_tone('bg-ufop-600 text-white font-semibold hover:bg-ufop-500 transition').
+primary_button_tone(
+    'bg-ufop-600 text-white font-semibold hover:bg-ufop-500 transition \c
+     focus-visible:outline-none focus-visible:ring-2 \c
+     focus-visible:ring-ufop-400 focus-visible:ring-offset-2 \c
+     focus-visible:ring-offset-surface-950 motion-reduce:transition-none'
+).
 
 primary_button_layout(default, 'inline-block rounded-xl px-4 py-2').
 primary_button_layout(full,    'w-full rounded-xl px-4 py-2.5 text-center').
@@ -106,7 +123,10 @@ secondary_button_class(Class) :-
 secondary_button_class(Extra, Class) :-
     atomic_list_concat(
         ['rounded-lg bg-surface-800 border border-surface-600 px-3 py-2 \c
-          hover:border-surface-400 transition',
+          hover:border-surface-400 transition focus-visible:outline-none \c
+          focus-visible:ring-2 focus-visible:ring-ufop-400 \c
+          focus-visible:ring-offset-2 focus-visible:ring-offset-surface-950 \c
+          motion-reduce:transition-none',
          Extra],
         ' ',
         Class
@@ -183,7 +203,9 @@ control_class(Density, Extra, Class) :-
     control_padding(Density, Padding),
     atomic_list_concat(
         ['rounded-lg bg-surface-900 border border-surface-600 \c
-          text-surface-100 focus:outline-none focus:border-ufop-500',
+          text-surface-100 focus:outline-none focus:border-ufop-500 \c
+          focus-visible:ring-2 focus-visible:ring-ufop-400 \c
+          focus-visible:ring-offset-2 focus-visible:ring-offset-surface-950',
          Padding, Extra],
         ' ',
         Control
@@ -221,7 +243,7 @@ inset_item_class(Extra, Class) :-
     ).
 
 % Linha de evento compartilhada pelo detalhe e pelos templates do mapa.
-event_row_base_class('rounded-lg border px-3 py-2').
+event_row_base_class('min-w-0 rounded-lg border px-3 py-2').
 
 event_row_class(Accent, Class) :-
     event_row_base_class(Base),

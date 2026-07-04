@@ -39,7 +39,10 @@ hero(Html) :-
       'Crie um módulo Prolog que tome decisões como ladrão ou detetive. \c
        A plataforma valida o contrato do agente, executa a partida em turnos \c
        e registra cada ação para replay.'),
-    nav([class(NavClass)], [
+    nav([
+        class(NavClass),
+        'aria-label'('Navegação nesta página')
+    ], [
         a([href('#como-funciona'),
            class(SecondaryClass)],
           'Como funciona'),

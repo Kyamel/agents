@@ -149,6 +149,7 @@ reply_page(Request, Title, Content, Options) :-
 % desembrulha antes de emitir.
 body(_Style, Body0) -->
     { strip_module(Body0, _, Content) },
+    html_root_attribute(lang, 'pt-BR'),
     html(body(class('min-h-screen bg-surface-950 text-surface-200 flex flex-col'),
               Content)).
 
@@ -192,10 +193,28 @@ layout(User, Content, Options, Body) :-
     ui:text_class(meta, 'text-surface-300 font-medium', FooterTitleClass),
     ui:text_class(meta, 'mt-0.5', FooterLineClass),
     Body = [
+        a([
+            href('#conteudo-principal'),
+            class('fixed left-4 top-2 z-50 -translate-y-16 rounded-lg \c
+                   bg-ufop-600 px-4 py-2 font-semibold text-white \c
+                   transition focus:translate-y-0 focus:outline-none \c
+                   focus:ring-2 focus:ring-ufop-200')
+        ], 'Pular para o conteúdo principal'),
+        div([
+            id('app-live-region'),
+            class('sr-only'),
+            role(status),
+            'aria-live'(polite),
+            'aria-atomic'(true)
+        ], []),
         header([class('border-b border-surface-700')], [
                 div([class('max-w-4xl mx-auto w-full p-4')], [Nav])
             ]),
-            main([class(MainClass)], Content),
+            main([
+                id('conteudo-principal'),
+                tabindex(-1),
+                class(MainClass)
+            ], Content),
             footer([class('border-t border-surface-700')], [
                 div([class('max-w-4xl mx-auto w-full p-6 flex flex-col sm:flex-row \c
                              items-center gap-4 text-surface-500')], [
@@ -210,7 +229,10 @@ layout(User, Content, Options, Body) :-
                             ICEALink,
                             ' - 2026'
                         ]),
-                        nav([class('flex flex-wrap items-center justify-center sm:justify-start mt-0.5 gap-x-4 gap-y-1')], [
+                        nav([
+                            class('flex flex-wrap items-center justify-center sm:justify-start mt-0.5 gap-x-4 gap-y-1'),
+                            'aria-label'('Links institucionais')
+                        ], [
                             GameLink, PrologLink, GitLink
                         ])
                     ])
@@ -232,14 +254,14 @@ ufop_logo(Html) :-
         href('https://ufop.br'),
         target('_blank'),
         rel('noopener noreferrer'),
-        'aria-label'('Ir para o site da UFOP'),
+        'aria-label'('Ir para o site da UFOP (abre em nova aba)'),
         class('inline-flex items-center')
     ], Logo).
 
 % Imagem da logo quando o arquivo existe; senao um fallback textual.
 ufop_logo_mark(img([
         src('/assets/logo-ufop.png'),
-        alt('UFOP'),
+        alt(''),
         class('h-32 w-auto shrink-0')
     ])) :-
     exists_file('assets/logo-ufop.png'),
@@ -250,8 +272,9 @@ ufop_logo_mark(span([class(Class)], 'UFOP')) :-
 footer_link(Href, Label, Html) :-
     ui:muted_link_class(Hover),
     ui:text_class(meta, Hover, Class),
+    format(atom(AriaLabel), '~w (abre em nova aba)', [Label]),
     Html = a([ href(Href), target('_blank'), rel('noopener noreferrer'),
-               class(Class) ], Label).
+               class(Class), 'aria-label'(AriaLabel) ], Label).
 
 % Barra de navegacao; os links variam conforme a sessao (anon vs logado).
 nav(anon, Nav) :-
@@ -264,7 +287,10 @@ nav(anon, Nav) :-
     ui:text_class(meta, EntrarHover, EntrarClass),
     ui:primary_button_class(small, '', SignupButtonClass),
     ui:text_class(meta, SignupButtonClass, SignupClass),
-    Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2')], [
+    Nav = nav([
+        class('flex flex-wrap items-center gap-x-4 gap-y-2'),
+        'aria-label'('Navegação principal')
+    ], [
         a([href('/'), class(BrandClass)], 'Scotland Yard'),
         a([href('/about'), class(NavClass)], 'Sobre'),
         a([href('/agents'), class(NavClass)], 'Agentes'),
@@ -283,7 +309,10 @@ nav(User, Nav) :-
     ui:muted_link_class('text-surface-500 hidden sm:inline', ProfileHover),
     ui:text_class(meta, ProfileHover, ProfileClass),
     ui:text_class(meta, 'rounded-lg bg-surface-800 px-3 py-1.5 hover:bg-surface-700', SairClass),
-    Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2')], [
+    Nav = nav([
+        class('flex flex-wrap items-center gap-x-4 gap-y-2'),
+        'aria-label'('Navegação principal')
+    ], [
         a([href('/'), class(BrandClass)], 'Scotland Yard'),
         a([href('/about'), class(NavClass)], 'Sobre'),
         a([href('/agents'), class(NavClass)], 'Agentes'),

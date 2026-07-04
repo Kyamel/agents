@@ -70,7 +70,10 @@ page_control(BasePath, Page, true, Label, Html) :-
              Label).
 page_control(_, _, false, Label, Html) :-
     page_control_class(disabled, Class),
-    Html = span([class(Class)],
+    Html = span([
+        class(Class),
+        'aria-disabled'(true)
+    ],
                 Label).
 
 page_control_class(State, Class) :-

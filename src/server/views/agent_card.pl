@@ -100,6 +100,7 @@ actions(Agent, CurrentUser, Html) :-
     can_delete(CurrentUser, Agent),
     !,
     delete_onclick(Agent.id, OnClick),
+    format(atom(DeleteLabel), 'Excluir agente ~w', [Agent.name]),
     ui:text_class(
         meta,
         'rounded-md bg-ufop-950 px-2.5 py-1 font-semibold text-ufop-200 \c
@@ -110,6 +111,7 @@ actions(Agent, CurrentUser, Html) :-
     Html = button([
         type(button),
         onclick(OnClick),
+        'aria-label'(DeleteLabel),
         class(ButtonClass)
     ], 'Excluir').
 actions(_, _, '').
@@ -126,6 +128,10 @@ delete_onclick(Id, OnClick) :-
                         var card = document.getElementById('agent-card-~w');\c
                         if (card) {\c
                             card.remove();\c
+                        }\c
+                        var live = document.getElementById('app-live-region');\c
+                        if (live) {\c
+                            live.textContent = 'Agente excluído.';\c
                         }\c
                     } else {\c
                         alert('Não foi possível excluir o agente.');\c

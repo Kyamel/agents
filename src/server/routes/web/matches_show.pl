@@ -131,7 +131,12 @@ status_banner(Status, Html) :-
     status_meta(Status, Title, Hint, Accent),
     ui:tinted_card_class(Accent, Class),
     ui:text_class(meta, 'opacity-80 mt-1', HintClass),
-    Html = div([class(Class)], [
+    Html = div([
+        class(Class),
+        role(status),
+        'aria-live'(polite),
+        'aria-atomic'(true)
+    ], [
         p([class('font-semibold')], Title),
         p([class(HintClass)], Hint)
     ]).

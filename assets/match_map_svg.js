@@ -20,6 +20,11 @@ export function createMapSvg(edges, pos, loot, colors) {
 }
 
 export function renderMapSvg(view, pos, frame, colors) {
+  var description = view.element.querySelector("#mm-map-description");
+  if (description) {
+    description.textContent =
+      "Ladrão em " + frame.t + ". Detetive em " + frame.d + ".";
+  }
   clear(view.routeLayer);
   drawRoute(view.routeLayer, pos, frame.tPath, colors.thief, -4);
   drawRoute(view.routeLayer, pos, frame.dPath, colors.detective, 4);
@@ -54,8 +59,20 @@ function drawBase(edges, pos, colors) {
   svg.setAttribute("width", "100%");
   svg.setAttribute("class", "block w-full");
   svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", "Mapa e rotas da partida");
+  svg.setAttribute(
+    "aria-labelledby",
+    "mm-map-title mm-map-description"
+  );
+  svg.setAttribute("focusable", "false");
   svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  var mapTitle = title("Mapa e rotas da partida");
+  mapTitle.setAttribute("id", "mm-map-title");
+  var mapDescription = document.createElementNS(SVG_NS, "desc");
+  mapDescription.setAttribute("id", "mm-map-description");
+  mapDescription.textContent =
+    "Posições e rotas do ladrão e do detetive.";
+  svg.appendChild(mapTitle);
+  svg.appendChild(mapDescription);
 
   edges.forEach(function (edgePair) {
     var a = pos[edgePair[0]], b = pos[edgePair[1]];
@@ -223,7 +240,10 @@ function drawRoute(layer, pos, path, color, offset) {
 
 function marker(svg, color, character, contrast) {
   var markerGroup = group(svg);
-  markerGroup.style.transition = "transform 250ms ease";
+  markerGroup.style.transition =
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "none"
+      : "transform 250ms ease";
   markerGroup.appendChild(circle(0, 0, 9, color, contrast, 2));
   markerGroup.appendChild(text(0, 0, character, contrast, 11, "700"));
   return markerGroup;

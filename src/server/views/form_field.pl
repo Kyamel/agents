@@ -30,7 +30,8 @@ text_field(Name, Label, Type, Value, ExtraAttrs, Html) :-
     input_class(InputClass),
     label_class(LabelClass),
     append(
-        [type(Type), name(Name), id(Name), value(Value), class(InputClass)],
+        [type(Type), name(Name), id(Name), value(Value), required(required),
+         class(InputClass)],
         ExtraAttrs,
         InputAttrs
     ),
@@ -49,6 +50,7 @@ slug_field(Name, Label, Value, ExtraAttrs, Html) :-
     label_class(LabelClass),
     append([
         type(text), name(Name), id(Name), value(Value), class(InputClass),
+        required(required),
         pattern('[a-z0-9-]+'),
         placeholder('meu-agente'),
         title('Use apenas minusculas, numeros e hifens (ex.: meu-agente).'),
@@ -66,7 +68,15 @@ textarea_field(Name, Label, Value, Html) :-
     atom_concat(BaseClass, ' font-mono', InputClass),
     Html = div([class('mb-4')], [
         label([for(Name), class(LabelClass)], Label),
-        textarea([name(Name), id(Name), rows(14), class(InputClass)], Value)
+        textarea([
+            name(Name),
+            id(Name),
+            rows(14),
+            required(required),
+            autocomplete(off),
+            spellcheck(false),
+            class(InputClass)
+        ], Value)
     ]).
 
 % Options e uma lista de opt(Value, Label).
@@ -79,7 +89,12 @@ select_field(Name, Label, Options, Selected, Html) :-
     maplist(option_html(Selected), Options, OptionEls),
     Html = div([class('mb-4')], [
         label([for(Name), class(LabelClass)], Label),
-        select([name(Name), id(Name), class(InputClass)], OptionEls)
+        select([
+            name(Name),
+            id(Name),
+            required(required),
+            class(InputClass)
+        ], OptionEls)
     ]).
 
 option_html(Selected, placeholder(Value, Label), option(Attrs, Label)) :-

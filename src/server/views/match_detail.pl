@@ -84,8 +84,16 @@ event_item(Event, Html) :-
     field_text(Event, city, City),
     revealed_text(Event, Revealed),
     format(string(Title), "Turno ~w: roubo de ~w em ~w", [Turn, Item, City]),
-    ui:text_class(normal, 'text-amber-200 font-medium', TitleClass),
-    ui:text_class(meta, 'text-amber-200/70 mt-0.5', RevealedClass),
+    ui:text_class(
+        normal,
+        'text-amber-200 font-medium break-words',
+        TitleClass
+    ),
+    ui:text_class(
+        meta,
+        'text-amber-200/70 mt-0.5 break-words',
+        RevealedClass
+    ),
     ui:event_row_class(amber, CardClass),
     Html = li([class(CardClass)], [
         p([class(TitleClass)], Title),
@@ -106,14 +114,27 @@ event_item(Event, Html) :-
     field_text(Event, detail, Detail),
     format(string(Text), "Turno ~w: ~w", [Turn, Detail]),
     ui:event_row_class(neutral, RowClass),
-    ui:text_class(normal, RowClass, LiClass),
+    atomic_list_concat([RowClass, 'break-words'], ' ', RowWithBreak),
+    ui:text_class(normal, RowWithBreak, LiClass),
     Html = li([class(LiClass)], Text).
 
-event_tone("disguise", CardClass, 'text-reveal-text font-medium') :-
+event_tone(
+    "disguise",
+    CardClass,
+    'text-reveal-text font-medium break-words'
+) :-
     ui:event_row_class(reveal, CardClass).
-event_tone("mandate", CardClass, 'text-emerald-200 font-medium') :-
+event_tone(
+    "mandate",
+    CardClass,
+    'text-emerald-200 font-medium break-words'
+) :-
     ui:event_row_class(emerald, CardClass).
-event_tone("inspection", CardClass, 'text-sky-200 font-medium') :-
+event_tone(
+    "inspection",
+    CardClass,
+    'text-sky-200 font-medium break-words'
+) :-
     ui:event_row_class(sky, CardClass).
 
 revealed_text(Event, Text) :-
@@ -175,17 +196,25 @@ turns_table([], Html) :-
     page_section:empty_state('Replay indisponivel para esta partida.', Html).
 turns_table(Turns, Html) :-
     maplist(turn_row, Turns, Rows),
-    ui:text_class(normal, 'w-full', TableClass),
-    ui:table_cell_class('text-left', HeaderCellClass),
+    ui:text_class(normal, 'w-full table-fixed', TableClass),
+    ui:table_cell_class('text-left break-words', HeaderCellClass),
     Html = div([class('overflow-x-auto rounded-xl border border-surface-700')], [
         table([class(TableClass)], [
+            caption([class('sr-only')], 'Replay turno a turno'),
+            colgroup([], [
+                col([class('w-[10%]')]),
+                col([class('w-[30%]')]),
+                col([class('w-[15%]')]),
+                col([class('w-[30%]')]),
+                col([class('w-[15%]')])
+            ]),
             thead([class('bg-surface-900 text-surface-400')], [
                 tr([], [
-                    th([class(HeaderCellClass)], 'Turno'),
-                    th([class(HeaderCellClass)], 'Ação ladrão'),
-                    th([class(HeaderCellClass)], 'Pos. ladrão'),
-                    th([class(HeaderCellClass)], 'Ação detetive'),
-                    th([class(HeaderCellClass)], 'Pos. detetive')
+                    th([scope(col), class(HeaderCellClass)], 'Turno'),
+                    th([scope(col), class(HeaderCellClass)], 'Ação ladrão'),
+                    th([scope(col), class(HeaderCellClass)], 'Pos. ladrão'),
+                    th([scope(col), class(HeaderCellClass)], 'Ação detetive'),
+                    th([scope(col), class(HeaderCellClass)], 'Pos. detetive')
                 ])
             ]),
             tbody([], Rows)
@@ -193,7 +222,7 @@ turns_table(Turns, Html) :-
     ]).
 
 turn_row(Turn, tr([class('border-t border-surface-700')], [
-        td([class(MetaCellClass)], TurnNo),
+        th([scope(row), class(MetaCellClass)], TurnNo),
         td([class(ThiefClass)], ThiefAction),
         td([class(MetaCellClass)], ThiefPos),
         td([class(DetectiveClass)], DetectiveAction),
@@ -204,16 +233,22 @@ turn_row(Turn, tr([class('border-t border-surface-700')], [
     field_text(Turn, thief_position, ThiefPos),
     field_text(Turn, detective_action, DetectiveAction),
     field_text(Turn, detective_position, DetectivePos),
-    ui:table_cell_class('text-surface-400', MetaCellClass),
+    ui:table_cell_class(
+        'font-normal text-surface-400 break-words whitespace-normal',
+        MetaCellClass
+    ),
     action_class(Turn, thief_status, ThiefClass),
     action_class(Turn, detective_status, DetectiveClass).
 
 action_class(Turn, StatusKey, Class) :-
     get_dict(StatusKey, Turn, "Ilegal"),
     !,
-    ui:table_cell_class('text-ufop-400', Class).
+    ui:table_cell_class(
+        'text-ufop-400 break-words whitespace-normal',
+        Class
+    ).
 action_class(_Turn, _StatusKey, Class) :-
-    ui:table_cell_class(Class).
+    ui:table_cell_class('break-words whitespace-normal', Class).
 
 render_not_found(Request) :-
     ui:link_class(LinkClass),

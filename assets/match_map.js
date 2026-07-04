@@ -7,7 +7,7 @@ import {
   lootGlyph,
   lootKindLabel,
   renderMapSvg
-} from "./match_map_svg.js?v=3";
+} from "./match_map_svg.js?v=4";
 
 var ROW_STATE_CLASSES = {
   revealedFake: ["border-reveal-border", "bg-reveal-surface/40"],
@@ -113,6 +113,7 @@ function init() {
     if (!frame) return;
     renderMapSvg(mapView, positions, frame, colors.map);
     if (label) label.textContent = frame.label;
+    slider.setAttribute("aria-valuetext", frame.label);
     renderTurnEvents(eventInfo, frame.events, frame.eventText);
     renderAppearance(appearanceInfo, frame.appearance, frame.revealed);
     renderLootPanel(
@@ -128,6 +129,9 @@ function init() {
   function setPlaybackControl(isPlaying) {
     if (!playButton) return;
     var controlLabel = isPlaying ? "Pausar" : "Reproduzir";
+    if (label) {
+      label.setAttribute("aria-live", isPlaying ? "off" : "polite");
+    }
     if (playIcon) {
       playIcon.textContent = isPlaying ? "⏸\uFE0E" : "▶\uFE0E";
       playIcon.style.transform =
@@ -135,6 +139,7 @@ function init() {
     }
     playButton.setAttribute("aria-label", controlLabel);
     playButton.setAttribute("title", controlLabel);
+    playButton.setAttribute("aria-pressed", isPlaying ? "true" : "false");
   }
 
   function stop() {
@@ -188,6 +193,9 @@ function init() {
       var current = Number(intervalInput.value) || minimum;
       intervalInput.value = String(
         clamp(current + intervalDirection * step, minimum, maximum)
+      );
+      announce(
+        "Intervalo: " + intervalInput.value + " milissegundos."
       );
       if (timer) {
         clearInterval(timer);
@@ -386,6 +394,7 @@ function updateLootViewToggle(button, view) {
     "title",
     showList ? "Ver itens coletados" : "Ver dependências"
   );
+  button.setAttribute("aria-pressed", view === "list" ? "true" : "false");
 }
 
 function renderLootPanel(container, objective, lootByName, collected, view) {
@@ -476,6 +485,7 @@ function buildLootTreeNode(entry, lootByName, collected, ancestors) {
   addClasses(node, LOOT_TREE_STATE_CLASSES[state]);
 
   findRole(item, "glyph").textContent = lootGlyph(entry);
+  findRole(item, "kind").textContent = lootKindLabel(entry) + ": ";
   findRole(item, "name").textContent = entry.name;
   findRole(item, "status").textContent = lootNodeStatus(entry, state);
 
@@ -710,6 +720,10 @@ function setupResizableMap(layoutHost, mapHost, canvas, onCommit) {
       handle.setAttribute("aria-valuemin", String(limits.min));
       handle.setAttribute("aria-valuemax", String(limits.max));
       handle.setAttribute("aria-valuenow", String(width));
+      handle.setAttribute(
+        "aria-valuetext",
+        "Largura do mapa: " + width + " pixels"
+      );
     });
     return width;
   }
@@ -735,6 +749,10 @@ function setupResizableMap(layoutHost, mapHost, canvas, onCommit) {
       bottomHandle.setAttribute("aria-valuemin", String(heightLimits.min));
       bottomHandle.setAttribute("aria-valuemax", String(heightLimits.max));
       bottomHandle.setAttribute("aria-valuenow", String(height));
+      bottomHandle.setAttribute(
+        "aria-valuetext",
+        "Altura do mapa: " + height + " pixels"
+      );
     }
     return height;
   }
@@ -1013,6 +1031,11 @@ function saveMapSize(size) {
   } catch (_error) {
     // O redimensionamento continua funcional quando o storage esta bloqueado.
   }
+}
+
+function announce(message) {
+  var live = document.getElementById("app-live-region");
+  if (live) live.textContent = message;
 }
 
 // Iguala ao mapa apenas os cards que o CSS posicionou na mesma linha.

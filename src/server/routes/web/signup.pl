@@ -81,12 +81,24 @@ render_form(Request, Username, Email, AlertHtml) :-
         'Nome de usuário',
         text,
         Username,
-        [minlength(3), maxlength(60)],
+        [minlength(3), maxlength(60), autocomplete(username)],
         UsernameField
     ),
-    form_field:text_field(email, 'Email', email, Email, EmailField),
-    form_field:text_field(password, 'Senha', password, "", PasswordField),
-    form_field:text_field(confirm_password, 'Confirmar senha', password, "", ConfirmPasswordField),
+    form_field:text_field(
+        email, 'Email', email, Email,
+        [autocomplete(email)],
+        EmailField
+    ),
+    form_field:text_field(
+        password, 'Senha', password, "",
+        [autocomplete('new-password')],
+        PasswordField
+    ),
+    form_field:text_field(
+        confirm_password, 'Confirmar senha', password, "",
+        [autocomplete('new-password')],
+        ConfirmPasswordField
+    ),
     form_field:submit_button('Criar conta', Submit),
     ui:link_class(FooterClass),
     ui:text_class(title, 'mb-1', TitleClass),

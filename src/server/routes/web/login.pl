@@ -70,8 +70,16 @@ render_error(Request, Email, Message) :-
     render_form(Request, Email, AlertHtml).
 
 render_form(Request, Email, AlertHtml) :-
-    form_field:text_field(email, 'Email', email, Email, EmailField),
-    form_field:text_field(password, 'Senha', password, "", PasswordField),
+    form_field:text_field(
+        email, 'Email', email, Email,
+        [autocomplete(email)],
+        EmailField
+    ),
+    form_field:text_field(
+        password, 'Senha', password, "",
+        [autocomplete('current-password')],
+        PasswordField
+    ),
     form_field:submit_button('Entrar', Submit),
     ui:link_class(FooterClass),
     ui:text_class(title, 'mb-1', TitleClass),

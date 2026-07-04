@@ -21,7 +21,9 @@ match_card(Match, Html) :-
     ui:local_time(Match.created_at, CreatedTime),
     Html = article([class(CardClass)], [
         div([class('flex items-center justify-between gap-2')], [
-            a([href(Href), class(LinkClass)], ['Partida #', Id]),
+            h2([], [
+                a([href(Href), class(LinkClass)], ['Partida #', Id])
+            ]),
             span([class(BadgeClass)], WinnerText)
         ]),
         dl([class(DetailsClass)], [

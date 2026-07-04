@@ -71,7 +71,7 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
         script([type('application/json'), id('match-map-data')], DataJson),
         script([
             type(module),
-            src('/assets/match_map.js?v=36')
+            src('/assets/match_map.js?v=39')
         ], [])
     ].
 
@@ -90,7 +90,9 @@ loot_view_toggle(Html) :-
         type(button),
         id('mm-loot-view-toggle'),
         class(Class),
+        'aria-controls'('mm-collected'),
         'aria-label'('Exibir itens coletados como lista'),
+        'aria-pressed'(false),
         title('Ver itens coletados')
     ], 'Ver itens coletados').
 
@@ -112,19 +114,43 @@ map_controls(Html) :-
         PlayClass
     ),
     ui:control_class(compact, 'w-24', IntervalInputClass),
-    Html = div([class(CardClass)], [
+    Html = div([
+        class(CardClass),
+        role(region),
+        'aria-label'('Controles do replay')
+    ], [
+        p([
+            id('mm-keyboard-help'),
+            class('sr-only')
+        ], 'Atalhos: Espaço reproduz ou pausa; setas esquerda e direita mudam o turno; mais e menos alteram o intervalo.'),
         button([type(button), id('mm-play'), class(PlayClass),
-                'aria-label'('Reproduzir'), title('Reproduzir')], [
+                'aria-label'('Reproduzir'), 'aria-pressed'(false),
+                'aria-keyshortcuts'('Space'), title('Reproduzir')], [
             span([id('mm-play-icon'), 'aria-hidden'(true),
                   class('block'), style('transform: translateY(-1px)')], '▶︎')
         ]),
+        label([
+            for('mm-slider'),
+            class('sr-only')
+        ], 'Turno da partida'),
         input([type(range), id('mm-slider'), min(0), max(0), value(0), step(1),
-               class('flex-1 accent-ufop-500')]),
-        span([id('mm-turn-label'), class(TurnClass)], 'Início'),
+               class('flex-1 accent-ufop-500'),
+               'aria-describedby'('mm-keyboard-help'),
+               'aria-keyshortcuts'('ArrowLeft ArrowRight'),
+               'aria-valuetext'('Início')]),
+        span([
+            id('mm-turn-label'),
+            class(TurnClass),
+            role(status),
+            'aria-live'(polite),
+            'aria-atomic'(true)
+        ], 'Início'),
         label([class(IntervalClass)], [
             'Intervalo',
             input([type(number), id('mm-interval'), value(500), min(100),
                    step(100),
+                   'aria-describedby'('mm-keyboard-help'),
+                   'aria-keyshortcuts'('+ -'),
                    class(IntervalInputClass)]),
             'ms'
         ])
@@ -156,6 +182,7 @@ map_replay_layout(AppearanceCard, CollectedCard, Html) :-
         id('mm-map-size-reset'),
         class(ResetClass),
         title('Restaurar dimensões do mapa'),
+        'aria-controls'('mm-replay-layout'),
         'aria-label'('Restaurar dimensões do mapa')
     ], 'Resetar layout'),
     GraphChildren = [GraphCanvas, ResetButton|ResizeHandles],
@@ -173,7 +200,13 @@ map_replay_layout(AppearanceCard, CollectedCard, Html) :-
                --mm-left-width:minmax(12rem,1fr)')
     ], [
         LeftPanel,
-        div([id('mm-graph'), class(GraphClass)], GraphChildren),
+        div([
+            id('mm-graph'),
+            class(GraphClass),
+            role(region),
+            'aria-label'('Grafo do mapa da partida'),
+            'aria-describedby'('mm-keyboard-help')
+        ], GraphChildren),
         div([
             id('mm-right-panel'),
             class('min-w-0 lg:col-span-2 map-wide:col-span-1')
@@ -186,10 +219,16 @@ map_resize_handles([
         id('mm-resize-left'),
         class('group absolute inset-y-0 left-0 z-20 hidden w-3 \c
                cursor-ew-resize touch-none items-center justify-center \c
-               focus:outline-none xl:flex'),
+               focus:outline-none focus-visible:ring-2 \c
+               focus-visible:ring-inset focus-visible:ring-ufop-400 xl:flex'),
         role(separator),
         tabindex(0),
         'aria-orientation'(vertical),
+        'aria-valuemin'(448),
+        'aria-valuenow'(896),
+        'aria-valuetext'('Largura padrão do mapa'),
+        'aria-controls'('mm-left-panel mm-graph'),
+        'aria-keyshortcuts'('ArrowLeft ArrowRight'),
         'aria-label'('Redimensionar mapa pela lateral esquerda'),
         title('Arraste para redimensionar o mapa')
     ], [
@@ -201,10 +240,17 @@ map_resize_handles([
         id('mm-resize-right'),
         class('group absolute inset-y-0 right-0 z-20 hidden w-3 \c
                cursor-ew-resize touch-none items-center justify-center \c
-               focus:outline-none map-wide:flex'),
+               focus:outline-none focus-visible:ring-2 \c
+               focus-visible:ring-inset focus-visible:ring-ufop-400 \c
+               map-wide:flex'),
         role(separator),
         tabindex(0),
         'aria-orientation'(vertical),
+        'aria-valuemin'(448),
+        'aria-valuenow'(896),
+        'aria-valuetext'('Largura padrão do mapa'),
+        'aria-controls'('mm-right-panel mm-graph'),
+        'aria-keyshortcuts'('ArrowLeft ArrowRight'),
         'aria-label'('Redimensionar mapa pela lateral direita'),
         title('Arraste para redimensionar o mapa')
     ], [
@@ -216,10 +262,17 @@ map_resize_handles([
         id('mm-resize-bottom'),
         class('group absolute inset-x-0 bottom-0 z-20 hidden h-3 \c
                cursor-ns-resize touch-none items-center justify-center \c
-               focus:outline-none lg:flex'),
+               focus:outline-none focus-visible:ring-2 \c
+               focus-visible:ring-inset focus-visible:ring-ufop-400 lg:flex'),
         role(separator),
         tabindex(0),
         'aria-orientation'(horizontal),
+        'aria-valuemin'(320),
+        'aria-valuemax'(1200),
+        'aria-valuenow'(620),
+        'aria-valuetext'('Altura padrão do mapa'),
+        'aria-controls'('mm-graph'),
+        'aria-keyshortcuts'('ArrowUp ArrowDown'),
         'aria-label'('Redimensionar altura do mapa'),
         title('Arraste para redimensionar a altura')
     ], [
@@ -258,13 +311,17 @@ map_legend(Html) :-
         'Cidade inspecionada',
         Inspection
     ),
-    Html = div([class(Class)], [
+    Html = div([
+        class(Class),
+        role(group),
+        'aria-label'('Legenda do mapa')
+    ], [
         Thief, Detective, Blocked, Ready, Robbery, Inspection
     ]).
 
 legend_item(ColorClass, Label,
             span([class('min-w-0 flex items-center gap-2 leading-tight')], [
-                span([class(Class)], []),
+                span([class(Class), 'aria-hidden'(true)], []),
                 Label
             ])) :-
     atomic_list_concat(
@@ -279,7 +336,11 @@ map_event_card(Html) :-
     atomic_list_concat([AccentClass, 'px-4 pt-4 pb-2'], ' ', HeadingClass),
     event_side('Ladrão', thief, ThiefSide),
     event_side('Detetive', detective, DetectiveSide),
-    Html = div([class(CardClass)], [
+    Html = div([
+        class(CardClass),
+        role(region),
+        'aria-label'('Eventos do turno')
+    ], [
         p([class(HeadingClass)], 'Evento'),
         div([
             id('mm-event'),
@@ -307,7 +368,12 @@ map_scroll_card(Density, Accent, Label, Id, ContentClass, Html) :-
         'flex flex-col overflow-hidden js-map-height',
         CardClass
     ),
-    Html = div([class(CardClass)], [
+    map_panel_label(Id, PanelLabel),
+    Html = div([
+        class(CardClass),
+        role(region),
+        'aria-label'(PanelLabel)
+    ], [
         div([class(HeadingClass)], Label),
         div([id(Id), class(ContentClass)], [])
     ]).
@@ -315,10 +381,17 @@ map_scroll_card(Density, Accent, Label, Id, ContentClass, Html) :-
 map_state_card(Accent, Label, Id, Html) :-
     ui:panel_header_class(Accent, HeadingClass),
     ui:padded_surface_class(normal, CardClass),
-    Html = div([class(CardClass)], [
+    Html = div([
+        class(CardClass),
+        role(region),
+        'aria-label'(Label)
+    ], [
         p([class(HeadingClass)], Label),
         div([id(Id), class('space-y-2')], [])
     ]).
+
+map_panel_label('mm-appearance', 'Aparência do ladrão').
+map_panel_label('mm-collected', 'Cadeia do tesouro').
 
 map_templates(Html) :-
     ui:event_row_base_class(EventRowClass),
@@ -379,7 +452,10 @@ map_templates(Html) :-
                 span([
                     class('hidden text-surface-500'),
                     'data-role'(arrow)
-                ], '→'),
+                ], [
+                    span(['aria-hidden'(true)], '→'),
+                    span([class('sr-only')], 'alterado para')
+                ]),
                 code([
                     class('hidden font-mono break-all'),
                     'data-role'('current-value')
@@ -401,9 +477,14 @@ map_templates(Html) :-
                 ], [
                     span([
                         class('shrink-0 text-base leading-none'),
+                        'aria-hidden'(true),
                         'data-role'(glyph)
                     ], []),
                     div([class('min-w-0 flex-1')], [
+                        span([
+                            class('sr-only'),
+                            'data-role'(kind)
+                        ], []),
                         div([class('min-w-0')], [
                             span([
                                 class('font-mono font-semibold whitespace-nowrap'),
