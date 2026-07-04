@@ -177,10 +177,26 @@ function init() {
     render(Number(slider.value));
   });
   document.addEventListener("keydown", function (event) {
-    if (event.ctrlKey || event.metaKey || event.altKey ||
-        isKeyboardControl(event.target)) {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    var intervalDirection = playbackIntervalDirection(event);
+    if (intervalDirection && !isTextEditingControl(event.target)) {
+      event.preventDefault();
+      if (!intervalInput) return;
+      var step = Number(intervalInput.step) || 100;
+      var minimum = Number(intervalInput.min) || 0;
+      var maximum = Number(intervalInput.max) || Infinity;
+      var current = Number(intervalInput.value) || minimum;
+      intervalInput.value = String(
+        clamp(current + intervalDirection * step, minimum, maximum)
+      );
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+        play();
+      }
       return;
     }
+    if (isKeyboardControl(event.target)) return;
     if (event.code === "Space") {
       if (event.repeat) return;
       event.preventDefault();
@@ -565,6 +581,40 @@ function isKeyboardControl(target) {
   ));
 }
 
+function isTextEditingControl(target) {
+  return Boolean(target && target.closest && target.closest(
+    "textarea, select, input:not([type='range']), " +
+    "[contenteditable='true']"
+  ));
+}
+
+function playbackIntervalDirection(event) {
+  var legacyCode = event.keyCode || event.which;
+  if (
+    event.key === "+" ||
+    event.key === "Add" ||
+    event.code === "NumpadAdd" ||
+    (event.code === "Equal" && event.shiftKey) ||
+    legacyCode === 107 ||
+    (event.shiftKey && (legacyCode === 61 || legacyCode === 187))
+  ) {
+    return 1;
+  }
+  if (
+    event.key === "-" ||
+    event.key === "\u2212" ||
+    event.key === "Subtract" ||
+    event.code === "Minus" ||
+    event.code === "NumpadSubtract" ||
+    legacyCode === 109 ||
+    legacyCode === 173 ||
+    legacyCode === 189
+  ) {
+    return -1;
+  }
+  return 0;
+}
+
 function fillMapSpace(svg) {
   if (!svg) return;
   svg.setAttribute("height", "100%");
@@ -580,13 +630,59 @@ function setupResizableMap(layoutHost, mapHost, canvas, onCommit) {
   var leftHandle = document.getElementById("mm-resize-left");
   var rightHandle = document.getElementById("mm-resize-right");
   var bottomHandle = document.getElementById("mm-resize-bottom");
+  var resetButton = document.getElementById("mm-map-size-reset");
   var widthHandles = [leftHandle, rightHandle].filter(Boolean);
-  var leftPanel = layoutHost.firstElementChild;
+  var leftPanel = document.getElementById("mm-left-panel");
+  var rightPanel = document.getElementById("mm-right-panel");
   var heightLimits = { min: 320, max: 1200 };
   var saved = readMapSize();
+  var detached = {
+    left: Boolean(saved.leftDetached || saved.expanded),
+    right: Boolean(saved.rightDetached || saved.expanded)
+  };
 
   function isWideLayout() {
     return window.matchMedia("(min-width: 1440px)").matches;
+  }
+
+  function supportsDetachedLayout() {
+    return window.matchMedia("(min-width: 1280px)").matches;
+  }
+
+  function renderLayoutMode() {
+    var leftDown = detached.left && supportsDetachedLayout();
+    var rightDown = detached.right && supportsDetachedLayout();
+    if (!leftDown && !rightDown) {
+      layoutHost.style.removeProperty("grid-template-columns");
+      layoutHost.style.removeProperty("grid-template-areas");
+      leftPanel.style.removeProperty("grid-area");
+      mapHost.style.removeProperty("grid-area");
+      rightPanel.style.removeProperty("grid-area");
+      return;
+    }
+
+    leftPanel.style.gridArea = "left";
+    mapHost.style.gridArea = "graph";
+    rightPanel.style.gridArea = "right";
+    if (!isWideLayout()) {
+      layoutHost.style.gridTemplateColumns = "minmax(0, 1fr)";
+      layoutHost.style.gridTemplateAreas = '"graph" "left" "right"';
+    } else if (leftDown && rightDown) {
+      layoutHost.style.gridTemplateColumns =
+        "repeat(2, minmax(0, 1fr))";
+      layoutHost.style.gridTemplateAreas =
+        '"graph graph" "left right"';
+    } else if (leftDown) {
+      layoutHost.style.gridTemplateColumns =
+        "minmax(0, 1fr) minmax(12rem, 20rem)";
+      layoutHost.style.gridTemplateAreas =
+        '"graph right" "left left"';
+    } else {
+      layoutHost.style.gridTemplateColumns =
+        "minmax(12rem, 20rem) minmax(0, 1fr)";
+      layoutHost.style.gridTemplateAreas =
+        '"left graph" "right right"';
+    }
   }
 
   function currentLeftWidth() {
@@ -651,6 +747,7 @@ function setupResizableMap(layoutHost, mapHost, canvas, onCommit) {
   if (isWideLayout()) {
     applyLeftWidth(saved.left || currentLeftWidth());
   }
+  renderLayoutMode();
   var naturalHeight = mapHost.getBoundingClientRect().height;
   applyHeight(saved.height || naturalHeight);
   fillMapSpace(canvas.querySelector("svg"));
@@ -659,7 +756,13 @@ function setupResizableMap(layoutHost, mapHost, canvas, onCommit) {
     var width = Math.round(mapHost.getBoundingClientRect().width);
     var height = Math.round(mapHost.getBoundingClientRect().height);
     var left = Math.round(currentLeftWidth());
-    saveMapSize({ width: width, height: height, left: left });
+    saveMapSize({
+      width: width,
+      height: height,
+      left: left,
+      leftDetached: detached.left,
+      rightDetached: detached.right
+    });
     if (onCommit) onCommit();
   }
 
@@ -673,8 +776,32 @@ function setupResizableMap(layoutHost, mapHost, canvas, onCommit) {
       var startX = event.clientX;
       var startWidth = mapHost.getBoundingClientRect().width;
       var startLeft = currentLeftWidth();
+      var startRight = rightPanel.getBoundingClientRect().width;
+      var side = direction < 0 ? "left" : "right";
+      var snapped = false;
       beginResize(handle, event, "ew-resize", function (moveEvent) {
+        if (snapped) return;
         var delta = moveEvent.clientX - startX;
+        if (detached[side]) {
+          var restoresSide = direction < 0 ? delta > 48 : delta < -48;
+          if (restoresSide) {
+            detached[side] = false;
+            renderLayoutMode();
+            snapped = true;
+          }
+          return;
+        }
+        if (crossedPanelLimit(
+          direction,
+          delta,
+          startLeft,
+          startRight
+        )) {
+          detached[side] = true;
+          renderLayoutMode();
+          snapped = true;
+          return;
+        }
         if (isWideLayout()) {
           resizeWideMapSide(
             direction,
@@ -696,6 +823,30 @@ function setupResizableMap(layoutHost, mapHost, canvas, onCommit) {
       var physicalDelta = event.key === "ArrowRight" ? 24 : -24;
       var startWidth = mapHost.getBoundingClientRect().width;
       var startLeft = currentLeftWidth();
+      var startRight = rightPanel.getBoundingClientRect().width;
+      var side = direction < 0 ? "left" : "right";
+      if (detached[side]) {
+        var restoresSide = direction < 0
+          ? physicalDelta > 0
+          : physicalDelta < 0;
+        if (restoresSide) {
+          detached[side] = false;
+          renderLayoutMode();
+          commit();
+        }
+        return;
+      }
+      if (crossedPanelLimit(
+        direction,
+        physicalDelta,
+        startLeft,
+        startRight
+      )) {
+        detached[side] = true;
+        renderLayoutMode();
+        commit();
+        return;
+      }
       if (isWideLayout()) {
         resizeWideMapSide(
           direction,
@@ -735,6 +886,24 @@ function setupResizableMap(layoutHost, mapHost, canvas, onCommit) {
     });
   }
 
+  if (resetButton) {
+    resetButton.addEventListener("click", function () {
+      detached.left = false;
+      detached.right = false;
+      layoutHost.style.setProperty("--mm-graph-width", "56rem");
+      layoutHost.style.setProperty(
+        "--mm-left-width",
+        "minmax(12rem, 1fr)"
+      );
+      renderLayoutMode();
+      window.requestAnimationFrame(function () {
+        applyWidth(896);
+        applyHeight(mapHost.clientWidth * 620 / 920);
+        commit();
+      });
+    });
+  }
+
   var resizeTimer = null;
   window.addEventListener("resize", function () {
     if (resizeTimer) clearTimeout(resizeTimer);
@@ -743,9 +912,23 @@ function setupResizableMap(layoutHost, mapHost, canvas, onCommit) {
         applyWidth(mapHost.getBoundingClientRect().width);
       }
       if (isWideLayout()) applyLeftWidth(currentLeftWidth());
+      renderLayoutMode();
       commit();
     }, 120);
   });
+}
+
+function crossedPanelLimit(
+  direction,
+  delta,
+  startLeft,
+  startRight
+) {
+  var minSide = window.matchMedia("(min-width: 1440px)").matches
+    ? 192
+    : 256;
+  if (direction < 0) return startLeft + delta < minSide;
+  return startRight - delta < minSide;
 }
 
 function resizeWideMapSide(

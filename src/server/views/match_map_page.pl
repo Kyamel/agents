@@ -71,14 +71,19 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
         script([type('application/json'), id('match-map-data')], DataJson),
         script([
             type(module),
-            src('/assets/match_map.js?v=32')
+            src('/assets/match_map.js?v=36')
         ], [])
     ].
 
 loot_view_toggle(Html) :-
+    ui:text_class(
+        meta,
+        'ml-auto w-52 text-center normal-case tracking-normal',
+        ToggleLayout
+    ),
     ui:primary_button_class(
         default,
-        'ml-auto w-36 text-center normal-case tracking-normal',
+        ToggleLayout,
         Class
     ),
     Html = button([
@@ -131,12 +136,33 @@ map_replay_layout(AppearanceCard, CollectedCard, Html) :-
         'relative overflow-hidden order-first lg:order-none',
         GraphClass
     ),
+    ui:text_class(
+        meta,
+        'absolute right-3 top-3 z-30',
+        ResetLayout
+    ),
+    ui:primary_button_class(
+        small,
+        ResetLayout,
+        ResetClass
+    ),
     map_resize_handles(ResizeHandles),
     GraphCanvas = div([
         id('mm-graph-canvas'),
         class('h-full min-h-0')
     ], []),
-    GraphChildren = [GraphCanvas|ResizeHandles],
+    ResetButton = button([
+        type(button),
+        id('mm-map-size-reset'),
+        class(ResetClass),
+        title('Restaurar dimensões do mapa'),
+        'aria-label'('Restaurar dimensões do mapa')
+    ], 'Resetar layout'),
+    GraphChildren = [GraphCanvas, ResetButton|ResizeHandles],
+    LeftPanel = div([
+        id('mm-left-panel'),
+        class('min-w-0')
+    ], [AppearanceCard]),
     Html = div([
         id('mm-replay-layout'),
         class('grid gap-4 mb-4 lg:items-start \c
@@ -146,9 +172,12 @@ map_replay_layout(AppearanceCard, CollectedCard, Html) :-
         style('--mm-graph-width:56rem;\c
                --mm-left-width:minmax(12rem,1fr)')
     ], [
-        AppearanceCard,
+        LeftPanel,
         div([id('mm-graph'), class(GraphClass)], GraphChildren),
-        div([class('min-w-0 lg:col-span-2 map-wide:col-span-1')],
+        div([
+            id('mm-right-panel'),
+            class('min-w-0 lg:col-span-2 map-wide:col-span-1')
+        ],
             [CollectedCard])
     ]).
 
