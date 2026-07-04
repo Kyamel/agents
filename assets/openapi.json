@@ -390,6 +390,35 @@
         }
       }
     },
+    "/api/v1/map/{id}": {
+      "get": {
+        "tags": ["Matches"],
+        "summary": "Obtém os frames renderizáveis do mapa de uma partida",
+        "description": "Retorna o mesmo JSON incorporado na página de replay. Todos os frames são calculados no servidor; o cliente pode reproduzi-los sem chamadas HTTP adicionais.",
+        "parameters": [
+          { "$ref": "#/components/parameters/IdPath" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mapa e frames da partida",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MatchMap" }
+              }
+            }
+          },
+          "404": {
+            "description": "Partida não encontrada",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": { "error": "match_not_found" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users/{id}": {
       "get": {
         "tags": ["Users"],
@@ -936,6 +965,150 @@
           }
         },
         "required": ["type", "turn", "by"]
+      },
+      "MapCity": {
+        "description": "Identificador de cidade usado pelo cenário.",
+        "oneOf": [
+          { "type": "string" },
+          { "type": "number" },
+          { "type": "null" }
+        ]
+      },
+      "MatchMap": {
+        "type": "object",
+        "properties": {
+          "cities": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MapCity" }
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": { "$ref": "#/components/schemas/MapCity" }
+            }
+          },
+          "loot": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MapLoot" }
+          },
+          "frames": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MapFrame" }
+          }
+        },
+        "required": ["cities", "edges", "loot", "frames"]
+      },
+      "MapLoot": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["item", "treasure"]
+          },
+          "name": { "type": "string" },
+          "city": { "$ref": "#/components/schemas/MapCity" }
+        },
+        "required": ["kind", "name", "city"]
+      },
+      "MapAppearanceAttribute": {
+        "type": "object",
+        "properties": {
+          "original": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "null" }
+            ]
+          },
+          "current": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "required": ["original", "current"]
+      },
+      "MapMandate": {
+        "type": "object",
+        "properties": {
+          "suspect": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" }
+            ]
+          },
+          "clues": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["suspect", "clues"]
+      },
+      "MapFrame": {
+        "type": "object",
+        "properties": {
+          "label": { "type": "string" },
+          "t": { "$ref": "#/components/schemas/MapCity" },
+          "d": { "$ref": "#/components/schemas/MapCity" },
+          "tPath": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MapCity" }
+          },
+          "dPath": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MapCity" }
+          },
+          "blocked": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MapCity" }
+          },
+          "objectiveCity": { "$ref": "#/components/schemas/MapCity" },
+          "objectiveReady": { "type": "boolean" },
+          "robberyCities": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MapCity" }
+          },
+          "eventText": { "type": "string" },
+          "appearance": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapAppearanceAttribute"
+            }
+          },
+          "revealed": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "collected": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "mandate": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/MapMandate" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "required": [
+          "label",
+          "t",
+          "d",
+          "tPath",
+          "dPath",
+          "blocked",
+          "objectiveCity",
+          "objectiveReady",
+          "robberyCities",
+          "eventText",
+          "appearance",
+          "revealed",
+          "collected",
+          "mandate"
+        ]
       },
       "Stats": {
         "type": "object",

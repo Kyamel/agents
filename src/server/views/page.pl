@@ -8,40 +8,62 @@
 :- use_module('../http/web_session').
 :- use_module(ui).
 
-% Paleta do Tailwind (CDN). `ufop` e o vermelho institucional da UFOP.
-% `surface` e a escala neutra do app: centralizar aqui permite
-% re-tematizar o tom neutro inteiro mudando so estes hex. Usar sempre
-% bg-surface-*/text-surface-*/border-surface-* (nunca cores cruas do Tailwind).
+% Tema visual compartilhado pelo Tailwind e por componentes graficos em JS.
+% `ufop` e o vermelho institucional, `surface` e a escala neutra, `reveal` e
+% o roxo oficial de revelacao e `map` contem os tokens semanticos do replay
+% SVG. Manter os valores aqui evita hex duplicado entre classes e assets.
 tailwind_config(
-    "tailwind.config={\c
+    "window.appTheme={\c
+        colors:{\c
+            ufop:{\c
+                '200':'#f0b3b8',\c
+                '400':'#db6a74',\c
+                '500':'#c5283a',\c
+                '600':'#a31621',\c
+                '700':'#86121b',\c
+                '900':'#4d0a10',\c
+                '950':'#310608'\c
+            },\c
+            surface:{\c
+                '100':'#f1f5f9',\c
+                '200':'#e2e8f0',\c
+                '300':'#cbd5e1',\c
+                '400':'#94a3b8',\c
+                '500':'#64748b',\c
+                '600':'#475569',\c
+                '700':'#334155',\c
+                '800':'#1e293b',\c
+                '900':'#0f172a',\c
+                '950':'#020617'\c
+            },\c
+            reveal:{\c
+                surface:'#2e1065',\c
+                border:'#5b21b6',\c
+                text:'#c4b5fd'\c
+            }\c
+        }\c
+    };\c
+    window.appTheme.colors.map={\c
+        thief:'#fbbf24',\c
+        detective:'#38bdf8',\c
+        edge:window.appTheme.colors.surface['700'],\c
+        node:{\c
+            fill:window.appTheme.colors.surface['800'],\c
+            stroke:window.appTheme.colors.surface['500'],\c
+            text:window.appTheme.colors.surface['200']\c
+        },\c
+        blocked:{fill:'#dc2626',stroke:'#fca5a5'},\c
+        ready:{fill:'#059669',stroke:'#6ee7b7'},\c
+        robbery:{fill:'#fbbf24',stroke:'#fde68a'},\c
+        contrast:window.appTheme.colors.surface['900']\c
+    };\c
+    tailwind.config={\c
         theme:{\c
             extend:{\c
                 screens:{\c
                     'map-wide':'1440px'\c
                 },\c
-                colors:{\c
-                    ufop:{\c
-                        '200':'#f0b3b8',\c
-                        '400':'#db6a74',\c
-                        '500':'#c5283a',\c
-                        '600':'#a31621',\c
-                        '700':'#86121b',\c
-                        '900':'#4d0a10',\c
-                        '950':'#310608'\c
-                    },\c
-                    surface:{\c
-                        '100':'#f1f5f9',\c
-                        '200':'#e2e8f0',\c
-                        '300':'#cbd5e1',\c
-                        '400':'#94a3b8',\c
-                        '500':'#64748b',\c
-                        '600':'#475569',\c
-                        '700':'#334155',\c
-                        '800':'#1e293b',\c
-                        '900':'#0f172a',\c
-                        '950':'#020617'\c
-                    }\c
-                }\c
+                colors:window.appTheme.colors\c
             }\c
         }\c
     }"

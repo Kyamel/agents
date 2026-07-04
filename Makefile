@@ -25,11 +25,12 @@ RUN_FLAGS = -d --rm --name $(NAME) -p $(PORT):8080 \
 
 .DEFAULT_GOAL := help
 
-.PHONY: help dev build build-rootless run run-rootless stop logs clean-rootless
+.PHONY: help dev test build build-rootless run run-rootless stop logs clean-rootless
 
 help:
 	@echo "Alvos:"
 	@echo "  make dev             roda o app local (swipl src/main.pl)"
+	@echo "  make test            executa os testes Prolog e JavaScript"
 	@echo "  make build           builda a imagem $(IMAGE)"
 	@echo "  make build-rootless  builda com workaround rootless (sem /etc/subuid)"
 	@echo "  make run             roda a imagem (apos build)"
@@ -42,6 +43,10 @@ help:
 # Requer swipl + libsqlite3 no ambiente.
 dev:
 	swipl src/main.pl
+
+test:
+	swipl -q -s tests/match_map_data_test.pl -g run_tests -t halt
+	node tests/match_map_layout_test.mjs
 
 # --- Build da imagem ----------------------------------------------------------
 build:
