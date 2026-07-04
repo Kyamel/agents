@@ -17,7 +17,7 @@ index_handler(Request) :-
     available_presentations(Presentations),
     presentation_list(Presentations, ListHtml),
     ui:text_class(title, 'mb-3', TitleClass),
-    ui:text_class(normal, 'text-surface-300 max-w-3xl mb-8', DescriptionClass),
+    ui:text_class(emphasis, 'text-surface-300 max-w-3xl mb-8', DescriptionClass),
     page:reply_page(Request, 'Apresentações', [
         h1([class(TitleClass)], 'Apresentações'),
         p([class(DescriptionClass)],
