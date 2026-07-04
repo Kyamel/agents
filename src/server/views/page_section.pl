@@ -23,7 +23,7 @@ eyebrow_heading(Eyebrow, Title, Html) :-
 % Cabecalho de listagem com CTA opcional na direita.
 top_bar(Title, ActionHtml, Html) :-
     ui:text_class(title, HeadingClass),
-    Html = div([class('flex items-center justify-between gap-3 mb-2')], [
+    Html = div([class('flex items-center justify-between gap-3 mb-2 mt-2')], [
         h1([class(HeadingClass)], Title),
         ActionHtml
     ]).
