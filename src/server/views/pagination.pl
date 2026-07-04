@@ -64,12 +64,28 @@ pagination_nav(BasePath, Meta, Html) :-
 
 page_control(BasePath, Page, true, Label, Html) :-
     format(atom(Href), '~w?page=~w', [BasePath, Page]),
+    page_control_class(enabled, Class),
     Html = a([href(Href),
-              class('inline-flex min-h-9 items-center justify-center rounded-lg bg-surface-800 px-3 py-1.5 text-center hover:bg-surface-700')],
+              class(Class)],
              Label).
 page_control(_, _, false, Label, Html) :-
-    Html = span([class('inline-flex min-h-9 items-center justify-center rounded-lg border border-surface-700 bg-surface-900 px-3 py-1.5 text-center text-surface-600')],
+    page_control_class(disabled, Class),
+    Html = span([class(Class)],
                 Label).
+
+page_control_class(State, Class) :-
+    page_control_tone(State, Tone),
+    atomic_list_concat(
+        ['inline-flex min-h-9 items-center justify-center rounded-lg \c
+          px-3 py-1.5 text-center',
+         Tone],
+        ' ',
+        Class
+    ).
+
+page_control_tone(enabled, 'bg-surface-800 hover:bg-surface-700').
+page_control_tone(disabled,
+                  'border border-surface-700 bg-surface-900 text-surface-600').
 
 page_window(BasePath, Meta, Html) :-
     window_bounds(Meta.page, Meta.totalPages, Start, End),
@@ -118,15 +134,32 @@ trailing_ellipsis(_, _, []).
 
 page_number(_BasePath, CurrentPage, CurrentPage, Html) :-
     !,
+    page_number_class(current, Class),
     Html = span([
-        class('inline-flex h-8 min-w-8 items-center justify-center rounded-lg bg-ufop-600 px-1 font-semibold text-white sm:h-9 sm:min-w-9 sm:px-2'),
+        class(Class),
         'aria-current'(page)
     ], CurrentPage).
 page_number(BasePath, _CurrentPage, Page, Html) :-
     format(atom(Href), '~w?page=~w', [BasePath, Page]),
     format(atom(Label), 'Ir para a página ~w', [Page]),
+    page_number_class(link, Class),
     Html = a([
         href(Href),
-        class('inline-flex h-8 min-w-8 items-center justify-center rounded-lg border border-surface-700 bg-surface-900 px-1 hover:border-surface-500 hover:bg-surface-800 sm:h-9 sm:min-w-9 sm:px-2'),
+        class(Class),
         'aria-label'(Label)
     ], Page).
+
+page_number_class(State, Class) :-
+    page_number_tone(State, Tone),
+    atomic_list_concat(
+        ['inline-flex h-8 min-w-8 items-center justify-center rounded-lg \c
+          px-1 sm:h-9 sm:min-w-9 sm:px-2',
+         Tone],
+        ' ',
+        Class
+    ).
+
+page_number_tone(current, 'bg-ufop-600 font-semibold text-white').
+page_number_tone(link,
+                 'border border-surface-700 bg-surface-900 \c
+                  hover:border-surface-500 hover:bg-surface-800').

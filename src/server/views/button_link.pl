@@ -6,7 +6,7 @@
 :- use_module(ui).
 
 button_link(Href, Label, Html) :-
-    ui:primary_button_class('inline-block rounded-xl px-4 py-2', Class),
+    ui:primary_button_class(Class),
     Html = a(
         [
             href(Href),

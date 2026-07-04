@@ -26,7 +26,7 @@ verify_from_request(_Request, 400, _{error: "invalid_or_expired_token"}).
 render_result(Request, 200, Payload) :-
     !,
     button_link:button_link('/login', 'Entrar', LoginButton),
-    ui:surface_class('p-6', CardClass),
+    ui:padded_surface_class(roomy, CardClass),
     ui:text_class(meta, 'text-emerald-300 font-semibold mb-2', StatusClass),
     ui:text_class(title, 'mb-3', TitleClass),
     ui:text_class(normal, 'text-surface-400 mb-5', MessageClass),
@@ -45,7 +45,7 @@ render_result(Request, 200, Payload) :-
     ]).
 render_result(Request, _Status, _Payload) :-
     button_link:button_link('/signup', 'Criar conta', SignupButton),
-    ui:surface_class('p-6', CardClass),
+    ui:padded_surface_class(roomy, CardClass),
     ui:text_class(meta, 'text-ufop-400 font-semibold mb-2', StatusClass),
     ui:text_class(title, 'mb-3', TitleClass),
     ui:text_class(normal, 'text-surface-400 mb-5', MessageClass),

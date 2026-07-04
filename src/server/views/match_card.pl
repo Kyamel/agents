@@ -17,8 +17,7 @@ match_card(Match, Html) :-
     ui:text_class(meta,
                   'mt-1 min-w-0 text-surface-500 truncate',
                   CreatedClass),
-    ui:surface_class('p-3 transition',
-                     CardClass),
+    ui:padded_surface_class(compact, 'transition', CardClass),
     ui:local_time(Match.created_at, CreatedTime),
     Html = article([class(CardClass)], [
         div([class('flex items-center justify-between gap-2')], [

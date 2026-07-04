@@ -30,7 +30,8 @@ hero(Html) :-
     ui:text_class(title, 'tracking-tight mb-4', TitleClass),
     ui:text_class(emphasis, 'text-surface-300 max-w-3xl', LeadClass),
     ui:text_class(meta, 'flex flex-wrap gap-3 mt-6', NavClass),
-    ui:primary_button_class('rounded-lg px-3 py-2', CtaClass),
+    ui:primary_button_class(compact, '', CtaClass),
+    ui:secondary_button_class(SecondaryClass),
     Html = section([class('mb-10')], [
     h1([class(TitleClass)],
        'Programe um agente para Scotland Yard'),
@@ -40,12 +41,10 @@ hero(Html) :-
        e registra cada ação para replay.'),
     nav([class(NavClass)], [
         a([href('#como-funciona'),
-           class('rounded-lg bg-surface-800 border border-surface-600 px-3 py-2 \c
-                  hover:border-surface-400 transition')],
+           class(SecondaryClass)],
           'Como funciona'),
         a([href('#programar-agente'),
-           class('rounded-lg bg-surface-800 border border-surface-600 px-3 py-2 \c
-                  hover:border-surface-400 transition')],
+           class(SecondaryClass)],
           'Contrato dos agentes'),
         a([href('/agents/new'), class(CtaClass)],
           'Enviar meu agente')
@@ -251,7 +250,7 @@ contract_item(Number, Title, Text, Html) :-
 ]).
 
 signature(Label, Value, Html) :-
-    ui:text_class(meta, 'text-surface-500 uppercase tracking-wide', LabelClass),
+    ui:eyebrow_class(slate, LabelClass),
     Html = div([], [
     p([class(LabelClass)], Label),
     code([class('text-surface-300 break-all')], Value)
@@ -267,9 +266,8 @@ role_header(Accent, Title, Description, Html) :-
 ]).
 
 contract_signature(Name, Signature, Html) :-
-    ui:text_class(meta,
-                  'text-surface-500 uppercase tracking-wide mb-2',
-                  NameClass),
+    ui:eyebrow_class(slate, NameBase),
+    atomic_list_concat([NameBase, 'mb-2'], ' ', NameClass),
     ui:text_class(meta, 'text-surface-200 break-all', SignatureClass),
     Html = div([class('rounded-lg bg-surface-950/70 border border-surface-700 p-4')], [
     p([class(NameClass)], Name),

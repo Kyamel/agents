@@ -11,9 +11,8 @@
 % Eyebrow (rotulo curto em maiusculas) acima de um titulo de secao. Usado em
 % paginas de conteudo (about) para separar blocos.
 eyebrow_heading(Eyebrow, Title, Html) :-
-    ui:text_class(meta,
-                  'text-surface-500 uppercase tracking-wide font-semibold mb-1',
-                  EyebrowClass),
+    ui:eyebrow_class(slate, EyebrowBase),
+    atomic_list_concat([EyebrowBase, 'mb-1'], ' ', EyebrowClass),
     ui:text_class(section, TitleClass),
     Html = div([class('mb-5')], [
         p([class(EyebrowClass)], Eyebrow),

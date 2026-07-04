@@ -262,7 +262,7 @@ nav(anon, Nav) :-
     ui:link_class(MetaClass, NavClass),
     ui:muted_link_class('text-surface-300', EntrarHover),
     ui:text_class(meta, EntrarHover, EntrarClass),
-    ui:primary_button_class('rounded-lg px-3 py-1.5', SignupButtonClass),
+    ui:primary_button_class(small, '', SignupButtonClass),
     ui:text_class(meta, SignupButtonClass, SignupClass),
     Nav = nav([class('flex flex-wrap items-center gap-x-4 gap-y-2')], [
         a([href('/'), class(BrandClass)], 'Scotland Yard'),

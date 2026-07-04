@@ -14,10 +14,9 @@
 :- use_module(ui).
 
 input_class(Class) :-
-    ui:text_class(
+    ui:control_class(
         normal,
-        'w-full rounded-lg bg-surface-900 border border-surface-600 px-3 py-2 \c
-         text-surface-100 placeholder-surface-500 focus:outline-none focus:border-ufop-500',
+        'w-full placeholder-surface-500',
         Class
     ).
 
@@ -122,7 +121,7 @@ checked_attr(true, [checked(checked)]) :- !.
 checked_attr(_, []).
 
 submit_button(Label, Html) :-
-    ui:primary_button_class('w-full rounded-xl px-4 py-2.5 text-center', Class),
+    ui:primary_button_class(full, '', Class),
     Html = button(
         [ type(submit),
           class(Class)

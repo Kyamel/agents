@@ -15,15 +15,14 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
     map_controls(Controls),
     map_legend(Legend),
     map_event_card(EventInfo),
+    ui:status_chip_class(amber, 'hidden', ThiefIdentityClass),
     map_scroll_card(
         amber,
         [
             'Aparência do ladrão',
             span([
                 id('mm-thief-identity'),
-                class('hidden normal-case tracking-normal rounded-full \c
-                       bg-amber-950 border border-amber-800 px-2.5 py-1 \c
-                       font-mono font-semibold text-amber-300')
+                class(ThiefIdentityClass)
             ], [])
         ],
         'mm-appearance',
@@ -76,7 +75,8 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
 
 loot_view_toggle(Html) :-
     ui:primary_button_class(
-        'ml-auto inline-block rounded-xl px-4 py-2 normal-case tracking-normal',
+        default,
+        'ml-auto normal-case tracking-normal',
         Class
     ),
     Html = button([
@@ -88,7 +88,11 @@ loot_view_toggle(Html) :-
     ], 'Ver lista').
 
 map_controls(Html) :-
-    ui:surface_class('p-4 mb-4 flex flex-wrap items-center gap-3', CardClass),
+    ui:padded_surface_class(
+        normal,
+        'mb-4 flex flex-wrap items-center gap-3',
+        CardClass
+    ),
     ui:text_class(meta,
                   'font-mono text-surface-300 min-w-[5rem] text-center',
                   TurnClass),
@@ -100,6 +104,7 @@ map_controls(Html) :-
          rounded-lg p-0 font-mono text-xl leading-none',
         PlayClass
     ),
+    ui:control_class(compact, 'w-24', IntervalInputClass),
     Html = div([class(CardClass)], [
         button([type(button), id('mm-play'), class(PlayClass),
                 'aria-label'('Reproduzir'), title('Reproduzir')], [
@@ -113,8 +118,7 @@ map_controls(Html) :-
             'Intervalo',
             input([type(number), id('mm-interval'), value(500), min(100),
                    step(100),
-                   class('w-24 rounded-lg bg-surface-800 border border-surface-600 \c
-                          px-2 py-1 text-surface-200')]),
+                   class(IntervalInputClass)]),
             'ms'
         ])
     ]).
@@ -199,12 +203,11 @@ event_side(Label, Agent, Html) :-
     ]).
 
 map_scroll_card(Accent, Label, Id, ContentClass, Html) :-
-    ui:eyebrow_class(Accent, AccentClass),
-    ui:surface_class('p-4 flex flex-col overflow-hidden js-map-height', CardClass),
-    atomic_list_concat(
-        [AccentClass, 'mb-3 shrink-0 flex flex-wrap items-center gap-2'],
-        ' ',
-        HeadingClass
+    ui:panel_header_class(Accent, 'shrink-0', HeadingClass),
+    ui:padded_surface_class(
+        normal,
+        'flex flex-col overflow-hidden js-map-height',
+        CardClass
     ),
     Html = div([class(CardClass)], [
         div([class(HeadingClass)], Label),
@@ -212,9 +215,8 @@ map_scroll_card(Accent, Label, Id, ContentClass, Html) :-
     ]).
 
 map_state_card(Accent, Label, Id, Html) :-
-    ui:eyebrow_class(Accent, AccentClass),
-    ui:surface_class('p-4', CardClass),
-    atomic_list_concat([AccentClass, 'mb-3'], ' ', HeadingClass),
+    ui:panel_header_class(Accent, HeadingClass),
+    ui:padded_surface_class(normal, CardClass),
     Html = div([class(CardClass)], [
         p([class(HeadingClass)], Label),
         div([id(Id), class('space-y-2')], [])
@@ -222,6 +224,26 @@ map_state_card(Accent, Label, Id, Html) :-
 
 map_templates(Html) :-
     state_label_class(LabelClass),
+    ui:event_row_base_class(EventRowClass),
+    atomic_list_concat(
+        [EventRowClass, 'flex flex-wrap items-center gap-2'],
+        ' ',
+        AppearanceRowClass
+    ),
+    ui:micro_badge_class('hidden ml-auto', AppearanceBadgeClass),
+    ui:micro_label_class('opacity-80', LootKindClass),
+    ui:micro_badge_class(
+        'shrink-0 border-current',
+        LootStatusClass
+    ),
+    ui:inset_item_class(
+        'flex items-center gap-2',
+        CollectedListClass
+    ),
+    ui:micro_label_class('text-surface-500', ListKindClass),
+    ui:text_class(meta, 'hidden truncate opacity-70', LootCityClass),
+    ui:status_chip_class(sky, SuspectClass),
+    ui:inset_item_class('font-mono text-surface-300', ClueClass),
     Html = div([class('hidden'), 'aria-hidden'(true)], [
         % Classes aplicadas dinamicamente aos clones; mantidas no HTML para o
         % compilador Tailwind CDN gerar todos os estados antes do playback.
@@ -241,7 +263,7 @@ map_templates(Html) :-
         ]),
         template([id('mm-template-turn-event')], [
             div([
-                class('rounded-lg border px-3 py-2')
+                class(EventRowClass)
             ], [
                 p([
                     class('font-mono font-medium break-words whitespace-pre-line'),
@@ -251,7 +273,7 @@ map_templates(Html) :-
         ]),
         template([id('mm-template-appearance')], [
             div([
-                class('flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2'),
+                class(AppearanceRowClass),
                 'data-role'(row)
             ], [
                 span([class(LabelClass), 'data-role'('origin-label')], []),
@@ -266,8 +288,7 @@ map_templates(Html) :-
                     'data-role'('current-value')
                 ], []),
                 span([
-                    class('hidden ml-auto rounded-full border px-2 py-0.5 \c
-                           text-[0.65rem] uppercase tracking-wide font-semibold'),
+                    class(AppearanceBadgeClass),
                     'data-role'(badge)
                 ], [])
             ])
@@ -292,20 +313,17 @@ map_templates(Html) :-
                                 'data-role'(name)
                             ], []),
                             span([
-                                class('hidden truncate text-xs opacity-70'),
+                                class(LootCityClass),
                                 'data-role'(city)
                             ], [])
                         ]),
                         span([
-                            class('text-[0.65rem] uppercase tracking-wide \c
-                                   font-semibold opacity-80'),
+                            class(LootKindClass),
                             'data-role'(kind)
                         ], [])
                     ]),
                     span([
-                        class('shrink-0 rounded-full border border-current \c
-                               px-2 py-0.5 text-[0.65rem] uppercase \c
-                               tracking-wide font-semibold'),
+                        class(LootStatusClass),
                         'data-role'(status)
                     ], [])
                 ]),
@@ -317,16 +335,14 @@ map_templates(Html) :-
         ]),
         template([id('mm-template-collected-list-item')], [
             span([
-                class('flex items-center gap-2 rounded-lg bg-surface-950 \c
-                       border border-surface-700 px-2.5 py-1')
+                class(CollectedListClass)
             ], [
                 span([
                     class('text-base leading-none'),
                     'data-role'(glyph)
                 ], []),
                 span([
-                    class('text-[0.65rem] uppercase tracking-wide font-semibold \c
-                           text-surface-500'),
+                    class(ListKindClass),
                     'data-role'(kind)
                 ], []),
                 span([
@@ -340,8 +356,7 @@ map_templates(Html) :-
                 div([class('flex items-center gap-2 mb-3 text-surface-200')], [
                     'Suspeito',
                     span([
-                        class('rounded-full bg-sky-950 border border-sky-800 \c
-                               px-2.5 py-1 font-mono font-semibold text-sky-300'),
+                        class(SuspectClass),
                         'data-role'(suspect)
                     ], [])
                 ]),
@@ -353,13 +368,13 @@ map_templates(Html) :-
         ]),
         template([id('mm-template-clue')], [
             span([
-                class('rounded-lg bg-surface-950 border border-surface-700 \c
-                       px-2.5 py-1 font-mono text-surface-300'),
+                class(ClueClass),
                 'data-role'(clue)
             ], [])
         ])
     ]).
 
 state_label_class(
-    'text-[0.65rem] uppercase tracking-wide font-semibold text-surface-500'
-).
+    Class
+) :-
+    ui:micro_label_class('text-surface-500', Class).

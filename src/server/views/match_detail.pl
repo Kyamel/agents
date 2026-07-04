@@ -28,7 +28,7 @@ setup_section(Setup, Html) :-
     fact('Inicio do detetive', DetectiveStart, F5),
     fact('Disfarces disponíveis', Disguises, F6),
     appearance_chips(Setup, Chips),
-    ui:surface_class('p-4 mb-8', CardClass),
+    ui:padded_surface_class(normal, 'mb-8', CardClass),
     ui:text_class(section, 'mb-4', HeadingClass),
     ui:text_class(normal, 'grid sm:grid-cols-3 gap-x-6 gap-y-4', GridClass),
     ui:eyebrow_class(slate, EyebrowBase),
@@ -58,9 +58,7 @@ appearance_chips(_Setup, [span([class(Class)], '-')]) :-
     ui:text_class(normal, 'text-surface-500', Class).
 
 chip(Text, span([class(Class)], Text)) :-
-    ui:text_class(meta,
-                  'inline-block rounded-full bg-surface-800 text-surface-300 px-3 py-1',
-                  Class).
+    ui:pill_class(neutral, Class).
 
 events_section([], Html) :-
     !,
@@ -88,7 +86,8 @@ event_item(Event, Html) :-
     format(string(Title), "Turno ~w: roubo de ~w em ~w", [Turn, Item, City]),
     ui:text_class(normal, 'text-amber-200 font-medium', TitleClass),
     ui:text_class(meta, 'text-amber-200/70 mt-0.5', RevealedClass),
-    Html = li([class('rounded-lg bg-amber-950/40 border border-amber-900/60 px-3 py-2')], [
+    ui:event_row_class(amber, CardClass),
+    Html = li([class(CardClass)], [
         p([class(TitleClass)], Title),
         p([class(RevealedClass)], Revealed)
     ]).
@@ -106,26 +105,16 @@ event_item(Event, Html) :-
     field_text(Event, turn, Turn),
     field_text(Event, detail, Detail),
     format(string(Text), "Turno ~w: ~w", [Turn, Detail]),
-    ui:text_class(normal,
-                  'rounded-lg bg-surface-900 border border-surface-700 px-3 py-2 text-surface-300',
-                  LiClass),
+    ui:event_row_class(neutral, RowClass),
+    ui:text_class(normal, RowClass, LiClass),
     Html = li([class(LiClass)], Text).
 
-event_tone(
-    "disguise",
-    'rounded-lg bg-reveal-surface/40 border border-reveal-border px-3 py-2',
-    'text-reveal-text font-medium'
-).
-event_tone(
-    "mandate",
-    'rounded-lg bg-emerald-950/40 border border-emerald-800 px-3 py-2',
-    'text-emerald-200 font-medium'
-).
-event_tone(
-    "inspection",
-    'rounded-lg bg-sky-950/40 border border-sky-800 px-3 py-2',
-    'text-sky-200 font-medium'
-).
+event_tone("disguise", CardClass, 'text-reveal-text font-medium') :-
+    ui:event_row_class(reveal, CardClass).
+event_tone("mandate", CardClass, 'text-emerald-200 font-medium') :-
+    ui:event_row_class(emerald, CardClass).
+event_tone("inspection", CardClass, 'text-sky-200 font-medium') :-
+    ui:event_row_class(sky, CardClass).
 
 revealed_text(Event, Text) :-
     get_dict(revealed, Event, Revealed),
@@ -159,7 +148,7 @@ render_stat(Label, Value, ValueClass, div([class(CardClass)], [
         p([class(LabelClass)], Label),
         p([class(ValueClass)], Value)
     ])) :-
-    ui:surface_class('p-4', CardClass),
+    ui:padded_surface_class(normal, CardClass),
     ui:eyebrow_class(slate, LabelClass).
 
 winner_card(Winner, Html) :-
@@ -187,15 +176,16 @@ turns_table([], Html) :-
 turns_table(Turns, Html) :-
     maplist(turn_row, Turns, Rows),
     ui:text_class(normal, 'w-full', TableClass),
+    ui:table_cell_class('text-left', HeaderCellClass),
     Html = div([class('overflow-x-auto rounded-xl border border-surface-700')], [
         table([class(TableClass)], [
             thead([class('bg-surface-900 text-surface-400')], [
                 tr([], [
-                    th([class('text-left px-3 py-2')], 'Turno'),
-                    th([class('text-left px-3 py-2')], 'Ação ladrão'),
-                    th([class('text-left px-3 py-2')], 'Pos. ladrão'),
-                    th([class('text-left px-3 py-2')], 'Ação detetive'),
-                    th([class('text-left px-3 py-2')], 'Pos. detetive')
+                    th([class(HeaderCellClass)], 'Turno'),
+                    th([class(HeaderCellClass)], 'Ação ladrão'),
+                    th([class(HeaderCellClass)], 'Pos. ladrão'),
+                    th([class(HeaderCellClass)], 'Ação detetive'),
+                    th([class(HeaderCellClass)], 'Pos. detetive')
                 ])
             ]),
             tbody([], Rows)
@@ -203,24 +193,27 @@ turns_table(Turns, Html) :-
     ]).
 
 turn_row(Turn, tr([class('border-t border-surface-700')], [
-        td([class('px-3 py-2 text-surface-400')], TurnNo),
+        td([class(MetaCellClass)], TurnNo),
         td([class(ThiefClass)], ThiefAction),
-        td([class('px-3 py-2 text-surface-400')], ThiefPos),
+        td([class(MetaCellClass)], ThiefPos),
         td([class(DetectiveClass)], DetectiveAction),
-        td([class('px-3 py-2 text-surface-400')], DetectivePos)
+        td([class(MetaCellClass)], DetectivePos)
     ])) :-
     field_text(Turn, turn, TurnNo),
     field_text(Turn, thief_action, ThiefAction),
     field_text(Turn, thief_position, ThiefPos),
     field_text(Turn, detective_action, DetectiveAction),
     field_text(Turn, detective_position, DetectivePos),
+    ui:table_cell_class('text-surface-400', MetaCellClass),
     action_class(Turn, thief_status, ThiefClass),
     action_class(Turn, detective_status, DetectiveClass).
 
-action_class(Turn, StatusKey, 'px-3 py-2 text-ufop-400') :-
+action_class(Turn, StatusKey, Class) :-
     get_dict(StatusKey, Turn, "Ilegal"),
-    !.
-action_class(_Turn, _StatusKey, 'px-3 py-2').
+    !,
+    ui:table_cell_class('text-ufop-400', Class).
+action_class(_Turn, _StatusKey, Class) :-
+    ui:table_cell_class(Class).
 
 render_not_found(Request) :-
     ui:link_class(LinkClass),
