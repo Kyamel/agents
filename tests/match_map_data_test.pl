@@ -60,6 +60,13 @@ test(projects_frames_in_replay_order) :-
         "disguise",
         "mandate",
         "inspection"
+    ]),
+    maplist(event_agent, Events, EventAgents),
+    assertion(EventAgents == [
+        "thief",
+        "thief",
+        "detective",
+        "detective"
     ]).
 
 test(accumulates_and_releases_locks) :-
@@ -80,6 +87,35 @@ test(accumulates_and_releases_locks) :-
     assertion(Turn2.blocked == ["a", "b"]),
     assertion(Turn1.blocked == ["b"]).
 
+test(resolves_thief_identity_from_scenario) :-
+    Replay = _{
+        setup: _{
+            thief_id: 3,
+            thief_start: "0_0_0",
+            detective_start: "0_0_1",
+            target: "coroa",
+            appearance: []
+        },
+        turns: [
+            _{
+                turn: 1,
+                thief_position: "-",
+                detective_position: "-",
+                thief_action: "-",
+                thief_status: "OK",
+                detective_action: "pedir_mandato(12, [])",
+                detective_status: "OK",
+                events: []
+            }
+        ]
+    },
+    map_data("./maps/metro_3_3.prolog", Replay, Data),
+    assertion(Data.thiefIdentity.id == 3),
+    assertion(Data.thiefIdentity.name == "Dario Pike"),
+    Data.frames = [_, Turn1],
+    assertion(Turn1.mandate.suspect == 12),
+    assertion(Turn1.mandate.suspectName == "Mina Cross").
+
 turn(Number, DetectiveAction, Turn) :-
     Turn = _{
         turn: Number,
@@ -94,5 +130,8 @@ turn(Number, DetectiveAction, Turn) :-
 
 event_type(Event, Type) :-
     get_dict(type, Event, Type).
+
+event_agent(Event, Agent) :-
+    get_dict(agent, Event, Agent).
 
 :- end_tests(match_map_data).

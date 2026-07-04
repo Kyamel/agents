@@ -229,9 +229,6 @@ item(cortador_leste, m3_1_2_2,
 item(bateria_leste, m3_1_0_2,
     []).
 
-item(bateria_leste, m3_1_0_2,
-    []).
-
 item(pendrive_oeste, m3_1_1_1,
     []).
 

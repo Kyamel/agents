@@ -32,6 +32,7 @@ export function renderMapSvg(view, pos, frame, colors) {
     frame.objectiveCity,
     frame.objectiveReady,
     frame.robberyCities,
+    eventCities(frame.events, "inspection"),
     colors
   );
 }
@@ -105,6 +106,7 @@ function paintNodes(
   objectiveCity,
   objectiveReady,
   robberyCities,
+  inspectionCities,
   colors
 ) {
   var blockedLookup = {};
@@ -115,10 +117,15 @@ function paintNodes(
   (robberyCities || []).forEach(function (city) {
     robberyLookup[city] = true;
   });
+  var inspectionLookup = {};
+  (inspectionCities || []).forEach(function (city) {
+    inspectionLookup[city] = true;
+  });
   Object.keys(nodes).forEach(function (city) {
     var isBlocked = Boolean(blockedLookup[city]);
     var isReadyObjective = objectiveReady && city === objectiveCity;
     var hasRobbery = Boolean(robberyLookup[city]);
+    var hasInspection = Boolean(inspectionLookup[city]);
     var fill = colors.node.fill;
     var stroke = colors.node.stroke;
     var labelFill = colors.node.text;
@@ -140,11 +147,27 @@ function paintNodes(
       labelFill = colors.node.text;
       suffix = " (bloqueada)";
     }
+    if (hasInspection) {
+      fill = colors.inspection.fill;
+      stroke = colors.inspection.stroke;
+      labelFill = colors.node.text;
+      suffix = " (inspecionada neste turno)";
+    }
     nodes[city].rect.setAttribute("fill", fill);
     nodes[city].rect.setAttribute("stroke", stroke);
     nodes[city].label.setAttribute("fill", labelFill);
     nodes[city].title.textContent = city + suffix;
   });
+}
+
+function eventCities(events, type) {
+  return (events || [])
+    .filter(function (event) {
+      return event && event.type === type && event.city;
+    })
+    .map(function (event) {
+      return event.city;
+    });
 }
 
 function drawLoot(svg, pos, loot, colors) {

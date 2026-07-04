@@ -4,7 +4,7 @@ import {
   lootGlyph,
   lootKindLabel,
   renderMapSvg
-} from "./match_map_svg.js?v=1";
+} from "./match_map_svg.js?v=2";
 
 var ROW_STATE_CLASSES = {
   revealedFake: ["border-reveal-border", "bg-reveal-surface/40"],
@@ -22,6 +22,34 @@ var BADGE_STATE_CLASSES = {
   revealed: ["bg-sky-950", "border-sky-800", "text-sky-300"]
 };
 
+var EVENT_TONE_CLASSES = {
+  robbery: [
+    "bg-amber-950/40",
+    "border-amber-900/60",
+    "text-amber-200"
+  ],
+  disguise: [
+    "bg-reveal-surface/40",
+    "border-reveal-border",
+    "text-reveal-text"
+  ],
+  mandate: [
+    "bg-emerald-950/40",
+    "border-emerald-800",
+    "text-emerald-200"
+  ],
+  inspection: [
+    "bg-sky-950/40",
+    "border-sky-800",
+    "text-sky-200"
+  ],
+  neutral: [
+    "bg-surface-950",
+    "border-surface-700",
+    "text-surface-300"
+  ]
+};
+
 function init() {
   var colors = window.appTheme && window.appTheme.colors;
   var dataElement = document.getElementById("match-map-data");
@@ -34,6 +62,11 @@ function init() {
   } catch (_error) {
     return;
   }
+
+  renderThiefIdentity(
+    document.getElementById("mm-thief-identity"),
+    data.thiefIdentity
+  );
 
   var cities = data.cities || [];
   var frames = data.frames || [];
@@ -72,7 +105,7 @@ function init() {
     if (!frame) return;
     renderMapSvg(mapView, positions, frame, colors.map);
     if (label) label.textContent = frame.label;
-    if (eventInfo) eventInfo.textContent = frame.eventText || "-";
+    renderTurnEvents(eventInfo, frame.events, frame.eventText);
     renderAppearance(appearanceInfo, frame.appearance, frame.revealed);
     renderCollected(collectedInfo, frame.collected, lootByName);
     renderMandate(mandateInfo, frame.mandate);
@@ -129,6 +162,61 @@ function init() {
 
   render(0);
   setupSidePanels(host);
+}
+
+function renderThiefIdentity(container, identity) {
+  if (!container || !identity || identity.name === undefined ||
+      identity.id === undefined) {
+    return;
+  }
+  container.textContent = String(identity.name) + " #" + String(identity.id);
+  container.classList.remove("hidden");
+}
+
+function renderTurnEvents(container, events, legacyText) {
+  if (!container) return;
+  var sides = {
+    thief: container.querySelector('[data-event-agent="thief"]'),
+    detective: container.querySelector('[data-event-agent="detective"]')
+  };
+  if (!sides.thief || !sides.detective) return;
+
+  clearElement(sides.thief);
+  clearElement(sides.detective);
+
+  var grouped = { thief: [], detective: [] };
+  (events || []).forEach(function (event) {
+    grouped[eventAgent(event)].push(event);
+  });
+
+  if (!grouped.thief.length && !grouped.detective.length && legacyText) {
+    grouped.thief.push({ type: "neutral", text: legacyText });
+  }
+
+  renderAgentEvents(sides.thief, grouped.thief);
+  renderAgentEvents(sides.detective, grouped.detective);
+}
+
+function eventAgent(event) {
+  if (event && event.agent === "detective") return "detective";
+  if (event && event.agent === "thief") return "thief";
+  return event && (event.type === "mandate" || event.type === "inspection")
+    ? "detective"
+    : "thief";
+}
+
+function renderAgentEvents(container, events) {
+  if (!events.length) {
+    container.appendChild(emptyState("Nenhum evento."));
+    return;
+  }
+  events.forEach(function (event) {
+    var element = cloneTemplate("mm-template-turn-event");
+    var tone = EVENT_TONE_CLASSES[event.type] || EVENT_TONE_CLASSES.neutral;
+    addClasses(element, tone);
+    findRole(element, "text").textContent = event.text || "-";
+    container.appendChild(element);
+  });
 }
 
 function renderAppearance(container, appearance, revealed) {
@@ -223,7 +311,10 @@ function renderMandate(container, mandate) {
   }
 
   var mandateElement = cloneTemplate("mm-template-mandate");
-  findRole(mandateElement, "suspect").textContent = mandate.suspect;
+  findRole(mandateElement, "suspect").textContent =
+    mandate.suspectName !== undefined
+      ? mandate.suspectName + " #" + mandate.suspect
+      : mandate.suspect;
   var clues = findRole(mandateElement, "clues");
   if (!mandate.clues.length) {
     clues.appendChild(emptyState("Sem pistas associadas."));

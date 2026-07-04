@@ -17,7 +17,15 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
     map_event_card(EventInfo),
     map_scroll_card(
         amber,
-        'Aparência do ladrão',
+        [
+            'Aparência do ladrão',
+            span([
+                id('mm-thief-identity'),
+                class('hidden normal-case tracking-normal rounded-full \c
+                       bg-amber-950 border border-amber-800 px-2.5 py-1 \c
+                       font-mono font-semibold text-amber-300')
+            ], [])
+        ],
         'mm-appearance',
         'space-y-2 overflow-y-auto min-h-0 flex-1 pr-1',
         AppearanceCard
@@ -50,14 +58,15 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
         Legend,
         Controls,
         ReplayLayout,
-        div([class('grid gap-4 mb-4 lg:grid-cols-2 lg:items-stretch')], [
+        div([class('grid gap-4 mb-4 lg:grid-cols-[minmax(0,_5fr)_minmax(0,_3fr)] \c
+                    lg:items-stretch')], [
             EventInfo, MandateCard
         ]),
         Templates,
         script([type('application/json'), id('match-map-data')], DataJson),
         script([
             type(module),
-            src('/assets/match_map.js?v=19')
+            src('/assets/match_map.js?v=23')
         ], [])
     ].
 
@@ -121,10 +130,11 @@ map_legend(Html) :-
     legend_item('rounded bg-map-blocked-fill', 'Cidade bloqueada', Blocked),
     legend_item('rounded bg-map-ready-fill', 'Objetivo liberado', Ready),
     legend_item('rounded bg-map-robbery-fill', 'Evento de furto', Robbery),
+    legend_item('rounded bg-map-inspection-fill', 'Cidade inspecionada', Inspection),
     legend_glyph('💎', 'Tesouro na cidade', Treasure),
     legend_glyph('🔑', 'Item na cidade', Item),
     Html = div([class(Class)], [
-        Thief, Detective, Blocked, Ready, Robbery, Treasure, Item
+        Thief, Detective, Blocked, Ready, Robbery, Inspection, Treasure, Item
     ]).
 
 legend_item(ColorClass, Label,
@@ -145,20 +155,40 @@ legend_glyph(Glyph, Label,
              ])).
 
 map_event_card(Html) :-
-    ui:tinted_card_class(amber, CardClass),
+    ui:surface_class('overflow-hidden', CardClass),
     ui:eyebrow_class(amber, AccentClass),
-    ui:text_class(meta,
-                  'font-mono mt-1 break-words whitespace-pre-line',
-                  InfoClass),
+    atomic_list_concat([AccentClass, 'px-4 pt-4 pb-2'], ' ', HeadingClass),
+    event_side('Ladrão', thief, ThiefSide),
+    event_side('Detetive', detective, DetectiveSide),
     Html = div([class(CardClass)], [
-        p([class(AccentClass)], 'Evento'),
-        p([id('mm-event'), class(InfoClass)], '-')
+        p([class(HeadingClass)], 'Evento'),
+        div([
+            id('mm-event'),
+            class('grid grid-cols-2 divide-x divide-surface-700')
+        ], [
+            ThiefSide,
+            DetectiveSide
+        ])
+    ]).
+
+event_side(Label, Agent, Html) :-
+    ui:eyebrow_class(slate, LabelClass),
+    Html = div([class('min-w-0 px-3 pb-3 pt-1')], [
+        p([class(LabelClass)], Label),
+        div([
+            class('mt-2 space-y-2'),
+            'data-event-agent'(Agent)
+        ], [])
     ]).
 
 map_scroll_card(Accent, Label, Id, ContentClass, Html) :-
     ui:eyebrow_class(Accent, AccentClass),
     ui:surface_class('p-4 flex flex-col overflow-hidden js-map-height', CardClass),
-    atomic_list_concat([AccentClass, 'mb-3 shrink-0'], ' ', HeadingClass),
+    atomic_list_concat(
+        [AccentClass, 'mb-3 shrink-0 flex flex-wrap items-center gap-2'],
+        ' ',
+        HeadingClass
+    ),
     Html = div([class(CardClass)], [
         p([class(HeadingClass)], Label),
         div([id(Id), class(ContentClass)], [])
@@ -180,14 +210,27 @@ map_templates(Html) :-
         % compilador Tailwind CDN gerar todos os estados antes do playback.
         span([class('border-reveal-border bg-reveal-surface/40 \c
                      bg-reveal-surface text-reveal-text border-sky-800 \c
-                     bg-sky-950/40 bg-sky-950 text-sky-300 border-amber-800 \c
-                     bg-amber-950/40 text-amber-300 text-emerald-300 \c
-                     text-rose-300 text-surface-300')], []),
+                     bg-sky-950/40 bg-sky-950 text-sky-200 text-sky-300 \c
+                     border-amber-800 border-amber-900/60 bg-amber-950/40 \c
+                     text-amber-200 text-amber-300 border-emerald-800 \c
+                     bg-emerald-950/40 text-emerald-200 text-emerald-300 \c
+                     border-surface-700 bg-surface-950 text-rose-300 \c
+                     text-surface-300')], []),
         template([id('mm-template-empty')], [
             p([
                 class('text-surface-500 italic'),
                 'data-role'(message)
             ], [])
+        ]),
+        template([id('mm-template-turn-event')], [
+            div([
+                class('rounded-lg border px-3 py-2')
+            ], [
+                p([
+                    class('font-mono font-medium break-words whitespace-pre-line'),
+                    'data-role'(text)
+                ], [])
+            ])
         ]),
         template([id('mm-template-appearance')], [
             div([

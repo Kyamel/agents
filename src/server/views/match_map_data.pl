@@ -19,11 +19,14 @@ map_data(Scenario, Replay, Data) :-
     graph_for(Scenario, Cities, Edges),
     map_objective(Scenario, Setup, Objective),
     map_loot(Scenario, Loot),
-    replay_frames(Setup, Turns, Objective, Frames),
+    map_thief_identity(Scenario, Setup, ThiefIdentity),
+    replay_frames(Setup, Turns, Objective, Frames0),
+    map_mandate_names(Scenario, Frames0, Frames),
     Data = _{
         cities: Cities,
         edges: Edges,
         loot: Loot,
+        'thiefIdentity': ThiefIdentity,
         frames: Frames
     }.
 
@@ -57,6 +60,34 @@ scenario_loot_safe(Scenario, Loot) :-
     catch(engine:scenario_loot(Scenario, Loot), _, fail),
     !.
 scenario_loot_safe(_Scenario, []).
+
+map_thief_identity(Scenario, Setup, Identity) :-
+    get_dict(thief_id, Setup, Id0),
+    catch(engine:scenario_suspect(Scenario, Id0, Name0), _, fail),
+    !,
+    term_text(Id0, Id),
+    term_text(Name0, Name),
+    Identity = _{id: Id, name: Name}.
+map_thief_identity(_Scenario, _Setup, null).
+
+map_mandate_names(Scenario, Frames0, Frames) :-
+    maplist(map_frame_mandate_name(Scenario), Frames0, Frames).
+
+map_frame_mandate_name(_Scenario, Frame, Frame) :-
+    Frame.mandate == null,
+    !.
+map_frame_mandate_name(Scenario, Frame0, Frame) :-
+    Mandate0 = Frame0.mandate,
+    catch(engine:scenario_suspect(
+              Scenario,
+              Mandate0.suspect,
+              SuspectName0
+          ), _, fail),
+    !,
+    term_text(SuspectName0, SuspectName),
+    Mandate = Mandate0.put('suspectName', SuspectName),
+    Frame = Frame0.put(mandate, Mandate).
+map_frame_mandate_name(_Scenario, Frame, Frame).
 
 loot_dict(loot(Kind0, Name0, City0), Dict) :-
     term_text(Kind0, Kind),
@@ -433,6 +464,7 @@ robbery_timeline_event(Number, Robbery, Event) :-
     replay_field(Robbery, revealed, [], Revealed),
     Event = _{
         type: "robbery",
+        agent: "thief",
         turn: Number,
         item: Robbery.item,
         city: Robbery.city,
@@ -463,6 +495,7 @@ disguise_timeline_event(Number, Turn, Effect, [Event]) :-
     replay_field(Turn, thief_action, "", Action),
     Event = _{
         type: "disguise",
+        agent: "thief",
         turn: Number,
         action: Action,
         text: Text
@@ -480,6 +513,7 @@ mandate_timeline_event(Number, set(_), Mandate, [Event]) :-
     mandate_event_text(set(Mandate), Mandate, Text),
     Event = _{
         type: "mandate",
+        agent: "detective",
         turn: Number,
         suspect: Mandate.suspect,
         clues: Mandate.clues,
@@ -510,6 +544,7 @@ inspection_timeline_event(
     !,
     Event = _{
         type: "inspection",
+        agent: "detective",
         turn: Number,
         city: DetectiveCity,
         mandate: Mandate,

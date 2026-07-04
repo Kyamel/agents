@@ -4,6 +4,7 @@
     scenario_engine_arg/2,
     scenario_text/2,
     scenario_graph/3,
+    scenario_suspect/3,
     scenario_treasure/4,
     scenario_loot/2,
     disguise_count/1
@@ -97,6 +98,37 @@ scenario_graph(Scenario, Cities, Edges) :-
             ( member(conectado(A, B), Terms), sort_pair(A, B, Edge) ),
             Edges0),
     sort(Edges0, Edges).
+
+%!  scenario_suspect(+Scenario, +SuspectId, -Name) is semidet.
+%
+%   Resolve o nome de um `procurado/3` pelo identificador interno da lista de
+%   suspeitos do cenário. Não é o ID do agente ou da partida.
+scenario_suspect(Scenario, SuspectId, Name) :-
+    scenario_file(Scenario, File),
+    exists_file(File),
+    catch(read_scenario_terms(File, Terms), _, fail),
+    member(procurado(Id, Name, _Appearance), Terms),
+    same_suspect_id(SuspectId, Id),
+    !.
+
+same_suspect_id(Left, Right) :-
+    Left == Right,
+    !.
+same_suspect_id(Left, Right) :-
+    value_text(Left, Text),
+    value_text(Right, Text).
+
+value_text(Value, Text) :-
+    string(Value),
+    !,
+    Text = Value.
+value_text(Value, Text) :-
+    atom(Value),
+    !,
+    atom_string(Value, Text).
+value_text(Value, Text) :-
+    number(Value),
+    number_string(Value, Text).
 
 %!  scenario_treasure(+Scenario, +Target, -City, -Requirements) is semidet.
 %

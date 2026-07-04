@@ -55,6 +55,7 @@ tailwind_config(
         blocked:{fill:'#dc2626',stroke:'#fca5a5'},\c
         ready:{fill:'#059669',stroke:'#6ee7b7'},\c
         robbery:{fill:'#fbbf24',stroke:'#fde68a'},\c
+        inspection:{fill:'#0c4a6e',stroke:'#38bdf8'},\c
         contrast:window.appTheme.colors.surface['900']\c
     };\c
     tailwind.config={\c

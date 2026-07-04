@@ -107,8 +107,7 @@ event_item(Event, Html) :-
     field_text(Event, detail, Detail),
     format(string(Text), "Turno ~w: ~w", [Turn, Detail]),
     ui:text_class(normal,
-                  'rounded-lg bg-surface-900 border border-surface-700 px-3 py-2 \c
-                   text-surface-300',
+                  'rounded-lg bg-surface-900 border border-surface-700 px-3 py-2 text-surface-300',
                   LiClass),
     Html = li([class(LiClass)], Text).
 
@@ -119,13 +118,13 @@ event_tone(
 ).
 event_tone(
     "mandate",
-    'rounded-lg bg-sky-950/40 border border-sky-800 px-3 py-2',
-    'text-sky-200 font-medium'
+    'rounded-lg bg-emerald-950/40 border border-emerald-800 px-3 py-2',
+    'text-emerald-200 font-medium'
 ).
 event_tone(
     "inspection",
-    'rounded-lg bg-emerald-950/40 border border-emerald-800 px-3 py-2',
-    'text-emerald-200 font-medium'
+    'rounded-lg bg-sky-950/40 border border-sky-800 px-3 py-2',
+    'text-sky-200 font-medium'
 ).
 
 revealed_text(Event, Text) :-

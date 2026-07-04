@@ -994,12 +994,32 @@
             "type": "array",
             "items": { "$ref": "#/components/schemas/MapLoot" }
           },
+          "thiefIdentity": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/MapThiefIdentity" },
+              { "type": "null" }
+            ]
+          },
           "frames": {
             "type": "array",
             "items": { "$ref": "#/components/schemas/MapFrame" }
           }
         },
-        "required": ["cities", "edges", "loot", "frames"]
+        "required": ["cities", "edges", "loot", "thiefIdentity", "frames"]
+      },
+      "MapThiefIdentity": {
+        "type": "object",
+        "description": "Identidade do ladrão na lista de suspeitos do cenário, não no banco de dados.",
+        "properties": {
+          "id": {
+            "oneOf": [
+              { "type": "integer" },
+              { "type": "string" }
+            ]
+          },
+          "name": { "type": "string" }
+        },
+        "required": ["id", "name"]
       },
       "MapLoot": {
         "type": "object",
@@ -1040,6 +1060,10 @@
               { "type": "number" }
             ]
           },
+          "suspectName": {
+            "type": "string",
+            "description": "Nome do suspeito resolvido a partir do cenário, quando disponível."
+          },
           "clues": {
             "type": "array",
             "items": { "type": "string" }
@@ -1054,6 +1078,10 @@
           "type": {
             "type": "string",
             "enum": ["robbery", "disguise", "mandate", "inspection"]
+          },
+          "agent": {
+            "type": "string",
+            "enum": ["thief", "detective"]
           },
           "turn": { "type": "integer" },
           "text": { "type": "string" },
@@ -1081,7 +1109,7 @@
             ]
           }
         },
-        "required": ["type", "turn", "text"]
+        "required": ["type", "agent", "turn", "text"]
       },
       "MapFrame": {
         "type": "object",
