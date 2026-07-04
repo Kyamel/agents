@@ -265,7 +265,7 @@ conectado(soho, covent_garden).
 % Região governamental e centro-sul
 
 conectado(scotland_yard, westminster).
-conectado(scotland_ya255rd, victoria_station).
+conectado(scotland_yard, victoria_station).
 conectado(scotland_yard, trafalgar_square).
 
 conectado(victoria_station, westminster).
