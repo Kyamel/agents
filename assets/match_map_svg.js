@@ -1,4 +1,4 @@
-import { MAP_GEOMETRY } from "./match_map_layout.js?v=1";
+import { MAP_GEOMETRY } from "./match_map_layout.js?v=2";
 
 var SVG_NS = "http://www.w3.org/2000/svg";
 

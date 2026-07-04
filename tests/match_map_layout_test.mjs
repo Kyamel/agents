@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  fitMapGeometry,
   layout,
   MAP_GEOMETRY
 } from "../assets/match_map_layout.js";
@@ -16,3 +17,13 @@ for (const city of cities) {
   assert.ok(first[city].y >= 0 && first[city].y <= MAP_GEOMETRY.height);
   assert.ok(first[city].w > 0);
 }
+
+fitMapGeometry(920, 800);
+assert.equal(MAP_GEOMETRY.height, 800);
+assert.equal(MAP_GEOMETRY.paddingY, 62);
+
+fitMapGeometry(460, 240);
+assert.equal(MAP_GEOMETRY.height, 480);
+assert.equal(MAP_GEOMETRY.paddingY, 48);
+
+fitMapGeometry(920, 620);

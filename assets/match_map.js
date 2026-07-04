@@ -1,10 +1,13 @@
-import { layout } from "./match_map_layout.js?v=1";
+import {
+  fitMapGeometry,
+  layout
+} from "./match_map_layout.js?v=2";
 import {
   createMapSvg,
   lootGlyph,
   lootKindLabel,
   renderMapSvg
-} from "./match_map_svg.js?v=2";
+} from "./match_map_svg.js?v=3";
 
 var ROW_STATE_CLASSES = {
   revealedFake: ["border-reveal-border", "bg-reveal-surface/40"],
@@ -54,7 +57,9 @@ function init() {
   var colors = window.appTheme && window.appTheme.colors;
   var dataElement = document.getElementById("match-map-data");
   var host = document.getElementById("mm-graph");
-  if (!colors || !colors.map || !dataElement || !host) return;
+  var canvas = document.getElementById("mm-graph-canvas") || host;
+  var replayLayout = document.getElementById("mm-replay-layout");
+  if (!colors || !colors.map || !dataElement || !host || !canvas) return;
 
   var data;
   try {
@@ -71,7 +76,7 @@ function init() {
   var cities = data.cities || [];
   var frames = data.frames || [];
   if (!cities.length) {
-    host.innerHTML =
+    canvas.innerHTML =
       '<p class="p-6 text-surface-400 text-sm">' +
       "Grafo do cenário indisponível para esta partida.</p>";
     return;
@@ -84,7 +89,7 @@ function init() {
   var positions = layout(cities, edges);
   var mapView = createMapSvg(edges, positions, loot, colors.map);
   var lootByName = lootIndex(loot);
-  host.appendChild(mapView.element);
+  canvas.appendChild(mapView.element);
 
   var slider = document.getElementById("mm-slider");
   var label = document.getElementById("mm-turn-label");
@@ -145,7 +150,10 @@ function init() {
       100,
       parseInt(intervalInput && intervalInput.value, 10) || 800
     );
-    if (Number(slider.value) >= frames.length - 1) slider.value = "0";
+    if (Number(slider.value) >= frames.length - 1) {
+      slider.value = "0";
+      render(0);
+    }
     setPlaybackControl(true);
     timer = setInterval(function () {
       var next = Number(slider.value) + 1;
@@ -168,6 +176,30 @@ function init() {
     stop();
     render(Number(slider.value));
   });
+  document.addEventListener("keydown", function (event) {
+    if (event.ctrlKey || event.metaKey || event.altKey ||
+        isKeyboardControl(event.target)) {
+      return;
+    }
+    if (event.code === "Space") {
+      if (event.repeat) return;
+      event.preventDefault();
+      if (timer) stop();
+      else play();
+      return;
+    }
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    stop();
+    var direction = event.key === "ArrowRight" ? 1 : -1;
+    var next = clamp(
+      Number(slider.value) + direction,
+      0,
+      frames.length - 1
+    );
+    slider.value = String(next);
+    render(next);
+  });
   if (lootViewToggle) {
     lootViewToggle.addEventListener("click", function () {
       lootView = lootView === "tree" ? "list" : "tree";
@@ -187,6 +219,22 @@ function init() {
 
   updateLootViewToggle(lootViewToggle, lootView);
   render(0);
+  setupResizableMap(replayLayout, host, canvas, function () {
+    fitMapGeometry(host.clientWidth, host.clientHeight);
+    var nextPositions = layout(cities, edges);
+    var nextMapView = createMapSvg(
+      edges,
+      nextPositions,
+      loot,
+      colors.map
+    );
+    fillMapSpace(nextMapView.element);
+    canvas.replaceChildren(nextMapView.element);
+    positions = nextPositions;
+    mapView = nextMapView;
+    var frame = frames[Number(slider.value)];
+    if (frame) renderMapSvg(mapView, positions, frame, colors.map);
+  });
   setupSidePanels(host);
 }
 
@@ -276,21 +324,17 @@ function renderAppearance(container, appearance, revealed) {
         : changed ? "changed" : "normal";
     addClasses(row, ROW_STATE_CLASSES[rowState]);
 
-    var originLabel = findRole(row, "origin-label");
     var originValue = findRole(row, "origin-value");
+    var arrow = findRole(row, "arrow");
     var currentValue = findRole(row, "current-value");
     var badge = findRole(row, "badge");
-    originLabel.textContent = added ? "Origem" : "Original";
     originValue.textContent = added ? "adicionado" : attribute.original;
     currentValue.textContent = omitted ? "omitido" : attribute.current;
+    if (changed) {
+      arrow.classList.remove("hidden");
+      currentValue.classList.remove("hidden");
+    }
 
-    originValue.classList.add(
-      added
-        ? "text-emerald-300"
-        : isRevealed
-          ? revealedFake ? "text-reveal-text" : "text-sky-300"
-          : "text-surface-300"
-    );
     currentValue.classList.add(
       omitted
         ? "text-ufop-400"
@@ -514,8 +558,278 @@ function addClasses(element, classes) {
   });
 }
 
+function isKeyboardControl(target) {
+  return Boolean(target && target.closest && target.closest(
+    "input, textarea, select, button, a, [contenteditable='true'], " +
+    "[role='separator']"
+  ));
+}
+
+function fillMapSpace(svg) {
+  if (!svg) return;
+  svg.setAttribute("height", "100%");
+  svg.style.height = "100%";
+}
+
 function clearElement(element) {
   while (element.firstChild) element.removeChild(element.firstChild);
+}
+
+function setupResizableMap(layoutHost, mapHost, canvas, onCommit) {
+  if (!layoutHost || !mapHost || !canvas) return;
+  var leftHandle = document.getElementById("mm-resize-left");
+  var rightHandle = document.getElementById("mm-resize-right");
+  var bottomHandle = document.getElementById("mm-resize-bottom");
+  var widthHandles = [leftHandle, rightHandle].filter(Boolean);
+  var leftPanel = layoutHost.firstElementChild;
+  var heightLimits = { min: 320, max: 1200 };
+  var saved = readMapSize();
+
+  function isWideLayout() {
+    return window.matchMedia("(min-width: 1440px)").matches;
+  }
+
+  function currentLeftWidth() {
+    return leftPanel ? leftPanel.getBoundingClientRect().width : 0;
+  }
+
+  function widthLimits() {
+    var layoutWidth = layoutHost.getBoundingClientRect().width;
+    var gap = parseFloat(getComputedStyle(layoutHost).columnGap) || 16;
+    var wide = isWideLayout();
+    var sideSpace = wide ? 384 : 256;
+    var gapSpace = wide ? gap * 2 : gap;
+    var min = 448;
+    return {
+      min: min,
+      max: Math.max(min, Math.round(layoutWidth - sideSpace - gapSpace))
+    };
+  }
+
+  function applyWidth(value) {
+    var limits = widthLimits();
+    var width = Math.round(clamp(value, limits.min, limits.max));
+    layoutHost.style.setProperty("--mm-graph-width", width + "px");
+    widthHandles.forEach(function (handle) {
+      handle.setAttribute("aria-valuemin", String(limits.min));
+      handle.setAttribute("aria-valuemax", String(limits.max));
+      handle.setAttribute("aria-valuenow", String(width));
+    });
+    return width;
+  }
+
+  function applyLeftWidth(value) {
+    if (!isWideLayout()) return currentLeftWidth();
+    var layoutWidth = layoutHost.getBoundingClientRect().width;
+    var graphWidth = mapHost.getBoundingClientRect().width;
+    var gap = parseFloat(getComputedStyle(layoutHost).columnGap) || 16;
+    var min = 192;
+    var max = Math.max(min, layoutWidth - graphWidth - gap * 2 - 192);
+    var width = Math.round(clamp(value, min, max));
+    layoutHost.style.setProperty("--mm-left-width", width + "px");
+    return width;
+  }
+
+  function applyHeight(value) {
+    var height = Math.round(
+      clamp(value, heightLimits.min, heightLimits.max)
+    );
+    mapHost.style.height = height + "px";
+    if (bottomHandle) {
+      bottomHandle.setAttribute("aria-valuemin", String(heightLimits.min));
+      bottomHandle.setAttribute("aria-valuemax", String(heightLimits.max));
+      bottomHandle.setAttribute("aria-valuenow", String(height));
+    }
+    return height;
+  }
+
+  if (saved.width && window.matchMedia("(min-width: 1280px)").matches) {
+    applyWidth(saved.width);
+  } else {
+    applyWidth(mapHost.getBoundingClientRect().width);
+  }
+  if (isWideLayout()) {
+    applyLeftWidth(saved.left || currentLeftWidth());
+  }
+  var naturalHeight = mapHost.getBoundingClientRect().height;
+  applyHeight(saved.height || naturalHeight);
+  fillMapSpace(canvas.querySelector("svg"));
+
+  function commit() {
+    var width = Math.round(mapHost.getBoundingClientRect().width);
+    var height = Math.round(mapHost.getBoundingClientRect().height);
+    var left = Math.round(currentLeftWidth());
+    saveMapSize({ width: width, height: height, left: left });
+    if (onCommit) onCommit();
+  }
+
+  commit();
+
+  function wireHorizontalHandle(handle, direction) {
+    if (!handle) return;
+    handle.addEventListener("pointerdown", function (event) {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      var startX = event.clientX;
+      var startWidth = mapHost.getBoundingClientRect().width;
+      var startLeft = currentLeftWidth();
+      beginResize(handle, event, "ew-resize", function (moveEvent) {
+        var delta = moveEvent.clientX - startX;
+        if (isWideLayout()) {
+          resizeWideMapSide(
+            direction,
+            delta,
+            startWidth,
+            startLeft,
+            layoutHost,
+            applyWidth,
+            applyLeftWidth
+          );
+        } else {
+          applyWidth(startWidth + delta * direction);
+        }
+      }, commit);
+    });
+    handle.addEventListener("keydown", function (event) {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      var physicalDelta = event.key === "ArrowRight" ? 24 : -24;
+      var startWidth = mapHost.getBoundingClientRect().width;
+      var startLeft = currentLeftWidth();
+      if (isWideLayout()) {
+        resizeWideMapSide(
+          direction,
+          physicalDelta,
+          startWidth,
+          startLeft,
+          layoutHost,
+          applyWidth,
+          applyLeftWidth
+        );
+      } else {
+        applyWidth(startWidth + physicalDelta * direction);
+      }
+      commit();
+    });
+  }
+
+  wireHorizontalHandle(leftHandle, -1);
+  wireHorizontalHandle(rightHandle, 1);
+
+  if (bottomHandle) {
+    bottomHandle.addEventListener("pointerdown", function (event) {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      var startY = event.clientY;
+      var startHeight = mapHost.getBoundingClientRect().height;
+      beginResize(bottomHandle, event, "ns-resize", function (moveEvent) {
+        applyHeight(startHeight + moveEvent.clientY - startY);
+      }, commit);
+    });
+    bottomHandle.addEventListener("keydown", function (event) {
+      if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+      event.preventDefault();
+      var delta = event.key === "ArrowDown" ? 24 : -24;
+      applyHeight(mapHost.getBoundingClientRect().height + delta);
+      commit();
+    });
+  }
+
+  var resizeTimer = null;
+  window.addEventListener("resize", function () {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      if (window.matchMedia("(min-width: 1280px)").matches) {
+        applyWidth(mapHost.getBoundingClientRect().width);
+      }
+      if (isWideLayout()) applyLeftWidth(currentLeftWidth());
+      commit();
+    }, 120);
+  });
+}
+
+function resizeWideMapSide(
+  direction,
+  delta,
+  startWidth,
+  startLeft,
+  layoutHost,
+  applyWidth,
+  applyLeftWidth
+) {
+  var minGraph = 448;
+  var minSide = 192;
+  if (direction < 0) {
+    var leftDelta = clamp(
+      delta,
+      minSide - startLeft,
+      startWidth - minGraph
+    );
+    applyWidth(startWidth - leftDelta);
+    applyLeftWidth(startLeft + leftDelta);
+    return;
+  }
+
+  var layoutWidth = layoutHost.getBoundingClientRect().width;
+  var gap = parseFloat(getComputedStyle(layoutHost).columnGap) || 16;
+  var rightWidth = layoutWidth - startLeft - startWidth - gap * 2;
+  var rightDelta = clamp(
+    delta,
+    minGraph - startWidth,
+    rightWidth - minSide
+  );
+  applyWidth(startWidth + rightDelta);
+  applyLeftWidth(startLeft);
+}
+
+function beginResize(handle, event, cursor, onMove, onEnd) {
+  var previousCursor = document.body.style.cursor;
+  var previousSelection = document.body.style.userSelect;
+  document.body.style.cursor = cursor;
+  document.body.style.userSelect = "none";
+  handle.setPointerCapture(event.pointerId);
+
+  function move(moveEvent) {
+    onMove(moveEvent);
+  }
+
+  function end(endEvent) {
+    handle.removeEventListener("pointermove", move);
+    handle.removeEventListener("pointerup", end);
+    handle.removeEventListener("pointercancel", end);
+    if (handle.hasPointerCapture(endEvent.pointerId)) {
+      handle.releasePointerCapture(endEvent.pointerId);
+    }
+    document.body.style.cursor = previousCursor;
+    document.body.style.userSelect = previousSelection;
+    onEnd();
+  }
+
+  handle.addEventListener("pointermove", move);
+  handle.addEventListener("pointerup", end);
+  handle.addEventListener("pointercancel", end);
+}
+
+function clamp(value, min, max) {
+  var number = Number(value);
+  if (!Number.isFinite(number)) number = min;
+  return Math.max(min, Math.min(max, number));
+}
+
+function readMapSize() {
+  try {
+    return JSON.parse(localStorage.getItem("match-map-size")) || {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+function saveMapSize(size) {
+  try {
+    localStorage.setItem("match-map-size", JSON.stringify(size));
+  } catch (_error) {
+    // O redimensionamento continua funcional quando o storage esta bloqueado.
+  }
 }
 
 // Iguala ao mapa apenas os cards que o CSS posicionou na mesma linha.

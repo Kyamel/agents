@@ -71,7 +71,7 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
         script([type('application/json'), id('match-map-data')], DataJson),
         script([
             type(module),
-            src('/assets/match_map.js?v=28')
+            src('/assets/match_map.js?v=32')
         ], [])
     ].
 
@@ -128,18 +128,77 @@ map_controls(Html) :-
 % `map-wide` fica definido na configuracao global do Tailwind (page.pl).
 map_replay_layout(AppearanceCard, CollectedCard, Html) :-
     ui:surface_class(
-        'overflow-hidden order-first lg:order-none',
+        'relative overflow-hidden order-first lg:order-none',
         GraphClass
     ),
-    Html = div([class('grid gap-4 mb-4 lg:items-start \c
-                       lg:grid-cols-[minmax(16rem,_20rem)_minmax(0,_1fr)] \c
-                       xl:grid-cols-[minmax(0,_1fr)_56rem] \c
-                       map-wide:grid-cols-[minmax(0,_1fr)_56rem_minmax(0,_1fr)]')], [
+    map_resize_handles(ResizeHandles),
+    GraphCanvas = div([
+        id('mm-graph-canvas'),
+        class('h-full min-h-0')
+    ], []),
+    GraphChildren = [GraphCanvas|ResizeHandles],
+    Html = div([
+        id('mm-replay-layout'),
+        class('grid gap-4 mb-4 lg:items-start \c
+               lg:grid-cols-[minmax(16rem,_20rem)_minmax(0,_1fr)] \c
+               xl:grid-cols-[minmax(16rem,_1fr)_var(--mm-graph-width)] \c
+               map-wide:grid-cols-[var(--mm-left-width)_var(--mm-graph-width)_minmax(12rem,_1fr)]'),
+        style('--mm-graph-width:56rem;\c
+               --mm-left-width:minmax(12rem,1fr)')
+    ], [
         AppearanceCard,
-        div([id('mm-graph'), class(GraphClass)], []),
+        div([id('mm-graph'), class(GraphClass)], GraphChildren),
         div([class('min-w-0 lg:col-span-2 map-wide:col-span-1')],
             [CollectedCard])
     ]).
+
+map_resize_handles([
+    div([
+        id('mm-resize-left'),
+        class('group absolute inset-y-0 left-0 z-20 hidden w-3 \c
+               cursor-ew-resize touch-none items-center justify-center \c
+               focus:outline-none xl:flex'),
+        role(separator),
+        tabindex(0),
+        'aria-orientation'(vertical),
+        'aria-label'('Redimensionar mapa pela lateral esquerda'),
+        title('Arraste para redimensionar o mapa')
+    ], [
+        span([class('h-16 w-1 rounded-full bg-surface-400 opacity-40 \c
+                     transition group-hover:opacity-100 \c
+                     group-focus:opacity-100')], [])
+    ]),
+    div([
+        id('mm-resize-right'),
+        class('group absolute inset-y-0 right-0 z-20 hidden w-3 \c
+               cursor-ew-resize touch-none items-center justify-center \c
+               focus:outline-none map-wide:flex'),
+        role(separator),
+        tabindex(0),
+        'aria-orientation'(vertical),
+        'aria-label'('Redimensionar mapa pela lateral direita'),
+        title('Arraste para redimensionar o mapa')
+    ], [
+        span([class('h-16 w-1 rounded-full bg-surface-400 opacity-40 \c
+                     transition group-hover:opacity-100 \c
+                     group-focus:opacity-100')], [])
+    ]),
+    div([
+        id('mm-resize-bottom'),
+        class('group absolute inset-x-0 bottom-0 z-20 hidden h-3 \c
+               cursor-ns-resize touch-none items-center justify-center \c
+               focus:outline-none lg:flex'),
+        role(separator),
+        tabindex(0),
+        'aria-orientation'(horizontal),
+        'aria-label'('Redimensionar altura do mapa'),
+        title('Arraste para redimensionar a altura')
+    ], [
+        span([class('h-1 w-16 rounded-full bg-surface-400 opacity-40 \c
+                     transition group-hover:opacity-100 \c
+                     group-focus:opacity-100')], [])
+    ])
+]).
 
 map_legend(Html) :-
     ui:text_class(
@@ -233,7 +292,6 @@ map_state_card(Accent, Label, Id, Html) :-
     ]).
 
 map_templates(Html) :-
-    state_label_class(LabelClass),
     ui:event_row_base_class(EventRowClass),
     atomic_list_concat(
         [EventRowClass, 'flex flex-wrap items-center gap-2'],
@@ -285,15 +343,16 @@ map_templates(Html) :-
                 class(AppearanceRowClass),
                 'data-role'(row)
             ], [
-                span([class(LabelClass), 'data-role'('origin-label')], []),
                 code([
-                    class('font-mono break-all'),
+                    class('font-mono break-all text-surface-200'),
                     'data-role'('origin-value')
                 ], []),
-                span([class('text-surface-500')], '→'),
-                span([class(LabelClass)], 'Atual'),
+                span([
+                    class('hidden text-surface-500'),
+                    'data-role'(arrow)
+                ], '→'),
                 code([
-                    class('font-mono break-all'),
+                    class('hidden font-mono break-all'),
                     'data-role'('current-value')
                 ], []),
                 span([
@@ -379,8 +438,3 @@ map_templates(Html) :-
             ], [])
         ])
     ]).
-
-state_label_class(
-    Class
-) :-
-    ui:micro_label_class('text-surface-500', Class).

@@ -6,6 +6,18 @@ export var MAP_GEOMETRY = {
   nodeHeight: 34
 };
 
+export function fitMapGeometry(pixelWidth, pixelHeight) {
+  if (!(pixelWidth > 0) || !(pixelHeight > 0)) return;
+  MAP_GEOMETRY.height = Math.max(
+    1,
+    Math.round(MAP_GEOMETRY.width * pixelHeight / pixelWidth)
+  );
+  MAP_GEOMETRY.paddingY = Math.max(
+    24,
+    Math.min(62, Math.round(MAP_GEOMETRY.height * 0.1))
+  );
+}
+
 /*
  * Layout orientado pela topologia. Primeiro cria camadas a partir de uma
  * extremidade do grafo e ordena cada camada pela media dos vizinhos. Depois
