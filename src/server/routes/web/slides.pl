@@ -278,6 +278,7 @@ render_page(
     format(atom(PageLabel), '~d / ~d', [Current, Total]),
     page:tailwind_config(TailwindConfig),
     keyboard_navigation_script(KeyboardNavigation),
+    %format(atom(SlidesHref), '/slides/~w', [Name]),
     reply_html_page(
         [ title(BrowserTitle),
           meta([charset('UTF-8')]),
@@ -295,11 +296,13 @@ render_page(
                     class(SlideClass),
                     'aria-labelledby'('slide-title')
                 ], [
-                     span([
+                     a([
+                        href('/slides'),
                         class('absolute top-2 left-2 sm:top-5 sm:left-5 \c
-                            lg:top-8 lg:left-8 z-10
+                            lg:top-8 lg:left-8 z-10 \c
                             overflow-hidden text-ellipsis whitespace-nowrap \c
-                            text-ufop-400 text-xs font-bold uppercase')
+                            text-ufop-400 text-sm font-bold uppercase \c
+                            hover:underline transition-colors')
                     ], Name),
                   header([class('text-center pt-16 sm:pt-16 lg:pt-16')], [
                     h1([
