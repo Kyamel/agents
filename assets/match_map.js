@@ -293,7 +293,7 @@ function renderAppearance(container, appearance, revealed) {
     );
     currentValue.classList.add(
       omitted
-        ? "text-rose-300"
+        ? "text-ufop-400"
         : isRevealed
           ? revealedFake ? "text-reveal-text" : "text-sky-300"
           : changed ? "text-amber-300" : "text-surface-300"

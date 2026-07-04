@@ -60,10 +60,10 @@ match_badge("running", _Winner, 'Em execução', Class) :-
     badge_class(emerald, Class).
 match_badge("timeout", _Winner, 'Tempo esgotado', Class) :-
     !,
-    badge_class(rose, Class).
+    badge_class(ufop, Class).
 match_badge("error", _Winner, 'Falha na execução', Class) :-
     !,
-    badge_class(rose, Class).
+    badge_class(ufop, Class).
 match_badge("done", Winner, Text, Class) :-
     !,
     winner_label(Winner, Text, Class).
@@ -78,6 +78,6 @@ winner_label(_, 'Resultado indisponível', Class) :- badge_class(slate, Class).
 
 badge_class(amber, Class)   :- ui:pill_class(amber, Class).
 badge_class(emerald, Class) :- ui:pill_class(emerald, Class).
-badge_class(rose, Class)    :- ui:pill_class(rose, Class).
+badge_class(ufop, Class)    :- ui:pill_class(ufop, Class).
 badge_class(sky, Class)     :- ui:pill_class(sky, Class).
 badge_class(slate, Class)   :- ui:pill_class(neutral, Class).

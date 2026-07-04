@@ -9,9 +9,8 @@
 :- use_module(ui).
 
 % Tema visual compartilhado pelo Tailwind e por componentes graficos em JS.
-% `ufop` e o vermelho institucional, `surface` e a escala neutra, `reveal` e
-% o roxo oficial de revelacao e `map` contem os tokens semanticos do replay
-% SVG. Manter os valores aqui evita hex duplicado entre classes e assets.
+% Toda cor do app parte destas paletas; `reveal` e `map` apenas criam aliases
+% semanticos. Isso evita hex duplicado entre classes e assets.
 tailwind_config(
     "window.appTheme={\c
         colors:{\c
@@ -24,6 +23,39 @@ tailwind_config(
                 '900':'#4d0a10',\c
                 '950':'#310608'\c
             },\c
+            emerald:{\c
+                '200':'#a7f3d0',\c
+                '300':'#6ee7b7',\c
+                '400':'#34d399',\c
+                '600':'#059669',\c
+                '800':'#065f46',\c
+                '900':'#064e3b',\c
+                '950':'#022c22'\c
+            },\c
+            amber:{\c
+                '200':'#fde68a',\c
+                '300':'#fcd34d',\c
+                '400':'#fbbf24',\c
+                '800':'#92400e',\c
+                '900':'#78350f',\c
+                '950':'#451a03'\c
+            },\c
+            sky:{\c
+                '200':'#bae6fd',\c
+                '300':'#7dd3fc',\c
+                '400':'#38bdf8',\c
+                '800':'#075985',\c
+                '900':'#0c4a6e',\c
+                '950':'#082f49'\c
+            },\c
+            violet:{\c
+                '200':'#ddd6fe',\c
+                '300':'#c4b5fd',\c
+                '400':'#a78bfa',\c
+                '800':'#5b21b6',\c
+                '900':'#4c1d95',\c
+                '950':'#2e1065'\c
+            },\c
             surface:{\c
                 '100':'#f1f5f9',\c
                 '200':'#e2e8f0',\c
@@ -35,27 +67,39 @@ tailwind_config(
                 '800':'#1e293b',\c
                 '900':'#0f172a',\c
                 '950':'#020617'\c
-            },\c
-            reveal:{\c
-                surface:'#2e1065',\c
-                border:'#5b21b6',\c
-                text:'#c4b5fd'\c
             }\c
         }\c
     };\c
+    window.appTheme.colors.reveal={\c
+        surface:window.appTheme.colors.violet['950'],\c
+        border:window.appTheme.colors.violet['800'],\c
+        text:window.appTheme.colors.violet['300']\c
+    };\c
     window.appTheme.colors.map={\c
-        thief:'#fbbf24',\c
-        detective:'#38bdf8',\c
+        thief:window.appTheme.colors.amber['400'],\c
+        detective:window.appTheme.colors.sky['400'],\c
         edge:window.appTheme.colors.surface['700'],\c
         node:{\c
             fill:window.appTheme.colors.surface['800'],\c
             stroke:window.appTheme.colors.surface['500'],\c
             text:window.appTheme.colors.surface['200']\c
         },\c
-        blocked:{fill:'#dc2626',stroke:'#fca5a5'},\c
-        ready:{fill:'#059669',stroke:'#6ee7b7'},\c
-        robbery:{fill:'#fbbf24',stroke:'#fde68a'},\c
-        inspection:{fill:'#0c4a6e',stroke:'#38bdf8'},\c
+        blocked:{\c
+            fill:window.appTheme.colors.ufop['600'],\c
+            stroke:window.appTheme.colors.ufop['200']\c
+        },\c
+        ready:{\c
+            fill:window.appTheme.colors.emerald['600'],\c
+            stroke:window.appTheme.colors.emerald['300']\c
+        },\c
+        robbery:{\c
+            fill:window.appTheme.colors.amber['400'],\c
+            stroke:window.appTheme.colors.amber['200']\c
+        },\c
+        inspection:{\c
+            fill:window.appTheme.colors.sky['900'],\c
+            stroke:window.appTheme.colors.sky['400']\c
+        },\c
         contrast:window.appTheme.colors.surface['900']\c
     };\c
     tailwind.config={\c

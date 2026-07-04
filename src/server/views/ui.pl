@@ -65,7 +65,7 @@ tinted_card_class(Accent, Class) :-
 tinted_card_tone(amber,   'bg-amber-950 border-amber-800 text-amber-200').
 tinted_card_tone(sky,     'bg-sky-950 border-sky-800 text-sky-200').
 tinted_card_tone(emerald, 'bg-emerald-950 border-emerald-800 text-emerald-200').
-tinted_card_tone(rose,    'bg-rose-950 border-rose-800 text-rose-200').
+tinted_card_tone(ufop,    'bg-ufop-950 border-ufop-700 text-ufop-200').
 tinted_card_tone(neutral, 'bg-surface-900 border-surface-600 text-surface-200').
 
 % Pill/etiqueta arredondada curta (badges de vencedor, papel, privacidade).
@@ -77,7 +77,7 @@ pill_class(Accent, Class) :-
 pill_tone(amber,   'bg-amber-950 text-amber-300').
 pill_tone(sky,     'bg-sky-950 text-sky-300').
 pill_tone(emerald, 'bg-emerald-950 text-emerald-300').
-pill_tone(rose,    'bg-rose-950 text-rose-300').
+pill_tone(ufop,    'bg-ufop-950 text-ufop-200').
 pill_tone(neutral, 'bg-surface-800 text-surface-300').
 pill_tone(muted,   'bg-surface-950 text-surface-400 border border-surface-700').
 

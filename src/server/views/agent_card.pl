@@ -75,7 +75,7 @@ stats_line(_Agent, '').
 record_line(Stats, [W, Sep, L, Sep, D]) :-
     Sep = span([class('text-surface-600')], ' - '),
     stat_part(Stats.wins,   'V', 'text-emerald-300', W),
-    stat_part(Stats.losses, 'D', 'text-rose-300',     L),
+    stat_part(Stats.losses, 'D', 'text-ufop-400',     L),
     stat_part(Stats.draws,  'E', 'text-surface-300', D).
 
 stat_part(Value, Label, ColorClass, span([], [
@@ -102,9 +102,9 @@ actions(Agent, CurrentUser, Html) :-
     delete_onclick(Agent.id, OnClick),
     ui:text_class(
         meta,
-        'rounded-md bg-rose-950 px-2.5 py-1 font-semibold text-rose-200 \c
-         border border-rose-900 hover:bg-rose-900 hover:border-rose-700 \c
-         focus:outline-none focus:ring-2 focus:ring-rose-500/40',
+        'rounded-md bg-ufop-950 px-2.5 py-1 font-semibold text-ufop-200 \c
+         border border-ufop-900 hover:bg-ufop-900 hover:border-ufop-700 \c
+         focus:outline-none focus:ring-2 focus:ring-ufop-500/40',
         ButtonClass
     ),
     Html = button([

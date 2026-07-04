@@ -141,8 +141,8 @@ status_meta("queued", 'Na fila',
 status_meta("running", 'Em execução',
     'A engine está processando esta partida.', emerald) :- !.
 status_meta("timeout", 'Tempo esgotado',
-    'A partida excedeu o limite de tempo e foi interrompida.', rose) :- !.
+    'A partida excedeu o limite de tempo e foi interrompida.', ufop) :- !.
 status_meta("error", 'Falha na execução',
-    'Ocorreu um erro ao executar esta partida.', rose) :- !.
+    'Ocorreu um erro ao executar esta partida.', ufop) :- !.
 status_meta(_Other, 'Status desconhecido',
     'O estado desta partida não pode ser determinado.', neutral).

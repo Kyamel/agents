@@ -67,7 +67,7 @@ render_profile(Request, Id, User, Profile) :-
 % cor so no numero: vitoria verde, derrota vermelho, empate neutro.
 stats_summary(Stats, Html) :-
     stat_card('Vitórias', Stats.wins, 'text-emerald-300', WinsCard),
-    stat_card('Derrotas', Stats.losses, 'text-rose-300', LossesCard),
+    stat_card('Derrotas', Stats.losses, 'text-ufop-400', LossesCard),
     stat_card('Empates', Stats.draws, DrawsCard),
     Html = div([class('grid sm:grid-cols-3 gap-4')], [
         WinsCard,

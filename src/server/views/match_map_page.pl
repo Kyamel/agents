@@ -70,7 +70,7 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
         script([type('application/json'), id('match-map-data')], DataJson),
         script([
             type(module),
-            src('/assets/match_map.js?v=25')
+            src('/assets/match_map.js?v=26')
         ], [])
     ].
 
@@ -231,7 +231,7 @@ map_templates(Html) :-
                      border-amber-800 border-amber-900/60 bg-amber-950/40 \c
                      text-amber-200 text-amber-300 border-emerald-800 \c
                      bg-emerald-950/40 text-emerald-200 text-emerald-300 \c
-                     border-surface-700 bg-surface-950 text-rose-300 \c
+                     border-surface-700 bg-surface-950 text-ufop-400 \c
                      text-surface-300')], []),
         template([id('mm-template-empty')], [
             p([

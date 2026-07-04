@@ -217,7 +217,7 @@ turn_row(Turn, tr([class('border-t border-surface-700')], [
     action_class(Turn, thief_status, ThiefClass),
     action_class(Turn, detective_status, DetectiveClass).
 
-action_class(Turn, StatusKey, 'px-3 py-2 text-rose-400') :-
+action_class(Turn, StatusKey, 'px-3 py-2 text-ufop-400') :-
     get_dict(StatusKey, Turn, "Ilegal"),
     !.
 action_class(_Turn, _StatusKey, 'px-3 py-2').
