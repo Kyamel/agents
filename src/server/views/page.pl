@@ -246,7 +246,7 @@ nav(User, Nav) :-
         %a([href('/agents/new'), class('text-surface-300 hover:text-white')], 'Enviar agente'),
         %a([href('/matches/new'), class('text-surface-300 hover:text-white')], 'Nova partida'),
         div([class('ml-auto flex items-center gap-3')], [
-            a([href(ProfileHref), class(ProfileClass)], User.email),
+            a([href(ProfileHref), class(ProfileClass)], User.username),
             form([method(post), action('/logout')], [
                 button([type(submit), class(SairClass)], 'Sair')
             ])
