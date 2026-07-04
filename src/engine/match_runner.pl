@@ -5,6 +5,7 @@
     scenario_text/2,
     scenario_graph/3,
     scenario_treasure/4,
+    scenario_loot/2,
     disguise_count/1
 ]).
 
@@ -108,6 +109,22 @@ scenario_treasure(Scenario, Target, City, Requirements) :-
     to_atom(Target, TargetAtom),
     member(tesouro(TargetAtom, City, Requirements), Terms),
     !.
+
+%!  scenario_loot(+Scenario, -Loot) is semidet.
+%
+%   Lista todos os itens e tesouros do cenario com sua cidade de origem, como
+%   termos `loot(Kind, Name, City)` (Kind = item | treasure). Le apenas os
+%   fatos `item/3` e `tesouro/3`, sem consultar/executar o cenario. Falha se o
+%   arquivo nao existir/parsear.
+scenario_loot(Scenario, Loot) :-
+    scenario_file(Scenario, File),
+    exists_file(File),
+    catch(read_scenario_terms(File, Terms), _, fail),
+    findall(loot(item, Name, City),
+            member(item(Name, City, _), Terms), Items),
+    findall(loot(treasure, Name, City),
+            member(tesouro(Name, City, _), Terms), Treasures),
+    append(Items, Treasures, Loot).
 
 % Caminho absoluto do .prolog do cenario, mantendo a extensao (ao contrario
 % de scenario_engine_arg/2).

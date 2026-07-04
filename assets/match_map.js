@@ -45,15 +45,20 @@
     // cidade sem encobrir seu rotulo.
     var routeLayer = group(svg);
     var nodes = drawNodes(svg, pos);
+    var loot = drawLoot(svg, pos, data.loot || []);
+    var lootByName = lootIndex(data.loot || []);
     var thief = marker(svg, THIEF, "L");
     var det = marker(svg, DET, "D");
 
     var slider = document.getElementById("mm-slider");
     var label = document.getElementById("mm-turn-label");
     var playBtn = document.getElementById("mm-play");
+    var playIcon = document.getElementById("mm-play-icon");
     var intervalEl = document.getElementById("mm-interval");
-    var thiefInfo = document.getElementById("mm-thief");
-    var detInfo = document.getElementById("mm-detective");
+    var eventInfo = document.getElementById("mm-event");
+    var appearanceInfo = document.getElementById("mm-appearance");
+    var collectedInfo = document.getElementById("mm-collected");
+    var mandateInfo = document.getElementById("mm-mandate");
 
     slider.max = String(frames.length - 1);
     slider.value = "0";
@@ -67,6 +72,7 @@
       drawRoute(routeLayer, pos, f.dPath, DET, 4);
       place(thief, pos[f.t], -10);
       place(det, pos[f.d], 10);
+      paintLoot(loot, f.collected);
       paintNodes(
         nodes,
         f.blocked,
@@ -75,24 +81,33 @@
         f.robberyCities
       );
       if (label) label.textContent = f.label;
-      if (thiefInfo) thiefInfo.textContent = info(f.t, f.tAct);
-      if (detInfo) detInfo.textContent = info(f.d, f.dAct);
+      if (eventInfo) eventInfo.textContent = f.eventText || "-";
+      renderAppearance(appearanceInfo, f.appearance, f.revealed);
+      renderCollected(collectedInfo, f.collected, lootByName);
+      renderMandate(mandateInfo, f.mandate);
     }
 
-    function info(city, action) {
-      var c = city ? city : "?";
-      return action ? c + " — " + action : c;
+    function setPlaybackControl(isPlaying) {
+      if (!playBtn) return;
+      var controlLabel = isPlaying ? "Pausar" : "Reproduzir";
+      if (playIcon) {
+        playIcon.textContent = isPlaying ? "⏸\uFE0E" : "▶\uFE0E";
+        playIcon.style.transform =
+          isPlaying ? "translateY(1px)" : "translateY(-1px)";
+      }
+      playBtn.setAttribute("aria-label", controlLabel);
+      playBtn.setAttribute("title", controlLabel);
     }
 
     function stop() {
       if (timer) { clearInterval(timer); timer = null; }
-      if (playBtn) playBtn.textContent = "Reproduzir";
+      setPlaybackControl(false);
     }
 
     function play() {
       var ms = Math.max(100, parseInt(intervalEl && intervalEl.value, 10) || 800);
       if (Number(slider.value) >= frames.length - 1) slider.value = "0";
-      if (playBtn) playBtn.textContent = "Pausar";
+      setPlaybackControl(true);
       timer = setInterval(function () {
         var next = Number(slider.value) + 1;
         if (next > frames.length - 1) { stop(); return; }
@@ -112,6 +127,28 @@
     });
 
     render(0);
+    setupSidePanels(host);
+  }
+
+  // Iguala ao mapa apenas os cards que o CSS posicionou na mesma linha. Assim,
+  // os breakpoints ficam centralizados no layout Tailwind e nao se repetem aqui.
+  function setupSidePanels(mapHost) {
+    var panels = document.querySelectorAll(".js-map-height");
+    if (!panels.length || !mapHost) return;
+    function sync() {
+      var mapBounds = mapHost.getBoundingClientRect();
+      var h = Math.round(mapBounds.height);
+      for (var i = 0; i < panels.length; i++) {
+        var panelTop = panels[i].getBoundingClientRect().top;
+        var sharesMapRow = Math.abs(panelTop - mapBounds.top) < 2;
+        panels[i].style.height = sharesMapRow && h > 0 ? h + "px" : "";
+      }
+    }
+    sync();
+    if (window.ResizeObserver) {
+      new ResizeObserver(sync).observe(mapHost);
+    }
+    window.addEventListener("resize", sync);
   }
 
   /*
@@ -400,19 +437,31 @@
     var objectiveCity = objective.city;
     var requirements = objective.requirements || [];
     var collected = {};
+    // Ordem em que itens/tesouros foram roubados, para a lista de coletados.
+    var collectedOrder = [];
+    var appearance = initialAppearance(start.appearance || []);
+    // Valores da aparencia que ja foram expostos ao detetive por algum furto.
+    // Acumula ao longo dos turnos: uma vez revelado, permanece revelado.
+    var revealed = {};
+    var mandate = null;
     var tPath = validCity(t) ? [t] : [];
     var dPath = validCity(d) ? [d] : [];
     var frames = [{
       label: "Início", t: t, d: d,
       tPath: tPath.slice(), dPath: dPath.slice(),
-      tAct: "", dAct: "", blocked: blocked.slice(),
+      blocked: blocked.slice(),
       objectiveCity: objectiveCity,
       objectiveReady: objectiveIsReady(
         objectiveCity,
         requirements,
         collected
       ),
-      robberyCities: []
+      robberyCities: [],
+      eventText: "",
+      appearance: cloneAppearance(appearance),
+      revealed: [],
+      collected: [],
+      mandate: cloneMandate(mandate)
     }];
     turns.forEach(function (tn) {
       if (validCity(tn.thief_pos)) {
@@ -431,15 +480,27 @@
         lockMode
       );
       (tn.stolen_items || []).forEach(function (item) {
+        if (!collected[item]) collectedOrder.push(item);
         collected[item] = true;
+      });
+      appearance = applyDisguiseEffect(
+        appearance,
+        tn.disguise_effect || { type: "none", changes: [] }
+      );
+      mandate = applyMandateEffect(
+        mandate,
+        tn.mandate_effect || { type: "none" }
+      );
+      (tn.robbery_events || []).forEach(function (event) {
+        (event.revealed || []).forEach(function (value) {
+          revealed[String(value)] = true;
+        });
       });
       frames.push({
         label: "Turno " + tn.turn,
         t: t, d: d,
         tPath: tPath.slice(),
         dPath: dPath.slice(),
-        tAct: tn.thief_action || "",
-        dAct: tn.detective_action || "",
         blocked: blocked.slice(),
         objectiveCity: objectiveCity,
         objectiveReady: objectiveIsReady(
@@ -447,10 +508,324 @@
           requirements,
           collected
         ),
-        robberyCities: (tn.robbery_cities || []).slice()
+        robberyCities: (tn.robbery_cities || []).slice(),
+        eventText: formatTurnEvents(tn, d, mandate),
+        appearance: cloneAppearance(appearance),
+        revealed: Object.keys(revealed),
+        collected: collectedOrder.slice(),
+        mandate: cloneMandate(mandate)
       });
     });
     return frames;
+  }
+
+  function initialAppearance(attributes) {
+    return attributes.map(function (attribute) {
+      return { original: String(attribute), current: String(attribute) };
+    });
+  }
+
+  function cloneAppearance(appearance) {
+    return appearance.map(function (attribute) {
+      return {
+        original: attribute.original,
+        current: attribute.current
+      };
+    });
+  }
+
+  function applyDisguiseEffect(appearance, effect) {
+    if (effect.type === "remove") {
+      return appearance
+        .filter(function (attribute) {
+          return attribute.original !== null;
+        })
+        .map(function (attribute) {
+          return {
+            original: attribute.original,
+            current: attribute.original
+          };
+        });
+    }
+    if (effect.type !== "apply") return appearance;
+
+    var next = cloneAppearance(appearance);
+    var additions = [];
+    (effect.changes || []).forEach(function (change) {
+      if (change.type === "add") {
+        additions.push({ original: null, current: change.current });
+        return;
+      }
+      var index = next.findIndex(function (attribute) {
+        return attribute.current === change.original;
+      });
+      if (index === -1) return;
+      if (change.type === "replace") {
+        next[index].current = change.current;
+      } else if (change.type === "omit") {
+        next[index].current = null;
+      }
+    });
+    return additions.concat(next);
+  }
+
+  function applyMandateEffect(mandate, effect) {
+    if (effect.type !== "set") return mandate;
+    return {
+      suspect: effect.suspect,
+      clues: (effect.clues || []).slice()
+    };
+  }
+
+  function cloneMandate(mandate) {
+    if (!mandate) return null;
+    return {
+      suspect: mandate.suspect,
+      clues: mandate.clues.slice()
+    };
+  }
+
+  function formatTurnEvents(turn, detectiveCity, mandate) {
+    var events = [];
+    var robberies = formatRobberyEvents(turn.robbery_events || []);
+    if (robberies) events.push(robberies);
+
+    var disguise = turn.disguise_effect || {};
+    if (disguise.type === "apply" || disguise.type === "remove") {
+      events.push("Disfarce: " + String(turn.thief_action || ""));
+    }
+
+    var mandateEffect = turn.mandate_effect || {};
+    if (mandateEffect.type === "set") {
+      events.push("Mandato emitido: " + formatMandateTerm(mandate));
+    }
+
+    if (turn.inspection) {
+      var inspection = "Inspeção em " + eventValue(detectiveCity);
+      inspection += mandate
+        ? " — mandato ativo: " + formatMandateTerm(mandate)
+        : " — sem mandato ativo";
+      events.push(inspection);
+    }
+    return events.join("\n");
+  }
+
+  function formatMandateTerm(mandate) {
+    if (!mandate) return "nenhum";
+    return "pedir_mandato(" +
+      eventValue(mandate.suspect) + ", [" +
+      mandate.clues.map(eventValue).join(", ") +
+      "])";
+  }
+
+  function formatRobberyEvents(events) {
+    return events.map(function (event) {
+      var revealed = event.revealed || [];
+      return "roubo(" +
+        eventValue(event.item) + ", " +
+        eventValue(event.city) + ", [" +
+        revealed.map(eventValue).join(", ") +
+        "])";
+    }).join(" | ");
+  }
+
+  function eventValue(value) {
+    if (value === null || value === undefined) return "?";
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
+  }
+
+  function renderAppearance(container, appearance, revealed) {
+    if (!container) return;
+    clearElement(container);
+    if (!appearance || !appearance.length) {
+      container.appendChild(emptyState("Aparência indisponível."));
+      return;
+    }
+
+    var revealedLookup = {};
+    (revealed || []).forEach(function (value) {
+      revealedLookup[String(value)] = true;
+    });
+
+    appearance.forEach(function (attribute) {
+      var added = attribute.original === null;
+      var omitted = attribute.current === null;
+      var changed = added || omitted ||
+        attribute.original !== attribute.current;
+      // Revelado quando o valor apresentado atualmente ja foi exposto ao
+      // detetive por algum furto. Tem prioridade visual sobre o disfarce.
+      var isRevealed = !omitted &&
+        Boolean(revealedLookup[String(attribute.current)]);
+      // Um valor revelado pode ser o traco real (original == atual) ou um
+      // disfarce que o detetive flagrou (adicionado ou trocado). O disfarce
+      // revelado ganha violeta; o traco real revelado fica em azul.
+      var revealedFake = isRevealed &&
+        (added || attribute.original !== attribute.current);
+      var revealedValue = revealedFake ? "text-violet-300" : "text-sky-300";
+      var rowBase = "flex flex-wrap items-center gap-2 rounded-lg border " +
+        "px-3 py-2 ";
+      var rowClass = rowBase + (
+        revealedFake
+          ? "border-violet-800 bg-violet-950/40"
+          : isRevealed
+            ? "border-sky-800 bg-sky-950/40"
+            : changed
+              ? "border-amber-800 bg-amber-950/40"
+              : "border-surface-700 bg-surface-950"
+      );
+      var row = htmlElement("div", rowClass);
+      row.appendChild(stateLabel(added ? "Origem" : "Original"));
+      row.appendChild(stateValue(
+        added ? "adicionado" : attribute.original,
+        added
+          ? "text-emerald-300"
+          : isRevealed ? revealedValue : "text-surface-300"
+      ));
+      row.appendChild(htmlElement(
+        "span",
+        "text-surface-500",
+        "→"
+      ));
+      row.appendChild(stateLabel("Atual"));
+      row.appendChild(stateValue(
+        omitted ? "omitido" : attribute.current,
+        omitted
+          ? "text-rose-300"
+          : isRevealed
+            ? revealedValue
+            : changed ? "text-amber-300" : "text-surface-300"
+      ));
+      if (isRevealed) {
+        row.appendChild(htmlElement(
+          "span",
+          "ml-auto rounded-full border px-2 py-0.5 text-[0.65rem] " +
+            "uppercase tracking-wide font-semibold " +
+            (revealedFake
+              ? "bg-violet-950 border-violet-800 text-violet-300"
+              : "bg-sky-950 border-sky-800 text-sky-300"),
+          revealedFake ? "Disfarce revelado" : "Revelado"
+        ));
+      }
+      container.appendChild(row);
+    });
+  }
+
+  // Indexa o loot por nome do item para cruzar com a lista de coletados.
+  function lootIndex(loot) {
+    var index = {};
+    (loot || []).forEach(function (entry) {
+      index[entry.name] = entry;
+    });
+    return index;
+  }
+
+  function lootGlyph(entry) {
+    return entry && entry.kind === "treasure" ? "💎" : "📦";
+  }
+
+  function lootKindLabel(entry) {
+    return entry && entry.kind === "treasure" ? "Tesouro" : "Item";
+  }
+
+  function renderCollected(container, collected, lootByName) {
+    if (!container) return;
+    clearElement(container);
+    if (!collected || !collected.length) {
+      container.appendChild(emptyState("Nada roubado até aqui."));
+      return;
+    }
+    collected.forEach(function (name) {
+      var entry = lootByName[name] || { name: name, kind: "item" };
+      var chip = htmlElement(
+        "span",
+        "flex items-center gap-2 rounded-lg bg-surface-950 " +
+          "border border-surface-700 px-2.5 py-1"
+      );
+      chip.appendChild(htmlElement("span", "text-base leading-none",
+        lootGlyph(entry)));
+      chip.appendChild(htmlElement(
+        "span",
+        "text-[0.65rem] uppercase tracking-wide font-semibold " +
+          "text-surface-500",
+        lootKindLabel(entry)
+      ));
+      chip.appendChild(htmlElement("span", "font-mono text-surface-200", name));
+      container.appendChild(chip);
+    });
+  }
+
+  function renderMandate(container, mandate) {
+    if (!container) return;
+    clearElement(container);
+    if (!mandate) {
+      container.appendChild(emptyState("Nenhum mandato emitido."));
+      return;
+    }
+
+    var header = htmlElement(
+      "div",
+      "flex items-center gap-2 mb-3 text-surface-200",
+      "Suspeito"
+    );
+    header.appendChild(htmlElement(
+      "span",
+      "rounded-full bg-sky-950 border border-sky-800 " +
+        "px-2.5 py-1 font-mono font-semibold text-sky-300",
+      eventValue(mandate.suspect)
+    ));
+    container.appendChild(header);
+
+    var clues = htmlElement("div", "flex flex-wrap gap-2");
+    if (!mandate.clues.length) {
+      clues.appendChild(emptyState("Sem pistas associadas."));
+    } else {
+      mandate.clues.forEach(function (clue) {
+        clues.appendChild(htmlElement(
+          "span",
+          "rounded-lg bg-surface-950 border border-surface-700 " +
+            "px-2.5 py-1 font-mono text-surface-300",
+          clue
+        ));
+      });
+    }
+    container.appendChild(clues);
+  }
+
+  function stateLabel(label) {
+    return htmlElement(
+      "span",
+      "text-[0.65rem] uppercase tracking-wide font-semibold " +
+        "text-surface-500",
+      label
+    );
+  }
+
+  function stateValue(value, colorClass) {
+    return htmlElement(
+      "code",
+      "font-mono break-all " + colorClass,
+      value
+    );
+  }
+
+  function emptyState(message) {
+    return htmlElement(
+      "p",
+      "text-surface-500 italic",
+      message
+    );
+  }
+
+  function htmlElement(tag, className, content) {
+    var element = document.createElement(tag);
+    if (className) element.className = className;
+    if (content !== undefined) element.textContent = content;
+    return element;
+  }
+
+  function clearElement(element) {
+    while (element.firstChild) element.removeChild(element.firstChild);
   }
 
   function objectiveIsReady(city, requirements, collected) {
@@ -596,6 +971,39 @@
       );
       nodes[city].label.setAttribute("fill", labelFill);
       nodes[city].title.textContent = city + suffix;
+    });
+  }
+
+  // Marcadores de tesouro/item nas cidades de origem. Multiplos itens na mesma
+  // cidade sao empilhados horizontalmente no canto superior direito do no.
+  function drawLoot(svg, pos, loot) {
+    var layer = group(svg);
+    var perCity = {};
+    var markers = [];
+    (loot || []).forEach(function (entry) {
+      var p = pos[entry.city];
+      if (!p) return;
+      var slot = perCity[entry.city] || 0;
+      perCity[entry.city] = slot + 1;
+      var gx = p.x + p.w / 2 - 8 - slot * 16;
+      var gy = p.y - NODE_H / 2 - 2;
+      var g = group(layer);
+      g.appendChild(title(
+        lootKindLabel(entry) + ": " + entry.name + " (" + entry.city + ")"
+      ));
+      g.appendChild(text(gx, gy, lootGlyph(entry), NODE_TEXT, 15, "400"));
+      markers.push({ name: entry.name, el: g });
+    });
+    return markers;
+  }
+
+  // Some com o marcador quando o item ja foi roubado no frame corrente.
+  function paintLoot(markers, collected) {
+    var lookup = {};
+    (collected || []).forEach(function (name) { lookup[name] = true; });
+    markers.forEach(function (marker) {
+      if (lookup[marker.name]) marker.el.setAttribute("display", "none");
+      else marker.el.removeAttribute("display");
     });
   }
 

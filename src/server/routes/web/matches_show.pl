@@ -71,17 +71,16 @@ render_detail(Request, Match, ThiefName, DetectiveName, Replay) :-
     turns_table(Turns, TableHtml),
     atom_concat('/map/', Match.id, MapLink),
     button_link:button_link(MapLink, 'Visualizar mapa', MapButton),
-    ui:text_class(title, 'mt-3 mb-1', TitleClass),
+    page_section:top_bar('Detalhe da partida', MapButton, TopBar),
     ui:text_class(meta, 'font-mono text-surface-500 mb-5 break-all', IdClass),
     ui:text_class(emphasis, 'mb-3', ReplayTitleClass),
     page:reply_page(Request, 'Detalhe da partida', [
         BackLink,
-        h1([class(TitleClass)], 'Detalhe da partida'),
+        TopBar,
         p([class(IdClass)], Match.id),
         div([class('grid sm:grid-cols-3 gap-4 mb-6')], [
             ThiefCard, DetectiveCard, WinnerCard
         ]),
-        div([class('mb-8')], [MapButton]),
         SetupHtml,
         EventsHtml,
         h2([class(ReplayTitleClass)], 'Replay turno a turno'),

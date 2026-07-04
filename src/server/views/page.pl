@@ -1,5 +1,6 @@
 :- module(page, [
     reply_page/3,
+    reply_page/4,
     layout/3
 ]).
 
@@ -15,6 +16,9 @@ tailwind_config(
     "tailwind.config={\c
         theme:{\c
             extend:{\c
+                screens:{\c
+                    'map-wide':'1440px'\c
+                },\c
                 colors:{\c
                     ufop:{\c
                         '200':'#f0b3b8',\c
@@ -48,8 +52,16 @@ tailwind_config(
 %   Renderiza uma pagina HTML completa: resolve a sessao, monta o layout com a
 %   navegacao consciente de autenticacao e responde com Tailwind via CDN.
 reply_page(Request, Title, Content) :-
+    reply_page(Request, Title, Content, []).
+
+%!  reply_page(+Request, +Title, +Content, +Options) is det.
+%
+%   Como reply_page/3, mas aceita Options. `width(wide)` alarga o container
+%   principal (max-w-7xl) para paginas que aproveitam o espaco lateral no
+%   desktop; o padrao continua max-w-4xl.
+reply_page(Request, Title, Content, Options) :-
     web_session:current_user_or_anon(Request, User),
-    layout(User, Content, Body),
+    layout(User, Content, Options, Body),
     tailwind_config(TwConfig),
     local_time_script(LocalTimeJs),
     reply_html_page(
@@ -64,11 +76,21 @@ reply_page(Request, Title, Content) :-
         Body
     ).
 
+% Hook body//2 do reply_html_page: aplica a cor de fundo e o layout base no
+% proprio elemento <body>, para o fundo cobrir toda a viewport (inclusive a
+% area de overscroll). O conteudo chega meta-qualificado; strip_module o
+% desembrulha antes de emitir.
+body(_Style, Body0) -->
+    { strip_module(Body0, _, Content) },
+    html(body(class('min-h-screen bg-surface-950 text-surface-200 flex flex-col'),
+              Content)).
+
 % Converte todo <time class="js-localtime"> pro fuso horario local do cliente,
 % usando o atributo datetime (ISO 8601 UTC vindo do servidor). Sem `<` nem `&`
 % para nao sofrer escape de HTML. Ver ui:local_time/2 pra gerar os elementos.
 local_time_script(
     "(function(){\c
+        'use strict';\c
         function fmt(el){\c
             var iso=el.getAttribute('datetime');\c
             if(!iso){return;}\c
@@ -87,9 +109,13 @@ local_time_script(
     })();").
 
 layout(User, Content, Body) :-
+    layout(User, Content, [], Body).
+
+layout(User, Content, Options, Body) :-
     nav(User, Nav),
     ufop_logo(Logo),
-    ui:text_class(normal, 'flex-1 max-w-4xl mx-auto w-full p-6', MainClass),
+    main_width_class(Options, MainWidth),
+    ui:text_class(normal, MainWidth, MainClass),
     footer_link('https://en.wikipedia.org/wiki/Scotland_Yard_(board_game)',
                 'O Jogo', GameLink),
     footer_link('https://www.swi-prolog.org/', 'SWI-Prolog', PrologLink),
@@ -99,8 +125,7 @@ layout(User, Content, Body) :-
     ui:text_class(meta, 'text-surface-300 font-medium', FooterTitleClass),
     ui:text_class(meta, 'mt-0.5', FooterLineClass),
     Body = [
-        div([class('min-h-screen bg-surface-950 text-surface-200 flex flex-col')], [
-            header([class('border-b border-surface-700')], [
+        header([class('border-b border-surface-700')], [
                 div([class('max-w-4xl mx-auto w-full p-4')], [Nav])
             ]),
             main([class(MainClass)], Content),
@@ -124,8 +149,15 @@ layout(User, Content, Body) :-
                     ])
                 ])
             ])
-        ])
     ].
+
+% `width(wide)` alarga so o main; header e footer seguem centralizados em
+% max-w-4xl. Paginas wide centram o conteudo principal (ex.: o mapa) na mesma
+% largura do header e usam a sobra lateral para conteudo extra.
+main_width_class(Options, 'flex-1 max-w-[110rem] mx-auto w-full p-6') :-
+    memberchk(width(wide), Options),
+    !.
+main_width_class(_Options, 'flex-1 max-w-4xl mx-auto w-full p-6').
 
 ufop_logo(Html) :-
     ufop_logo_mark(Logo),
