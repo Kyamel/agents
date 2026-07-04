@@ -17,6 +17,7 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
     map_event_card(EventInfo),
     ui:status_chip_class(amber, 'hidden', ThiefIdentityClass),
     map_scroll_card(
+        normal,
         amber,
         [
             'Aparência do ladrão',
@@ -31,13 +32,14 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
     ),
     loot_view_toggle(LootViewToggle),
     map_scroll_card(
+        compact,
         emerald,
         [
             span([], 'Cadeia do tesouro'),
             LootViewToggle
         ],
         'mm-collected',
-        'overflow-y-auto min-h-0 flex-1 pr-1',
+        'overflow-auto min-h-0 flex-1 pr-1 pb-1',
         CollectedCard
     ),
     map_state_card(
@@ -69,7 +71,7 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
         script([type('application/json'), id('match-map-data')], DataJson),
         script([
             type(module),
-            src('/assets/match_map.js?v=27')
+            src('/assets/match_map.js?v=28')
         ], [])
     ].
 
@@ -168,10 +170,8 @@ map_legend(Html) :-
         'Cidade inspecionada',
         Inspection
     ),
-    legend_glyph('💎', 'Tesouro na cidade', Treasure),
-    legend_glyph('🔑', 'Item na cidade', Item),
     Html = div([class(Class)], [
-        Thief, Detective, Blocked, Ready, Robbery, Inspection, Treasure, Item
+        Thief, Detective, Blocked, Ready, Robbery, Inspection
     ]).
 
 legend_item(ColorClass, Label,
@@ -184,12 +184,6 @@ legend_item(ColorClass, Label,
         ' ',
         Class
     ).
-
-legend_glyph(Glyph, Label,
-             span([class('min-w-0 flex items-center gap-2 leading-tight')], [
-                 span([class('shrink-0')], Glyph),
-                 Label
-             ])).
 
 map_event_card(Html) :-
     ui:surface_class('overflow-hidden', CardClass),
@@ -218,10 +212,10 @@ event_side(Label, Agent, Html) :-
         ], [])
     ]).
 
-map_scroll_card(Accent, Label, Id, ContentClass, Html) :-
+map_scroll_card(Density, Accent, Label, Id, ContentClass, Html) :-
     ui:panel_header_class(Accent, 'shrink-0', HeadingClass),
     ui:padded_surface_class(
-        normal,
+        Density,
         'flex flex-col overflow-hidden js-map-height',
         CardClass
     ),
@@ -247,7 +241,6 @@ map_templates(Html) :-
         AppearanceRowClass
     ),
     ui:micro_badge_class('hidden ml-auto', AppearanceBadgeClass),
-    ui:micro_label_class('opacity-80', LootKindClass),
     ui:micro_badge_class(
         'shrink-0 border-current',
         LootStatusClass
@@ -314,8 +307,8 @@ map_templates(Html) :-
                 class('min-w-0')
             ], [
                 div([
-                    class('flex min-w-0 items-center gap-2 rounded-lg border \c
-                           px-2.5 py-2'),
+                    class('flex min-w-72 items-center gap-1.5 rounded-lg \c
+                           border px-2 py-1.5'),
                     'data-role'(node)
                 ], [
                     span([
@@ -323,20 +316,16 @@ map_templates(Html) :-
                         'data-role'(glyph)
                     ], []),
                     div([class('min-w-0 flex-1')], [
-                        div([class('flex min-w-0 items-baseline gap-2')], [
+                        div([class('min-w-0')], [
                             span([
-                                class('font-mono font-semibold break-all'),
+                                class('font-mono font-semibold whitespace-nowrap'),
                                 'data-role'(name)
                             ], []),
-                            span([
+                            div([
                                 class(LootCityClass),
                                 'data-role'(city)
                             ], [])
-                        ]),
-                        span([
-                            class(LootKindClass),
-                            'data-role'(kind)
-                        ], [])
+                        ])
                     ]),
                     span([
                         class(LootStatusClass),
@@ -344,7 +333,8 @@ map_templates(Html) :-
                     ], [])
                 ]),
                 ul([
-                    class('ml-4 mt-2 space-y-2 border-l border-surface-700 pl-4'),
+                    class('ml-1.5 mt-1.5 space-y-1.5 border-l \c
+                           border-surface-700 pl-2'),
                     'data-role'(children)
                 ], [])
             ])

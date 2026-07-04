@@ -261,3 +261,4 @@ termino(gSt(_,_,_,_,_,livre,0),empate) :- !.
 termino(gSt(_,_,_,_,_,capturado,_),detetive) :- !.
 termino(gSt(thief(loc(C),_,_,Target,Itens,_),_,_,_,_,_,_),ladrao):- roubado(Target,C1), C \= C1, member(Target,Itens).
 
+   

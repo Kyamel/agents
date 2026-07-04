@@ -46,6 +46,8 @@ dev:
 
 test:
 	swipl -q -s tests/match_map_data_test.pl -g run_tests -t halt
+	swipl -q -s tests/ladrao_raffles_old_test.pl -g run_tests -t halt
+	swipl -q -s tests/raffles_2_test.pl -g run_tests -t halt
 	node tests/match_map_layout_test.mjs
 
 # --- Build da imagem ----------------------------------------------------------

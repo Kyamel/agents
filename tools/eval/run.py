@@ -162,16 +162,29 @@ def print_win_rates(
 
 
 def print_win_rate_line(label: str, rows: list[Row]) -> None:
+    total_matches = len(rows)
+
     wins = sum(int(row["won"]) for row in rows)
     losses = sum(int(row["lost"]) for row in rows)
+    draws = total_matches - wins - losses
+
     decided_matches = wins + losses
 
-    win_rate = wins / decided_matches if decided_matches else 0.0
+    if decided_matches:
+        win_rate_text = f"{wins / decided_matches:.2%}"
+        loss_rate_text = f"{losses / decided_matches:.2%}"
+    else:
+        win_rate_text = "N/A"
+        loss_rate_text = "N/A"
+
+    draw_rate = draws / total_matches if total_matches else 0.0
 
     print(
         f"{label}: "
-        f"{GREEN}{win_rate:.2%}{RESET} "
-        f"({wins}/{decided_matches})"
+        f"{GREEN}vitórias {win_rate_text} ({wins}){RESET} | "
+        f"{RED}derrotas {loss_rate_text} ({losses}){RESET} | "
+        f"empates {draw_rate:.2%} ({draws}) | "
+        f"total {total_matches}"
     )
 
 def parse_args() -> argparse.Namespace:

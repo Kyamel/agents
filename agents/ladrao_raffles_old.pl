@@ -13,9 +13,9 @@
 % 2. IDENTIDADE: suspeito com maior ambiguidade de aparencia,
 %    dificultando o mandato do detetive.
 %
-% 3. DISFARCE INICIAL: modifica um atributo da aparencia usando
-%    valor de outro suspeito antes do primeiro roubo, aumentando
-%    a ambiguidade das primeiras pistas reveladas.
+% 3. DISFARCE INICIAL: usa todo o orçamento para modificar os
+%    primeiros atributos antes do primeiro roubo, aumentando a
+%    ambiguidade das primeiras pistas reveladas.
 %
 % 4. DISFARCE FORTE: plano pre-calculado que substitui atributos
 %    chave por valores de outro suspeito, fazendo o ladrao parecer
@@ -176,11 +176,16 @@ cidade_isca_ativa(Cidade, Target, Itens, CidadeIsca) :-
 
 % Antes do primeiro roubo, procura o melhor plano forte que
 % possa ser executado com os pontos de disfarce disponíveis.
-acao_base(_, thief(_, _, _, _, Itens, Dsg),
+acao_base(_, thief(_, _, aparencia(AS), _, Itens, Dsg),
           disfarce(Modificacoes)) :-
     Itens == [],
     \+ disfarce_forte_feito,
-    melhor_plano_disfarce_forte(Dsg, Modificacoes, Quantidade),
+    melhor_plano_disfarce_forte(
+        Dsg,
+        AS,
+        Modificacoes,
+        Quantidade
+    ),
     marcar_disfarce_feito(Quantidade),
     !.
 
@@ -190,19 +195,24 @@ acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _), move(Cidade, Vizinho)) 
     !,
     aresta_conhecida(Cidade, Vizinho).
 
-% Disfarce inicial
+% Fallback: quando nenhuma identidade-isca produz um plano forte, usa todo o
+% orçamento disponível para alterar os primeiros atributos que serão revelados.
 acao_base(_, thief(loc(_), _, aparencia(AS), _Target, Itens, Dsg),
-          disfarce([Modificacao])) :-
+          disfarce(Modificacoes)) :-
     Itens = [],
     \+ disfarce_inicial_feito,
-    Dsg > 0,
     disfarces_usados(0),
-    escolher_disfarce_final(AS, Modificacao),
-    Modificacao \= none,
+    planejar_disfarce_fallback(
+        AS,
+        Dsg,
+        Modificacoes
+    ),
+    Modificacoes \= [],
+    length(Modificacoes, Quantidade),
     !,
     assertz(disfarce_inicial_feito),
     retract(disfarces_usados(_)),
-    assertz(disfarces_usados(1)).
+    assertz(disfarces_usados(Quantidade)).
 
 % Roubar tesouro real
 acao_base(_, thief(loc(Cidade), _, _, Target, Itens, _), roubar(Target)) :-
@@ -292,19 +302,28 @@ prereqs_reais_prontos(Target, Itens) :-
 % DISFARCE 
 % ============================================================
 
-escolher_disfarce_final(AS, trocar(Original, Falso)) :-
-    findall(A, (member(A, AS), A \= disfarce(_,_)), Reais),
-    Reais \= [],
-    last(Reais, Original),
+planejar_disfarce_fallback(AS, PontosDisponiveis, Modificacoes) :-
+    PontosDisponiveis > 0,
+    atributos_reais(AS, Reais),
+    maplist(modificacao_fallback, Reais, Candidatas),
+    quantidade_limitada(
+        PontosDisponiveis,
+        Candidatas,
+        Quantidade
+    ),
+    prefixo_tamanho(Candidatas, Quantidade, Modificacoes).
+
+atributos_reais(AS, Reais) :-
+    exclude(atributo_disfarcado, AS, Reais).
+
+atributo_disfarcado(disfarce(_, _)).
+
+modificacao_fallback(Original, trocar(Original, Falso)) :-
     Original =.. [Functor, ValorAtual],
     valor_de_outro_suspeito(Functor, ValorAtual, ValorFalso),
     Falso =.. [Functor, ValorFalso],
     !.
-escolher_disfarce_final(AS, omitir(Original)) :-
-    findall(A, (member(A, AS), A \= disfarce(_,_)), Reais),
-    Reais \= [],
-    last(Reais, Original),
-    !.
+modificacao_fallback(Original, omitir(Original)).
 
 valor_de_outro_suspeito(Functor, ValorAtual, ValorFalso) :-
     suspeito_conhecido(procurado(_, _Nome, aparencia(Atrs))),
@@ -326,9 +345,9 @@ valor_de_outro_suspeito(Functor, ValorAtual, ValorFalso) :-
 % Gera planos para fazer a identidade real se parecer com cada
 % um dos outros suspeitos.
 %
-% Um plano só é considerado forte quando exige pelo menos duas
-% modificações. Planos com apenas uma modificação são deixados
-% para a estratégia de disfarce simples.
+% O plano completo descreve como aproximar a aparência real da identidade
+% imitada. Na hora da ação ele é recortado ou complementado para consumir
+% exatamente o orçamento disponível.
 preparar_planos_disfarce_forte(Suspeitos, IdReal) :-
     retractall(plano_disfarce_forte(_, _, _)),
     aparencia_suspeito(IdReal, Suspeitos, AparenciaReal),
@@ -344,8 +363,8 @@ preparar_planos_disfarce_forte(Suspeitos, IdReal) :-
                 Plano
             ),
 
+            Plano \= [],
             length(Plano, Custo),
-            Custo >= 2,
 
             pontuacao_ambiguidade(
                 AparenciaIsca,
@@ -377,23 +396,30 @@ preparar_planos_disfarce_forte(Suspeitos, IdReal) :-
     ).
 
 
-% Seleciona, entre os planos preparados, aquele com maior
-% pontuação que caiba nos pontos de disfarce disponíveis.
+% Seleciona o plano de maior pontuação e o recorta ou complementa
+% para consumir todos os pontos de disfarce disponíveis.
 melhor_plano_disfarce_forte(
     PontosDisponiveis,
+    AparenciaAtual,
     MelhorPlano,
     Quantidade
 ) :-
+    PontosDisponiveis > 0,
     findall(
-        Pontuacao-Plano,
+        Pontuacao-PlanoAjustado,
         (
             plano_disfarce_forte(
                 Pontuacao,
                 _IdIsca,
-                Plano
+                PlanoCompleto
             ),
-            length(Plano, Custo),
-            Custo =< PontosDisponiveis
+            ajustar_plano_ao_orcamento(
+                PlanoCompleto,
+                AparenciaAtual,
+                PontosDisponiveis,
+                PlanoAjustado
+            ),
+            length(PlanoAjustado, PontosDisponiveis)
         ),
         PlanosAplicaveis
     ),
@@ -403,55 +429,85 @@ melhor_plano_disfarce_forte(
     last(PlanosOrdenados, _-MelhorPlano),
     length(MelhorPlano, Quantidade).
 
-
-% Compara as duas aparências atributo por atributo.
-%
-% Quando os atributos têm o mesmo tipo, mas valores diferentes,
-% cria uma troca. Os atributos precisam aparecer na mesma ordem nas duas
-% aparências.
-construir_plano_disfarce([], [], []).
-
-% Atributos idênticos não exigem modificação.
-construir_plano_disfarce(
-    [Atributo | Reais],
-    [Atributo | Iscas],
+ajustar_plano_ao_orcamento(
+    PlanoCompleto,
+    _AparenciaAtual,
+    PontosDisponiveis,
     Plano
 ) :-
+    length(PlanoCompleto, Custo),
+    Custo >= PontosDisponiveis,
     !,
-    construir_plano_disfarce(
-        Reais,
-        Iscas,
-        Plano
-    ).
-
-% Quando os atributos ocupam a mesma posição e possuem o mesmo
-% tipo, mas valores diferentes, registra uma troca.
-construir_plano_disfarce(
-    [AtributoReal | Reais],
-    [AtributoIsca | Iscas],
-    [trocar(AtributoReal, AtributoIsca) | RestoPlano]
+    prefixo_tamanho(PlanoCompleto, PontosDisponiveis, Plano).
+ajustar_plano_ao_orcamento(
+    PlanoCompleto,
+    AparenciaAtual,
+    PontosDisponiveis,
+    Plano
 ) :-
+    length(PlanoCompleto, Custo),
+    Faltam is PontosDisponiveis - Custo,
+    atributos_reais(AparenciaAtual, Reais),
+    exclude(
+        atributo_ja_modificado(PlanoCompleto),
+        Reais,
+        Disponiveis
+    ),
+    maplist(modificacao_fallback, Disponiveis, Complementares),
+    prefixo_tamanho(Complementares, Faltam, Complemento),
+    append(PlanoCompleto, Complemento, Plano).
+
+atributo_ja_modificado(Plano, Atributo) :-
+    member(Modificacao, Plano),
+    modificacao_altera(Modificacao, Atributo),
+    !.
+
+modificacao_altera(trocar(Atributo, _), Atributo).
+modificacao_altera(omitir(Atributo), Atributo).
+
+quantidade_limitada(Limite, Lista, Quantidade) :-
+    length(Lista, Tamanho),
+    Quantidade is min(Limite, Tamanho).
+
+prefixo_tamanho(_Lista, 0, []) :-
+    !.
+prefixo_tamanho([Item | Itens], Quantidade, [Item | Prefixo]) :-
+    Quantidade > 0,
+    Restante is Quantidade - 1,
+    prefixo_tamanho(Itens, Restante, Prefixo).
+
+
+% Compara por functor, sem exigir que os atributos ocupem a mesma posição.
+% Atributos reais sem equivalente são omitidos; atributos exclusivos da
+% identidade-isca são adicionados.
+construir_plano_disfarce(Reais, Iscas, Plano) :-
+    maplist(modificacao_para_isca(Iscas), Reais, Mudancas0),
+    exclude(==(none), Mudancas0, Mudancas),
+    include(atributo_sem_tipo_em(Reais), Iscas, ExclusivosIsca),
+    maplist(adicionar_atributo, ExclusivosIsca, Adicoes),
+    append(Mudancas, Adicoes, Plano).
+
+modificacao_para_isca(Iscas, Atributo, none) :-
+    memberchk(Atributo, Iscas),
+    !.
+modificacao_para_isca(
+    Iscas,
+    AtributoReal,
+    trocar(AtributoReal, AtributoIsca)
+) :-
+    member(AtributoIsca, Iscas),
     mesmo_tipo_atributo(AtributoReal, AtributoIsca),
-    !,
-    construir_plano_disfarce(
-        Reais,
-        Iscas,
-        RestoPlano
+    !.
+modificacao_para_isca(_Iscas, AtributoReal, omitir(AtributoReal)).
+
+atributo_sem_tipo_em(Atributos, Atributo) :-
+    \+ memberchk(Atributo, Atributos),
+    \+ (
+        member(Existente, Atributos),
+        mesmo_tipo_atributo(Existente, Atributo)
     ).
 
-
-% Se a identidade real possui atributos adicionais que não
-% existem na identidade imitada, eles precisam ser ocultados.
-construir_plano_disfarce(
-    [AtributoReal | Reais],
-    [],
-    [omitir(AtributoReal) | RestoPlano]
-) :-
-    construir_plano_disfarce(
-        Reais,
-        [],
-        RestoPlano
-    ).
+adicionar_atributo(Atributo, adicionar(Atributo)).
 
 
 % Dois atributos são do mesmo tipo quando possuem o mesmo
