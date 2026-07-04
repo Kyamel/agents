@@ -137,7 +137,7 @@ pill_tone(neutral, 'bg-surface-800 text-surface-300').
 pill_tone(muted,   'bg-surface-950 text-surface-400 border border-surface-700').
 
 % Escala tipografica semantica do app (5 niveis, do menor ao maior):
-%   meta      14 px — datas, autoria, rotulos, pills e informacao secundaria;
+%   meta      16 px compacto — datas, autoria, rotulos e informacao secundaria;
 %   normal    16 px — conteudo principal;
 %   emphasis  18 px — nomes, valores e texto introdutorio em destaque;
 %   section   20/24 px — titulo de secao responsivo;
@@ -149,7 +149,7 @@ text_class(Kind, Extra, Class) :-
     text_base(Kind, Base),
     atomic_list_concat([Base, Extra], ' ', Class).
 
-text_base(meta,     'text-sm leading-4').
+text_base(meta,     'text-base leading-4').
 text_base(normal,   'text-base leading-5').
 text_base(emphasis, 'text-lg leading-5 font-semibold').
 text_base(section,  'text-xl leading-5 font-bold sm:text-2xl sm:leading-6').
