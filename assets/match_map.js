@@ -314,14 +314,18 @@ function renderAppearance(container, appearance, revealed) {
 function updateLootViewToggle(button, view) {
   if (!button) return;
   var showList = view === "tree";
-  button.textContent = showList ? "Ver lista" : "Ver árvore";
+  button.textContent =
+    showList ? "Ver itens coletados" : "Ver dependências";
   button.setAttribute(
     "aria-label",
     showList
       ? "Exibir itens coletados como lista"
-      : "Exibir cadeia do tesouro como árvore"
+      : "Exibir dependências do tesouro"
   );
-  button.setAttribute("title", showList ? "Exibir como lista" : "Exibir como árvore");
+  button.setAttribute(
+    "title",
+    showList ? "Ver itens coletados" : "Ver dependências"
+  );
 }
 
 function renderLootPanel(container, objective, lootByName, collected, view) {

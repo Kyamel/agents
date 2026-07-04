@@ -69,14 +69,14 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
         script([type('application/json'), id('match-map-data')], DataJson),
         script([
             type(module),
-            src('/assets/match_map.js?v=26')
+            src('/assets/match_map.js?v=27')
         ], [])
     ].
 
 loot_view_toggle(Html) :-
     ui:primary_button_class(
         default,
-        'ml-auto normal-case tracking-normal',
+        'ml-auto w-36 text-center normal-case tracking-normal',
         Class
     ),
     Html = button([
@@ -84,8 +84,8 @@ loot_view_toggle(Html) :-
         id('mm-loot-view-toggle'),
         class(Class),
         'aria-label'('Exibir itens coletados como lista'),
-        title('Exibir como lista')
-    ], 'Ver lista').
+        title('Ver itens coletados')
+    ], 'Ver itens coletados').
 
 map_controls(Html) :-
     ui:padded_surface_class(

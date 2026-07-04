@@ -136,13 +136,11 @@ pill_tone(ufop,    'bg-ufop-950 text-ufop-200').
 pill_tone(neutral, 'bg-surface-800 text-surface-300').
 pill_tone(muted,   'bg-surface-950 text-surface-400 border border-surface-700').
 
-% Escala tipografica semantica do app (5 niveis, do menor ao maior):
-%   meta      16 px compacto — datas, autoria, rotulos e informacao secundaria;
-%   normal    16 px — conteudo principal;
-%   emphasis  18 px — nomes, valores e texto introdutorio em destaque;
-%   section   20/24 px — titulo de secao responsivo;
-%   title     24/30 px — titulo principal de pagina (responsivo).
-% `text-xs` nao deve ser usado para conteudo de leitura.
+%   meta      16 px compacto - datas, autoria, rotulos e informacao secundaria;
+%   normal    16 px - conteudo principal;
+%   emphasis  18 px - nomes, valores e texto introdutorio em destaque;
+%   section   20/24 px - titulo de secao responsivo;
+%   title     24/30 px - titulo principal de pagina (responsivo).
 text_class(Kind, Class) :-
     text_base(Kind, Class).
 text_class(Kind, Extra, Class) :-
