@@ -6,6 +6,7 @@
 :- use_module('../../views/page').
 :- use_module('../../views/match_card').
 :- use_module('../../views/match_detail').
+:- use_module('../../views/match_map_data').
 :- use_module('../../views/page_section').
 :- use_module('../../views/ui').
 :- use_module('../../views/button_link').
@@ -60,8 +61,10 @@ replay_field(_Replay, _Key, Default, Default).
 % Resposta (HTML)
 render_detail(Request, Match, ThiefName, DetectiveName, Replay) :-
     replay_field(Replay, turns, [], Turns),
-    replay_field(Replay, events, [], Events),
     replay_field(Replay, setup, _{}, Setup),
+    match_map_data:map_data(Match.scenario, Replay, MapData),
+    get_dict(frames, MapData, Frames),
+    match_map_data:frame_events(Frames, Events),
     page_section:back_link('/matches', 'Voltar para partidas', BackLink),
     stat_card('Ladrão', ThiefName, ThiefCard),
     stat_card('Detetive', DetectiveName, DetectiveCard),

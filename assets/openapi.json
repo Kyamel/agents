@@ -1047,6 +1047,42 @@
         },
         "required": ["suspect", "clues"]
       },
+      "MapTimelineEvent": {
+        "type": "object",
+        "description": "Evento estruturado exibido tanto no mapa quanto no detalhe da partida.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["robbery", "disguise", "mandate", "inspection"]
+          },
+          "turn": { "type": "integer" },
+          "text": { "type": "string" },
+          "item": { "type": "string" },
+          "city": { "$ref": "#/components/schemas/MapCity" },
+          "revealed": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "action": { "type": "string" },
+          "suspect": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" }
+            ]
+          },
+          "clues": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "mandate": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/MapMandate" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "required": ["type", "turn", "text"]
+      },
       "MapFrame": {
         "type": "object",
         "properties": {
@@ -1072,6 +1108,10 @@
             "items": { "$ref": "#/components/schemas/MapCity" }
           },
           "eventText": { "type": "string" },
+          "events": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MapTimelineEvent" }
+          },
           "appearance": {
             "type": "array",
             "items": {
@@ -1104,6 +1144,7 @@
           "objectiveReady",
           "robberyCities",
           "eventText",
+          "events",
           "appearance",
           "revealed",
           "collected",

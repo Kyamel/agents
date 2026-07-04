@@ -68,7 +68,7 @@ events_section([], Html) :-
     ui:text_class(normal, 'text-surface-500', EmptyClass),
     Html = div([class('mb-8')], [
         h2([class(HeadingClass)], 'Eventos'),
-        p([class(EmptyClass)], 'Nenhum roubo registrado nesta partida.')
+        p([class(EmptyClass)], 'Nenhum evento registrado nesta partida.')
     ]).
 events_section(Events, Html) :-
     maplist(event_item, Events, Items),
@@ -93,6 +93,16 @@ event_item(Event, Html) :-
         p([class(RevealedClass)], Revealed)
     ]).
 event_item(Event, Html) :-
+    get_dict(type, Event, Type),
+    event_tone(Type, CardClass, TextClass),
+    !,
+    field_text(Event, turn, Turn),
+    field_text(Event, text, Detail),
+    format(string(Text), "Turno ~w: ~w", [Turn, Detail]),
+    Html = li([class(CardClass)], [
+        p([class(TextClass)], Text)
+    ]).
+event_item(Event, Html) :-
     field_text(Event, turn, Turn),
     field_text(Event, detail, Detail),
     format(string(Text), "Turno ~w: ~w", [Turn, Detail]),
@@ -101,6 +111,22 @@ event_item(Event, Html) :-
                    text-surface-300',
                   LiClass),
     Html = li([class(LiClass)], Text).
+
+event_tone(
+    "disguise",
+    'rounded-lg bg-reveal-surface/40 border border-reveal-border px-3 py-2',
+    'text-reveal-text font-medium'
+).
+event_tone(
+    "mandate",
+    'rounded-lg bg-sky-950/40 border border-sky-800 px-3 py-2',
+    'text-sky-200 font-medium'
+).
+event_tone(
+    "inspection",
+    'rounded-lg bg-emerald-950/40 border border-emerald-800 px-3 py-2',
+    'text-emerald-200 font-medium'
+).
 
 revealed_text(Event, Text) :-
     get_dict(revealed, Event, Revealed),

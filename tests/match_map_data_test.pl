@@ -16,7 +16,7 @@ test(projects_frames_in_replay_order) :-
             detective_position: "-",
             thief_action: "-",
             thief_status: "OK",
-            detective_action: "fechar(c)",
+            detective_action: "inspecionar",
             detective_status: "OK",
             events: []
         },
@@ -51,9 +51,16 @@ test(projects_frames_in_replay_order) :-
     assertion(Turn2.appearance = [
         _{original: "altura(alta)", current: "altura(baixa)"}
     ]),
-    assertion(Turn1.blocked == ["c"]),
     assertion(Turn1.t == "c"),
-    assertion(Turn1.d == "d").
+    assertion(Turn1.d == "d"),
+    frame_events(Frames, Events),
+    maplist(event_type, Events, EventTypes),
+    assertion(EventTypes == [
+        "robbery",
+        "disguise",
+        "mandate",
+        "inspection"
+    ]).
 
 test(accumulates_and_releases_locks) :-
     Setup = _{
@@ -84,5 +91,8 @@ turn(Number, DetectiveAction, Turn) :-
         detective_status: "OK",
         events: []
     }.
+
+event_type(Event, Type) :-
+    get_dict(type, Event, Type).
 
 :- end_tests(match_map_data).

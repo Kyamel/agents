@@ -1,6 +1,7 @@
 :- module(match_map_data, [
     map_data/3,
-    replay_frames/4
+    replay_frames/4,
+    frame_events/2
 ]).
 
 :- use_module(library(apply)).
@@ -78,6 +79,7 @@ replay_frames(Setup, Turns0, Objective, [InitialFrame|TurnFrames]) :-
         Objective,
         [],
         "",
+        [],
         State0,
         InitialFrame
     ),
@@ -142,8 +144,8 @@ apply_turn(Turn, Objective, State0, State, Frame) :-
     replay_field(Turn, detective_action, "", DetectiveAction),
     replay_field(Turn, thief_status, "", ThiefStatus),
     replay_field(Turn, detective_status, "", DetectiveStatus),
-    replay_field(Turn, events, [], Events),
-    robbery_details(Events, StolenItems, RobberyCities, Robberies),
+    replay_field(Turn, events, [], RawEvents),
+    robbery_details(RawEvents, StolenItems, RobberyCities, Robberies),
     lock_effect(DetectiveAction, DetectiveStatus, LockEffect, LockCity),
     update_blocked(
         State0.blocked,
@@ -170,22 +172,25 @@ apply_turn(Turn, Objective, State0, State, Frame) :-
         revealed: Revealed,
         mandate: Mandate
     }),
-    turn_event_text(
+    get_dict(turn, Turn, Number),
+    turn_events(
+        Number,
         Turn,
         Robberies,
         DisguiseEffect,
         MandateEffect,
         Detective,
         Mandate,
-        EventText
+        Events
     ),
-    get_dict(turn, Turn, Number),
+    events_text(Events, EventText),
     format(string(Label), "Turno ~w", [Number]),
     frame_from_state(
         Label,
         Objective,
         RobberyCities,
         EventText,
+        Events,
         State,
         Frame
     ).
@@ -207,7 +212,15 @@ valid_city(City) :-
     City \== "",
     City \== "-".
 
-frame_from_state(Label, Objective, RobberyCities, EventText, State, Frame) :-
+frame_from_state(
+    Label,
+    Objective,
+    RobberyCities,
+    EventText,
+    Events,
+    State,
+    Frame
+) :-
     objective_ready(Objective, State.collected, ObjectiveReady),
     Frame = _{
         label: Label,
@@ -220,11 +233,22 @@ frame_from_state(Label, Objective, RobberyCities, EventText, State, Frame) :-
         'objectiveReady': ObjectiveReady,
         'robberyCities': RobberyCities,
         'eventText': EventText,
+        events: Events,
         appearance: State.appearance,
         revealed: State.revealed,
         collected: State.collected,
         mandate: State.mandate
     }.
+
+%!  frame_events(+Frames, -Events) is det.
+%
+%   Achata a timeline estruturada guardada em cada frame.
+frame_events(Frames, Events) :-
+    maplist(frame_event_list, Frames, Nested),
+    append(Nested, Events).
+
+frame_event_list(Frame, Events) :-
+    replay_field(Frame, events, [], Events).
 
 objective_ready(Objective, Collected, true) :-
     valid_city(Objective.city),
@@ -372,33 +396,49 @@ update_blocked(Blocked0, open, City, _Mode, Blocked) :-
 single_lock_mode("single").
 single_lock_mode(single).
 
-turn_event_text(
+turn_events(
+    Number,
     Turn,
     Robberies,
     DisguiseEffect,
     MandateEffect,
     DetectiveCity,
     Mandate,
-    Text
+    Events
 ) :-
-    robbery_event_text(Robberies, RobberyText),
-    optional_event(RobberyText, [], Events0),
-    disguise_event_text(Turn, DisguiseEffect, DisguiseText),
-    optional_event(DisguiseText, Events0, Events1),
-    mandate_event_text(MandateEffect, Mandate, MandateText),
-    optional_event(MandateText, Events1, Events2),
-    inspection_event_text(Turn, DetectiveCity, Mandate, InspectionText),
-    optional_event(InspectionText, Events2, Events),
-    atomics_to_string(Events, "\n", Text).
+    maplist(robbery_timeline_event(Number), Robberies, RobberyEvents),
+    disguise_timeline_event(Number, Turn, DisguiseEffect, DisguiseEvents),
+    mandate_timeline_event(Number, MandateEffect, Mandate, MandateEvents),
+    inspection_timeline_event(
+        Number,
+        Turn,
+        DetectiveCity,
+        Mandate,
+        InspectionEvents
+    ),
+    append(
+        [RobberyEvents, DisguiseEvents, MandateEvents, InspectionEvents],
+        Events
+    ).
 
-optional_event("", Events, Events) :-
-    !.
-optional_event(Event, Events0, Events) :-
-    append(Events0, [Event], Events).
+events_text(Events, Text) :-
+    maplist(event_text, Events, Texts),
+    atomics_to_string(Texts, "\n", Text).
 
-robbery_event_text(Robberies, Text) :-
-    maplist(single_robbery_text, Robberies, Parts),
-    atomics_to_string(Parts, " | ", Text).
+event_text(Event, Text) :-
+    get_dict(text, Event, Text).
+
+robbery_timeline_event(Number, Robbery, Event) :-
+    single_robbery_text(Robbery, Text),
+    replay_field(Robbery, revealed, [], Revealed),
+    Event = _{
+        type: "robbery",
+        turn: Number,
+        item: Robbery.item,
+        city: Robbery.city,
+        revealed: Revealed,
+        text: Text
+    }.
 
 single_robbery_text(Robbery, Text) :-
     replay_field(Robbery, revealed, [], Revealed),
@@ -416,11 +456,36 @@ disguise_event_text(Turn, Effect, Text) :-
     string_concat("Disfarce: ", Action, Text).
 disguise_event_text(_, _, "").
 
+disguise_timeline_event(Number, Turn, Effect, [Event]) :-
+    disguise_event_text(Turn, Effect, Text),
+    Text \== "",
+    !,
+    replay_field(Turn, thief_action, "", Action),
+    Event = _{
+        type: "disguise",
+        turn: Number,
+        action: Action,
+        text: Text
+    }.
+disguise_timeline_event(_, _, _, []).
+
 mandate_event_text(set(_), Mandate, Text) :-
     !,
     mandate_term_text(Mandate, TermText),
     string_concat("Mandato emitido: ", TermText, Text).
 mandate_event_text(_, _, "").
+
+mandate_timeline_event(Number, set(_), Mandate, [Event]) :-
+    !,
+    mandate_event_text(set(Mandate), Mandate, Text),
+    Event = _{
+        type: "mandate",
+        turn: Number,
+        suspect: Mandate.suspect,
+        clues: Mandate.clues,
+        text: Text
+    }.
+mandate_timeline_event(_, _, _, []).
 
 inspection_event_text(Turn, DetectiveCity, Mandate, Text) :-
     replay_field(Turn, detective_action, "", Action),
@@ -432,6 +497,25 @@ inspection_event_text(Turn, DetectiveCity, Mandate, Text) :-
     inspection_mandate_text(Mandate, MandateText),
     format(string(Text), "Inspeção em ~s — ~s", [City, MandateText]).
 inspection_event_text(_, _, _, "").
+
+inspection_timeline_event(
+    Number,
+    Turn,
+    DetectiveCity,
+    Mandate,
+    [Event]
+) :-
+    inspection_event_text(Turn, DetectiveCity, Mandate, Text),
+    Text \== "",
+    !,
+    Event = _{
+        type: "inspection",
+        turn: Number,
+        city: DetectiveCity,
+        mandate: Mandate,
+        text: Text
+    }.
+inspection_timeline_event(_, _, _, _, []).
 
 inspection_mandate_text(null, "sem mandato ativo") :-
     !.
