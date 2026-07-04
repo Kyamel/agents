@@ -70,10 +70,35 @@ events_section([], Html) :-
     ]).
 events_section(Events, Html) :-
     maplist(event_item, Events, Items),
-    ui:text_class(section, 'mb-3', HeadingClass),
-    Html = div([class('mb-8')], [
-        h2([class(HeadingClass)], 'Eventos'),
-        ul([class('space-y-2')], Items)
+    ui:text_class(section, HeadingClass),
+    ui:primary_button_class(
+        small,
+        'pointer-events-none ml-auto',
+        ToggleClass
+    ),
+    atomic_list_concat(
+        [ToggleClass, 'min-w-32 text-center group-open:hidden'],
+        ' ',
+        ExpandClass
+    ),
+    atomic_list_concat(
+        [ToggleClass, 'min-w-32 text-center hidden group-open:inline-block'],
+        ' ',
+        CollapseClass
+    ),
+    Html = details([class('group mb-8')], [
+        summary([
+            class('flex cursor-pointer list-none items-center gap-3 rounded-lg \c
+                   focus-visible:outline-none focus-visible:ring-2 \c
+                   focus-visible:ring-ufop-400 focus-visible:ring-offset-2 \c
+                   focus-visible:ring-offset-surface-950 \c
+                   [&::-webkit-details-marker]:hidden')
+        ], [
+            h2([class(HeadingClass)], 'Eventos'),
+            span([class(ExpandClass)], 'Expandir'),
+            span([class(CollapseClass)], 'Recolher')
+        ]),
+        ul([class('mt-3 space-y-2')], Items)
     ]).
 
 event_item(Event, Html) :-
