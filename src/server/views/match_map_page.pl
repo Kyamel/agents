@@ -146,12 +146,28 @@ map_legend(Html) :-
          sm:flex sm:flex-wrap sm:items-center sm:gap-x-5 sm:gap-y-2',
         Class
     ),
-    legend_item('rounded-full bg-map-thief', 'Rota do ladrão', Thief),
-    legend_item('rounded-full bg-map-detective', 'Rota do detetive', Detective),
-    legend_item('rounded bg-map-blocked-fill', 'Cidade bloqueada', Blocked),
-    legend_item('rounded bg-map-ready-fill', 'Objetivo liberado', Ready),
-    legend_item('rounded bg-map-robbery-fill', 'Evento de furto', Robbery),
-    legend_item('rounded bg-map-inspection-fill', 'Cidade inspecionada', Inspection),
+    legend_item('rounded-full bg-amber-400', 'Rota do ladrão', Thief),
+    legend_item('rounded-full bg-sky-400', 'Rota do detetive', Detective),
+    legend_item(
+        'rounded bg-ufop-600 border border-ufop-200',
+        'Cidade bloqueada',
+        Blocked
+    ),
+    legend_item(
+        'rounded bg-emerald-600 border border-emerald-300',
+        'Objetivo liberado',
+        Ready
+    ),
+    legend_item(
+        'rounded bg-amber-400 border border-amber-200',
+        'Evento de furto',
+        Robbery
+    ),
+    legend_item(
+        'rounded bg-sky-900 border border-sky-400',
+        'Cidade inspecionada',
+        Inspection
+    ),
     legend_glyph('💎', 'Tesouro na cidade', Treasure),
     legend_glyph('🔑', 'Item na cidade', Item),
     Html = div([class(Class)], [
