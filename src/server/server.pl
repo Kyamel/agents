@@ -25,6 +25,7 @@
 :- use_module('./routes/web/matches_show').
 :- use_module('./routes/web/matches_map').
 :- use_module('./routes/web/users_show').
+:- use_module('./routes/web/slides').
 
 % Rotas API
 :- use_module('./routes/api/health').

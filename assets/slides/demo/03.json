@@ -1,0 +1,9 @@
+{
+  "title": "Imagem de demonstração",
+  "subtitle": "Duas imagens podem dividir o mesmo slide",
+  "image": "/assets/slides/demo/imgs/example.png",
+  "image_alt": "Agentes em uma rede urbana",
+  "second_image": "/assets/slides/demo/imgs/scotland-yard.jpg",
+  "second_image_alt": "Tabuleiro de Scotland Yard",
+  "paragraph": "As duas imagens ficam lado a lado em telas largas e se reorganizam verticalmente em telas pequenas."
+}

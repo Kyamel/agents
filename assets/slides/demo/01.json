@@ -1,0 +1,8 @@
+{
+  "title": "Um ambiente multiagente",
+  "subtitle": "O ladrão foge, o detetive investiga e cada ação muda o estado da partida",
+  "image": "/assets/slides/demo/imgs/scotland-yard-map.webp",
+  "image_alt": "Mapa estilizado de uma partida",
+  "right_text": "Os dois papéis recebem percepções diferentes do mundo e usam estratégias próprias para perseguir objetivos opostos.",
+  "paragraph": "Neste layout, a imagem e o texto usam toda a largura disponível do slide."
+}

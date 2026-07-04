@@ -1,7 +1,8 @@
 :- module(page, [
     reply_page/3,
     reply_page/4,
-    layout/3
+    layout/3,
+    tailwind_config/1
 ]).
 
 :- use_module(library(http/html_write)).

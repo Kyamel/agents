@@ -45,6 +45,7 @@ dev:
 	swipl src/main.pl
 
 test:
+	swipl -q -s tests/slides_test.pl -g run_tests -t halt
 	swipl -q -s tests/match_map_data_test.pl -g run_tests -t halt
 	swipl -q -s tests/ladrao_raffles_old_test.pl -g run_tests -t halt
 	swipl -q -s tests/raffles_2_test.pl -g run_tests -t halt
