@@ -377,7 +377,9 @@ function renderLootTree(container, objective, lootByName, collected) {
     requirements: objective.requirements || []
   };
   var tree = document.createElement("ul");
-  tree.className = "space-y-2";
+  tree.className = "space-y-1.5 pr-1";
+  tree.style.width = "max-content";
+  tree.style.minWidth = "100%";
   tree.appendChild(
     buildLootTreeNode(root, lootByName, collectedLookup, {})
   );
@@ -414,7 +416,6 @@ function buildLootTreeNode(entry, lootByName, collected, ancestors) {
   addClasses(node, LOOT_TREE_STATE_CLASSES[state]);
 
   findRole(item, "glyph").textContent = lootGlyph(entry);
-  findRole(item, "kind").textContent = lootKindLabel(entry);
   findRole(item, "name").textContent = entry.name;
   findRole(item, "status").textContent = lootNodeStatus(entry, state);
 
