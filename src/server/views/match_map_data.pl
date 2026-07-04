@@ -26,6 +26,7 @@ map_data(Scenario, Replay, Data) :-
         cities: Cities,
         edges: Edges,
         loot: Loot,
+        objective: Objective,
         'thiefIdentity': ThiefIdentity,
         frames: Frames
     }.
@@ -44,13 +45,15 @@ map_objective(Scenario, Setup, Objective) :-
     get_dict(target, Setup, Target),
     engine:scenario_treasure(Scenario, Target, City0, Requirements0),
     !,
+    term_text(Target, Name),
     term_text(City0, City),
     maplist(term_text, Requirements0, Requirements),
     Objective = _{
+        name: Name,
         city: City,
         requirements: Requirements
     }.
-map_objective(_, _, _{city: null, requirements: []}).
+map_objective(_, _, _{name: null, city: null, requirements: []}).
 
 map_loot(Scenario, LootDicts) :-
     scenario_loot_safe(Scenario, Loot),
@@ -89,14 +92,16 @@ map_frame_mandate_name(Scenario, Frame0, Frame) :-
     Frame = Frame0.put(mandate, Mandate).
 map_frame_mandate_name(_Scenario, Frame, Frame).
 
-loot_dict(loot(Kind0, Name0, City0), Dict) :-
+loot_dict(loot(Kind0, Name0, City0, Requirements0), Dict) :-
     term_text(Kind0, Kind),
     term_text(Name0, Name),
     term_text(City0, City),
+    maplist(term_text, Requirements0, Requirements),
     Dict = _{
         kind: Kind,
         name: Name,
-        city: City
+        city: City,
+        requirements: Requirements
     }.
 
 %!  replay_frames(+Setup, +Turns, +Objective, -Frames) is det.

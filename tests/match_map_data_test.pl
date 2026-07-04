@@ -93,7 +93,7 @@ test(resolves_thief_identity_from_scenario) :-
             thief_id: 3,
             thief_start: "0_0_0",
             detective_start: "0_0_1",
-            target: "coroa",
+            target: "coroa_leste",
             appearance: []
         },
         turns: [
@@ -112,6 +112,10 @@ test(resolves_thief_identity_from_scenario) :-
     map_data("./maps/metro_3_3.prolog", Replay, Data),
     assertion(Data.thiefIdentity.id == 3),
     assertion(Data.thiefIdentity.name == "Dario Pike"),
+    assertion(Data.objective.name == "coroa_leste"),
+    once((member(ChaveNorte, Data.loot),
+          ChaveNorte.name == "chave_norte")),
+    assertion(ChaveNorte.requirements == ["mini_chave_norte"]),
     Data.frames = [_, Turn1],
     assertion(Turn1.mandate.suspect == 12),
     assertion(Turn1.mandate.suspectName == "Mina Cross").

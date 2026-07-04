@@ -80,6 +80,7 @@ function init() {
 
   var edges = data.edges || [];
   var loot = data.loot || [];
+  var objective = data.objective || null;
   var positions = layout(cities, edges);
   var mapView = createMapSvg(edges, positions, loot, colors.map);
   var lootByName = lootIndex(loot);
@@ -93,12 +94,14 @@ function init() {
   var eventInfo = document.getElementById("mm-event");
   var appearanceInfo = document.getElementById("mm-appearance");
   var collectedInfo = document.getElementById("mm-collected");
+  var lootViewToggle = document.getElementById("mm-loot-view-toggle");
   var mandateInfo = document.getElementById("mm-mandate");
   if (!slider) return;
 
   slider.max = String(frames.length - 1);
   slider.value = "0";
   var timer = null;
+  var lootView = "tree";
 
   function render(index) {
     var frame = frames[index];
@@ -107,7 +110,13 @@ function init() {
     if (label) label.textContent = frame.label;
     renderTurnEvents(eventInfo, frame.events, frame.eventText);
     renderAppearance(appearanceInfo, frame.appearance, frame.revealed);
-    renderCollected(collectedInfo, frame.collected, lootByName);
+    renderLootPanel(
+      collectedInfo,
+      objective,
+      lootByName,
+      frame.collected,
+      lootView
+    );
     renderMandate(mandateInfo, frame.mandate);
   }
 
@@ -159,7 +168,24 @@ function init() {
     stop();
     render(Number(slider.value));
   });
+  if (lootViewToggle) {
+    lootViewToggle.addEventListener("click", function () {
+      lootView = lootView === "tree" ? "list" : "tree";
+      updateLootViewToggle(lootViewToggle, lootView);
+      var frame = frames[Number(slider.value)];
+      if (frame) {
+        renderLootPanel(
+          collectedInfo,
+          objective,
+          lootByName,
+          frame.collected,
+          lootView
+        );
+      }
+    });
+  }
 
+  updateLootViewToggle(lootViewToggle, lootView);
   render(0);
   setupSidePanels(host);
 }
@@ -285,21 +311,145 @@ function renderAppearance(container, appearance, revealed) {
   });
 }
 
-function renderCollected(container, collected, lootByName) {
+function updateLootViewToggle(button, view) {
+  if (!button) return;
+  var showList = view === "tree";
+  button.textContent = showList ? "Ver lista" : "Ver árvore";
+  button.setAttribute(
+    "aria-label",
+    showList
+      ? "Exibir itens coletados como lista"
+      : "Exibir cadeia do tesouro como árvore"
+  );
+  button.setAttribute("title", showList ? "Exibir como lista" : "Exibir como árvore");
+}
+
+function renderLootPanel(container, objective, lootByName, collected, view) {
+  if (view === "list") {
+    renderCollectedList(container, collected, lootByName);
+    return;
+  }
+  renderLootTree(container, objective, lootByName, collected);
+}
+
+function renderCollectedList(container, collected, lootByName) {
   if (!container) return;
   clearElement(container);
   if (!collected || !collected.length) {
     container.appendChild(emptyState("Nada roubado até aqui."));
     return;
   }
+
+  var list = document.createElement("div");
+  list.className = "flex flex-wrap content-start gap-2";
   collected.forEach(function (name) {
     var entry = lootByName[name] || { name: name, kind: "item" };
-    var item = cloneTemplate("mm-template-collected");
+    var item = cloneTemplate("mm-template-collected-list-item");
     findRole(item, "glyph").textContent = lootGlyph(entry);
     findRole(item, "kind").textContent = lootKindLabel(entry);
     findRole(item, "name").textContent = name;
-    container.appendChild(item);
+    list.appendChild(item);
   });
+  container.appendChild(list);
+}
+
+function renderLootTree(container, objective, lootByName, collected) {
+  if (!container) return;
+  clearElement(container);
+  if (!objective || objective.name === null || objective.name === undefined) {
+    container.appendChild(emptyState("Cadeia do tesouro indisponível."));
+    return;
+  }
+
+  var collectedLookup = {};
+  (collected || []).forEach(function (name) {
+    collectedLookup[name] = true;
+  });
+
+  var root = {
+    kind: "treasure",
+    name: objective.name,
+    city: objective.city,
+    requirements: objective.requirements || []
+  };
+  var tree = document.createElement("ul");
+  tree.className = "space-y-2";
+  tree.appendChild(
+    buildLootTreeNode(root, lootByName, collectedLookup, {})
+  );
+  container.appendChild(tree);
+}
+
+var LOOT_TREE_STATE_CLASSES = {
+  collected: [
+    "border-emerald-800",
+    "bg-emerald-950/40",
+    "text-emerald-200"
+  ],
+  ready: [
+    "border-amber-800",
+    "bg-amber-950/40",
+    "text-amber-200"
+  ],
+  pending: [
+    "border-surface-700",
+    "bg-surface-950",
+    "text-surface-300"
+  ]
+};
+
+function buildLootTreeNode(entry, lootByName, collected, ancestors) {
+  var item = cloneTemplate("mm-template-collected");
+  var requirements = entry.requirements || [];
+  var isCollected = Boolean(collected[entry.name]);
+  var isReady = requirements.every(function (name) {
+    return Boolean(collected[name]);
+  });
+  var state = isCollected ? "collected" : isReady ? "ready" : "pending";
+  var node = findRole(item, "node");
+  addClasses(node, LOOT_TREE_STATE_CLASSES[state]);
+
+  findRole(item, "glyph").textContent = lootGlyph(entry);
+  findRole(item, "kind").textContent = lootKindLabel(entry);
+  findRole(item, "name").textContent = entry.name;
+  findRole(item, "status").textContent = lootNodeStatus(entry, state);
+
+  var city = findRole(item, "city");
+  if (entry.city !== null && entry.city !== undefined) {
+    city.textContent = "em " + entry.city;
+    city.classList.remove("hidden");
+  }
+
+  var children = findRole(item, "children");
+  if (!requirements.length || ancestors[entry.name]) {
+    children.remove();
+    return item;
+  }
+
+  var nextAncestors = Object.assign({}, ancestors);
+  nextAncestors[entry.name] = true;
+  requirements.forEach(function (name) {
+    var dependency = lootByName[name] || {
+      kind: "item",
+      name: name,
+      city: null,
+      requirements: []
+    };
+    children.appendChild(
+      buildLootTreeNode(dependency, lootByName, collected, nextAncestors)
+    );
+  });
+  return item;
+}
+
+function lootNodeStatus(entry, state) {
+  if (state === "collected") {
+    return entry.kind === "treasure" ? "roubado" : "coletado";
+  }
+  if (state === "ready") {
+    return entry.kind === "treasure" ? "tesouro liberado" : "liberado";
+  }
+  return "bloqueado";
 }
 
 function renderMandate(container, mandate) {
@@ -331,6 +481,7 @@ function renderMandate(container, mandate) {
 function lootIndex(loot) {
   var index = {};
   (loot || []).forEach(function (entry) {
+    if (!entry.requirements) entry.requirements = [];
     index[entry.name] = entry;
   });
   return index;

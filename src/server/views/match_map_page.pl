@@ -30,11 +30,15 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
         'space-y-2 overflow-y-auto min-h-0 flex-1 pr-1',
         AppearanceCard
     ),
+    loot_view_toggle(LootViewToggle),
     map_scroll_card(
         emerald,
-        'Itens coletados',
+        [
+            span([], 'Cadeia do tesouro'),
+            LootViewToggle
+        ],
         'mm-collected',
-        'flex flex-wrap content-start gap-2 overflow-y-auto min-h-0 flex-1 pr-1',
+        'overflow-y-auto min-h-0 flex-1 pr-1',
         CollectedCard
     ),
     map_state_card(
@@ -66,9 +70,22 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
         script([type('application/json'), id('match-map-data')], DataJson),
         script([
             type(module),
-            src('/assets/match_map.js?v=23')
+            src('/assets/match_map.js?v=25')
         ], [])
     ].
+
+loot_view_toggle(Html) :-
+    ui:primary_button_class(
+        'ml-auto inline-block rounded-xl px-4 py-2 normal-case tracking-normal',
+        Class
+    ),
+    Html = button([
+        type(button),
+        id('mm-loot-view-toggle'),
+        class(Class),
+        'aria-label'('Exibir itens coletados como lista'),
+        title('Exibir como lista')
+    ], 'Ver lista').
 
 map_controls(Html) :-
     ui:surface_class('p-4 mb-4 flex flex-wrap items-center gap-3', CardClass),
@@ -190,7 +207,7 @@ map_scroll_card(Accent, Label, Id, ContentClass, Html) :-
         HeadingClass
     ),
     Html = div([class(CardClass)], [
-        p([class(HeadingClass)], Label),
+        div([class(HeadingClass)], Label),
         div([id(Id), class(ContentClass)], [])
     ]).
 
@@ -256,6 +273,49 @@ map_templates(Html) :-
             ])
         ]),
         template([id('mm-template-collected')], [
+            li([
+                class('min-w-0')
+            ], [
+                div([
+                    class('flex min-w-0 items-center gap-2 rounded-lg border \c
+                           px-2.5 py-2'),
+                    'data-role'(node)
+                ], [
+                    span([
+                        class('shrink-0 text-base leading-none'),
+                        'data-role'(glyph)
+                    ], []),
+                    div([class('min-w-0 flex-1')], [
+                        div([class('flex min-w-0 items-baseline gap-2')], [
+                            span([
+                                class('font-mono font-semibold break-all'),
+                                'data-role'(name)
+                            ], []),
+                            span([
+                                class('hidden truncate text-xs opacity-70'),
+                                'data-role'(city)
+                            ], [])
+                        ]),
+                        span([
+                            class('text-[0.65rem] uppercase tracking-wide \c
+                                   font-semibold opacity-80'),
+                            'data-role'(kind)
+                        ], [])
+                    ]),
+                    span([
+                        class('shrink-0 rounded-full border border-current \c
+                               px-2 py-0.5 text-[0.65rem] uppercase \c
+                               tracking-wide font-semibold'),
+                        'data-role'(status)
+                    ], [])
+                ]),
+                ul([
+                    class('ml-4 mt-2 space-y-2 border-l border-surface-700 pl-4'),
+                    'data-role'(children)
+                ], [])
+            ])
+        ]),
+        template([id('mm-template-collected-list-item')], [
             span([
                 class('flex items-center gap-2 rounded-lg bg-surface-950 \c
                        border border-surface-700 px-2.5 py-1')

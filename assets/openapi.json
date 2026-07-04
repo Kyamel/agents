@@ -994,6 +994,9 @@
             "type": "array",
             "items": { "$ref": "#/components/schemas/MapLoot" }
           },
+          "objective": {
+            "$ref": "#/components/schemas/MapObjective"
+          },
           "thiefIdentity": {
             "oneOf": [
               { "$ref": "#/components/schemas/MapThiefIdentity" },
@@ -1005,7 +1008,24 @@
             "items": { "$ref": "#/components/schemas/MapFrame" }
           }
         },
-        "required": ["cities", "edges", "loot", "thiefIdentity", "frames"]
+        "required": ["cities", "edges", "loot", "objective", "thiefIdentity", "frames"]
+      },
+      "MapObjective": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "null" }
+            ]
+          },
+          "city": { "$ref": "#/components/schemas/MapCity" },
+          "requirements": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["name", "city", "requirements"]
       },
       "MapThiefIdentity": {
         "type": "object",
@@ -1029,9 +1049,13 @@
             "enum": ["item", "treasure"]
           },
           "name": { "type": "string" },
-          "city": { "$ref": "#/components/schemas/MapCity" }
+          "city": { "$ref": "#/components/schemas/MapCity" },
+          "requirements": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
         },
-        "required": ["kind", "name", "city"]
+        "required": ["kind", "name", "city", "requirements"]
       },
       "MapAppearanceAttribute": {
         "type": "object",
