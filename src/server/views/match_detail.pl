@@ -21,11 +21,11 @@ setup_section(Setup, Html) :-
     field_text(Setup, thief_start, ThiefStart),
     field_text(Setup, detective_start, DetectiveStart),
     field_text(Setup, disguises, Disguises),
-    fact('Cenario', Scenario, F1),
-    fact('Alvo do ladrao', Target, F2),
+    fact('Cenário', Scenario, F1),
+    fact('Alvo do ladrão', Target, F2),
     fact('Limite de turnos', MaxTurns, F3),
-    fact('Inicio do ladrao', ThiefStart, F4),
-    fact('Inicio do detetive', DetectiveStart, F5),
+    fact('Início do ladrão', ThiefStart, F4),
+    fact('Início do detetive', DetectiveStart, F5),
     fact('Disfarces disponíveis', Disguises, F6),
     appearance_chips(Setup, Chips),
     ui:padded_surface_class(normal, 'mb-8', CardClass),
@@ -37,7 +37,7 @@ setup_section(Setup, Html) :-
         h2([class(HeadingClass)], 'Configuração da partida'),
         div([class(GridClass)], [F1, F2, F3, F4, F5, F6]),
         div([class('mt-5')], [
-            p([class(AppearanceClass)], 'Aparencia do alvo'),
+            p([class(AppearanceClass)], 'Aparência do alvo'),
             div([class('flex flex-wrap gap-2')], Chips)
         ])
     ]).
