@@ -4,6 +4,7 @@
 :- use_module('../../views/page').
 :- use_module('../../views/page_section').
 :- use_module('../../views/ui').
+:- use_module('../../views/prolog_code').
 
 :- http_handler(root(about), handler, [method(get)]).
 :- http_handler(root('about/'), handler, [method(get)]).
@@ -16,7 +17,8 @@ handler(Request) :-
     thief_section(Thief),
     detective_section(Detective),
     submission_section(Submission),
-    page:reply_page(Request, 'Sobre o jogo e os agentes', [
+    prolog_code:highlight_assets(HighlightAssets),
+    append([
         Hero,
         Game,
         %Characteristics,
@@ -24,7 +26,8 @@ handler(Request) :-
         Thief,
         Detective,
         Submission
-    ]).
+    ], HighlightAssets, Content),
+    page:reply_page(Request, 'Sobre o jogo e os agentes', Content).
 
 hero(Html) :-
     ui:text_class(title, 'tracking-tight mb-4', TitleClass),
@@ -145,7 +148,7 @@ thief_section(Html) :-
     action_chip('disfarce(Mudanças)', A3),
     action_chip('despir_disfarce', A4),
     action_chip('nada', A5),
-    code_block(Code, CodeBlock),
+    prolog_code:code_block(Code, CodeBlock),
     contract_signature('ladrao_preload/7',
         'ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto, IdEscolhido, TesouroAlvo).',
         P1),
@@ -176,7 +179,7 @@ detective_section(Html) :-
     action_chip('fechar(Cidade)', A4),
     action_chip('liberar(Cidade)', A5),
     action_chip('nada', A6),
-    code_block(Code, CodeBlock),
+    prolog_code:code_block(Code, CodeBlock),
     contract_signature('detetive_preload/5',
         'detetive_preload(Grafo, Suspeitos, Itens, Tesouros, pronto).',
         P1),
@@ -283,13 +286,6 @@ action_chip(Text, Html) :-
                    px-2.5 py-1.5 text-surface-300',
                   Class),
     Html = code([class(Class)], Text).
-
-code_block(Code, Html) :-
-    ui:text_class(meta,
-                  'overflow-x-auto rounded-lg bg-surface-950 border \c
-                   border-surface-700 p-4 text-surface-300',
-                  Class),
-    Html = pre([class(Class)], code([], Code)).
 
 surface(Extra, Content, div([class(Class)], [Content])) :-
     atomic_list_concat(['my-8', Extra], ' ', FullExtra),

@@ -3,7 +3,8 @@
     list_page/4,
     list_page_with_owners/4,
     profile_page/4,
-    performance_stats/2
+    performance_stats/2,
+    source_view/2
 ]).
 
 :- use_module('../db/db').
@@ -56,6 +57,21 @@ profile_page(Id, Page, PerPage,
     ),
     maplist(agent_match(Agent.id), Matches, History).
 profile_page(_, _, _, not_found).
+
+%!  source_view(+Id, -Outcome) is det.
+%
+%   Código-fonte público para a página dedicada. Agentes privados existem, mas
+%   seu source nunca deixa a camada de serviço.
+source_view(Id, source(Public, Source)) :-
+    db:get_agent(Id, Agent),
+    Agent.is_private == false,
+    !,
+    get_dict(source_text, Agent, Source),
+    del_dict(source_text, Agent, _, Public).
+source_view(Id, private) :-
+    db:get_agent(Id, _),
+    !.
+source_view(_Id, not_found).
 
 %!  performance_stats(+Record, -Stats) is det.
 %

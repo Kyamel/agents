@@ -19,6 +19,7 @@
 :- use_module('./routes/web/auth_verify').
 :- use_module('./routes/web/agents_list').
 :- use_module('./routes/web/agents_show').
+:- use_module('./routes/web/agents_source').
 :- use_module('./routes/web/agents_new').
 :- use_module('./routes/web/agents_delete').
 :- use_module('./routes/web/matches_list').

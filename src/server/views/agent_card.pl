@@ -1,6 +1,7 @@
 :- module(agent_card, [
     agent_card/3,
-    role_label/2
+    role_label/2,
+    role_badge_class/2
 ]).
 
 :- use_module(ui).

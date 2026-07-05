@@ -9,7 +9,9 @@
 :- use_module('../../views/card_list').
 :- use_module('../../views/match_card').
 :- use_module('../../views/match_detail', [stat_card/3, stat_card/4]).
-:- use_module('../../views/agent_card', [role_label/2]).
+:- use_module('../../views/agent_card',
+              [role_label/2, role_badge_class/2]).
+:- use_module('../../views/button_link').
 :- use_module('../../views/ui').
 
 % Prefix público para /agents/<id>; as rotas exatas /agents/new e
@@ -66,20 +68,24 @@ render_profile(Request, Agent, Owner, Stats, Matches, PaginationMeta) :-
 
 profile_heading(Agent, Owner, Html) :-
     role_label(Agent.role, RoleLabel),
-    ui:pill_class(neutral, RoleClass),
-    privacy_badge(Agent.is_private, PrivacyBadge),
+    role_badge_class(Agent.role, RoleClass),
     lifecycle_badge(Agent.deleted_at, LifecycleBadge),
+    source_button(Agent, SourceButton),
     ui:text_class(title, 'break-words', TitleClass),
     ui:text_class(meta, 'mt-2 text-surface-400', MetaClass),
     ui:link_class(OwnerLinkClass),
     format(atom(OwnerHref), '/users/~w', [Owner.id]),
     ui:local_time(Agent.created_at, CreatedTime),
     Html = div([class('mt-3 mb-6')], [
-        div([class('flex flex-wrap items-center gap-3')], [
-            h1([class(TitleClass)], Agent.name),
-            span([class(RoleClass)], RoleLabel),
-            PrivacyBadge,
-            LifecycleBadge
+        div([
+            class('flex flex-col items-start justify-between gap-3 sm:flex-row')
+        ], [
+            div([class('flex flex-wrap items-center gap-3')], [
+                h1([class(TitleClass)], Agent.name),
+                span([class(RoleClass)], RoleLabel),
+                LifecycleBadge
+            ]),
+            SourceButton
         ]),
         p([class(MetaClass)], [
             'Enviado por ',
@@ -89,11 +95,12 @@ profile_heading(Agent, Owner, Html) :-
         ])
     ]).
 
-privacy_badge(true, span([class(Class)], 'Privado')) :-
+source_button(Agent, Html) :-
+    get_dict(source, Agent, _),
     !,
-    ui:pill_class(muted, Class).
-privacy_badge(false, span([class(Class)], 'Público')) :-
-    ui:pill_class(neutral, Class).
+    format(atom(Href), '/agents/~w/source', [Agent.id]),
+    button_link:button_link(Href, 'Ver código-fonte', Html).
+source_button(_Agent, '').
 
 lifecycle_badge("", '') :- !.
 lifecycle_badge(_DeletedAt, span([class(Class)], 'Excluído')) :-
