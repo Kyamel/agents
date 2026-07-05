@@ -274,7 +274,9 @@ role_header(Accent, Title, Description, Html) :-
 contract_signature(Name, Signature, Html) :-
     ui:eyebrow_class(slate, NameBase),
     atomic_list_concat([NameBase, 'mb-2'], ' ', NameClass),
-    ui:text_class(meta, 'text-surface-200 break-all', SignatureClass),
+    ui:text_class(meta,
+                  'text-surface-200 break-all language-prolog js-prolog-highlight',
+                  SignatureClass),
     Html = div([class('rounded-lg bg-surface-950/70 border border-surface-700 p-4')], [
     p([class(NameClass)], Name),
     code([class(SignatureClass)], Signature)
