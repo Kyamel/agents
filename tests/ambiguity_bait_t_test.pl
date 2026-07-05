@@ -1,10 +1,10 @@
-:- begin_tests(ladrao_raffles_old).
+:- begin_tests(ambiguity_bait_t).
 
-:- use_module('../agents/ladrao_raffles_old').
+:- use_module('../agents/ambiguity_bait_t').
 
 reset_agent :-
-    ladrao_raffles_old:limpar_memoria,
-    ladrao_raffles_old:limpar_memoria_local.
+    ambiguity_bait_t:limpar_memoria,
+    ambiguity_bait_t:limpar_memoria_local.
 
 test(fallback_uses_full_disguise_budget,
      [setup(reset_agent), cleanup(reset_agent)]) :-
@@ -14,7 +14,7 @@ test(fallback_uses_full_disguise_budget,
         cor_olhos(verde),
         marca(cicatriz)
     ],
-    assertz(ladrao_raffles_old:disfarces_usados(0)),
+    assertz(ambiguity_bait_t:disfarces_usados(0)),
     State = thief(
         loc(a),
         0,
@@ -23,7 +23,7 @@ test(fallback_uses_full_disguise_budget,
         [],
         3
     ),
-    ladrao_raffles_old:ladrao_action(
+    ambiguity_bait_t:ladrao_action(
         [],
         State,
         disfarce(Modifications)
@@ -42,8 +42,8 @@ test(strong_plan_is_completed_to_full_budget,
         cor_olhos(verde),
         marca(cicatriz)
     ],
-    assertz(ladrao_raffles_old:disfarces_usados(0)),
-    assertz(ladrao_raffles_old:plano_disfarce_forte(
+    assertz(ambiguity_bait_t:disfarces_usados(0)),
+    assertz(ambiguity_bait_t:plano_disfarce_forte(
         100,
         1,
         [trocar(altura(alta), altura(baixa))]
@@ -56,7 +56,7 @@ test(strong_plan_is_completed_to_full_budget,
         [],
         3
     ),
-    ladrao_raffles_old:ladrao_action(
+    ambiguity_bait_t:ladrao_action(
         [],
         State,
         disfarce(Modifications)
@@ -68,7 +68,7 @@ test(strong_plan_is_completed_to_full_budget,
     ]).
 
 test(strong_plan_handles_different_attribute_functors) :-
-    ladrao_raffles_old:construir_plano_disfarce(
+    ambiguity_bait_t:construir_plano_disfarce(
         [altura(alta), barba, chapeu(preto)],
         [altura(baixa), oculos, chapeu(preto)],
         Plan
@@ -79,4 +79,4 @@ test(strong_plan_handles_different_attribute_functors) :-
         adicionar(oculos)
     ]).
 
-:- end_tests(ladrao_raffles_old).
+:- end_tests(ambiguity_bait_t).

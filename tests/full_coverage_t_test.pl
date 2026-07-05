@@ -1,11 +1,9 @@
-:- begin_tests(raffles_2).
+:- begin_tests(full_coverage_t).
 
-:- use_module('../agents/raffles_2').
+:- use_module('../agents/full_coverage_t').
 
 reset_agents :-
-    raffles_2:limpar_memoria,
-    ladrao_raffles_old:limpar_memoria,
-    ladrao_raffles_old:limpar_memoria_local.
+    full_coverage_t:limpar_memoria.
 
 single_suspect([
     procurado(
@@ -30,7 +28,7 @@ test(ignores_treasures_with_missing_dependencies,
         tesouro(valido, b, [chave]),
         tesouro(valido, b, [chave])
     ],
-    raffles_2:ladrao_preload(
+    full_coverage_t:ladrao_preload(
         Graph,
         Suspects,
         Items,
@@ -49,7 +47,7 @@ test(ignores_treasures_with_missing_dependencies,
         [],
         0
     ),
-    raffles_2:ladrao_action([], State, Action),
+    full_coverage_t:ladrao_action([], State, Action),
     assertion(Action == move(a, b)).
 
 test(disguise_uses_full_budget,
@@ -58,7 +56,7 @@ test(disguise_uses_full_budget,
     single_suspect(Suspects),
     Items = [item(chave, b, [])],
     Treasures = [tesouro(valido, b, [chave])],
-    raffles_2:ladrao_preload(
+    full_coverage_t:ladrao_preload(
         Graph,
         Suspects,
         Items,
@@ -69,7 +67,7 @@ test(disguise_uses_full_budget,
     ),
     Suspects = [procurado(Id, _, Appearance)],
     State = thief(loc(a), Id, Appearance, Target, [], 3),
-    raffles_2:ladrao_action(
+    full_coverage_t:ladrao_action(
         [],
         State,
         disfarce(Modifications)
@@ -89,7 +87,7 @@ test(uses_only_one_low_cost_bait,
         tesouro(alvo, c, [chave_real]),
         tesouro(isca, b, [chave_isca])
     ],
-    raffles_2:ladrao_preload(
+    full_coverage_t:ladrao_preload(
         Graph,
         Suspects,
         Items,
@@ -106,7 +104,7 @@ test(uses_only_one_low_cost_bait,
         [],
         0
     ),
-    raffles_2:ladrao_action([], StateA, MoveToBait),
+    full_coverage_t:ladrao_action([], StateA, MoveToBait),
     assertion(MoveToBait == move(a, b)),
     StateB = thief(
         loc(b),
@@ -116,7 +114,7 @@ test(uses_only_one_low_cost_bait,
         [],
         0
     ),
-    raffles_2:ladrao_action([], StateB, StealBait),
+    full_coverage_t:ladrao_action([], StateB, StealBait),
     assertion(StealBait == roubar(chave_isca)),
     StateAfterBait = thief(
         loc(b),
@@ -126,7 +124,7 @@ test(uses_only_one_low_cost_bait,
         [chave_isca],
         0
     ),
-    raffles_2:ladrao_action([], StateAfterBait, ResumeTarget),
+    full_coverage_t:ladrao_action([], StateAfterBait, ResumeTarget),
     assertion(ResumeTarget == move(b, c)).
 
-:- end_tests(raffles_2).
+:- end_tests(full_coverage_t).

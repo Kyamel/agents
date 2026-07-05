@@ -47,9 +47,10 @@ dev:
 test:
 	swipl -q -s tests/slides_test.pl -g run_tests -t halt
 	swipl -q -s tests/match_map_data_test.pl -g run_tests -t halt
-	swipl -q -s tests/ladrao_raffles_old_test.pl -g run_tests -t halt
-	swipl -q -s tests/raffles_2_test.pl -g run_tests -t halt
+	swipl -q -s tests/ambiguity_bait_t_test.pl -g run_tests -t halt
+	swipl -q -s tests/full_coverage_t_test.pl -g run_tests -t halt
 	node tests/match_map_layout_test.mjs
+	node tests/match_map_resize_test.mjs
 
 # --- Build da imagem ----------------------------------------------------------
 build:
