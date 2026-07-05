@@ -1,4 +1,15 @@
-:- module(detetive, [detetive_preload/5, detetive_action/3]).
+% ============================================================
+% DETETIVE: naive_pursuer_d
+%
+% Perseguidor simples (implementacao de referencia). Tenta localizar o
+% ladrao pelos eventos e caminhar ate ele por BFS; pede mandato quando as
+% pistas deixam <=2 suspeitos e inspeciona ao alcanca-lo. A leitura de
+% eventos e ingenua (espera um formato de evento diferente do que o
+% motor emite), entao na pratica cai muito no movimento de fallback e
+% captura pouco. Util como esqueleto e baseline fraco.
+% ============================================================
+
+:- module(naive_pursuer_d, [detetive_preload/5, detetive_action/3]).
 
 % Base de conhecimento dinâmica interna do detetive para lembrar do cenário
 :- dynamic mapa_ruas/2.

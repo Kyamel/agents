@@ -1,4 +1,18 @@
-:- module(robustt, [
+% ============================================================
+% LADRAO: worstcase_evader_t
+%
+% Ladrao evasivo por pior caso. Assume o pior modelo de bloqueio: depois
+% de cada roubo, o detetive fecha um vizinho da cidade roubada por turno,
+% em ordem de grau. Preve essas cidades e as evita como passagem — o que,
+% de quebra, produz rotas menos obvias contra qualquer detetive. Antes de
+% cada movimento atualiza a previsao de bloqueios; so precisa que a cidade
+% ATUAL esteja livre para sair (a partida termina antes da proxima acao do
+% detetive apos o roubo do tesouro).
+% Robusto contra bloqueadores reativos; conservador, pode gastar passos
+% extras contornando ameacas.
+% ============================================================
+
+:- module(worstcase_evader_t, [
     ladrao_preload/7,
     ladrao_action/3
 ]).

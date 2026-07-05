@@ -1,4 +1,17 @@
-:- module(baitt, [
+% ============================================================
+% LADRAO: decoy_t
+%
+% Ladrao com isca de tesouro. Escolhe automaticamente um tesouro
+% SECUNDARIO (o de menor numero de pre-requisitos) e rouba alguns de seus
+% itens para confundir o detetive sobre qual e o objetivo real, sem
+% depender de nomes do mapa. Usa disfarce inicial para embaralhar as
+% primeiras pistas. Alterna entre avancar a cadeia real e coletar itens
+% da isca, diluindo o padrao dos roubos.
+% Forte contra detetives que deduzem o alvo pela cadeia; a isca custa
+% roubos extras, que expoem a posicao mais vezes.
+% ============================================================
+
+:- module(decoy_t, [
     ladrao_preload/7,
     ladrao_action/3
 ]).

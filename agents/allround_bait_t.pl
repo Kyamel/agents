@@ -1,33 +1,18 @@
 % ============================================================
-% Nome: Mayke Anselmo Brito Lellis     Matricula: 22.2.8008
-% Nome: Lucas dos Anjos Camelo          Matricula: 22.2.8002
+% LADRAO: allround_bait_t
+%
+% Ladrao equilibrado e adaptativo — bom generalista. Monta o plano sem
+% depender de nomes de mapa ou detetive: escolhe identidade dificil de
+% deduzir e tesouro de cadeia curta; confunde a leitura dos roubos com
+% cobertura, isca e variacao na ordem dos objetivos; e adapta cada
+% deslocamento a um modelo AGNOSTICO de bloqueios (evita as cidades que
+% varias politicas reativas trancariam — golosa, vizinhos do ultimo
+% roubo, cidade do ultimo roubo), desviando so quando ha rota limpa
+% barata. Depois do roubo final, escolhe uma saida pouco previsivel.
+% Robusto contra uma gama ampla de detetives e de tamanhos de mapa.
 % ============================================================
 
-% ============================================================
-% AGENTE LADRAO: ladrao_raffles
-%
-% O ladrao_raffles monta um plano sem depender de nomes de mapas,
-% cidades ou detetives. Ele escolhe uma identidade dificil de deduzir
-% e um tesouro de cadeia curta, confunde a leitura dos roubos com
-% cobertura, isca e variacao na ordem dos objetivos, e adapta cada
-% deslocamento aos bloqueios que podem ocorrer. Depois do roubo final,
-% escolhe uma saida pouco previsivel para concluir a fuga.
-%
-% A estrategia pode ser entendida em cinco partes:
-%
-% 1. Preparacao: memoriza o cenario e escolhe identidade e tesouro.
-% 2. Disfarce: altera as primeiras pistas antes do primeiro roubo.
-% 3. Objetivos: combina cadeia real, cobertura, isca e diversificacao.
-% 4. Movimento: evita bloqueios previstos e rotas muito obvias.
-% 5. Fuga: randomiza a saida depois de obter o tesouro.
-%
-% Em cada turno, o agente prepara a memoria, decide uma acao basica,
-% diversifica o objetivo quando for vantajoso, adapta o movimento e
-% avanca sua previsao dos bloqueios.
-%
-% ============================================================
-
-:- module(ladrao_raffles, [
+:- module(allround_bait_t, [
     ladrao_preload/7,
     ladrao_action/3
 ]).

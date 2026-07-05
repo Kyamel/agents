@@ -1,4 +1,14 @@
-:- module(chaost, [
+% ============================================================
+% LADRAO: chaotic_evader_t
+%
+% Ladrao evasivo caotico. Preve os bloqueios do detetive a cada turno e
+% os evita, mas introduz aleatoriedade deliberada nas decisoes de rota e
+% objetivo para nao formar nenhum padrao explorable. A imprevisibilidade
+% e a defesa principal: dificulta tanto a predicao de rota quanto o
+% posicionamento antecipado do detetive, ao custo de eficiencia.
+% ============================================================
+
+:- module(chaotic_evader_t, [
     ladrao_preload/7,
     ladrao_action/3
 ]).

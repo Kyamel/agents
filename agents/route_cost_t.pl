@@ -1,4 +1,16 @@
-:- module(thiefnew, [
+% ============================================================
+% LADRAO: route_cost_t
+%
+% Ladrao guiado por custo de rota. Observa os eventos e escolhe o
+% proximo objetivo pelo menor custo de deslocamento AJUSTADO (o passo
+% por cada cidade recebe um peso base mais penalidades), preferindo
+% rotas menos obvias em vez do menor caminho cru. Prioridade: fugir se
+% ja venceu, roubar se ha algo util na cidade, senao mover para o melhor
+% objetivo pelo custo ajustado. Menos previsivel que um guloso puro,
+% mas sem modelo explicito de bloqueio nem isca de identidade.
+% ============================================================
+
+:- module(route_cost_t, [
     ladrao_preload/7,
     ladrao_action/3
 ]).

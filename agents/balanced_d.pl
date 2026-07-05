@@ -1,4 +1,16 @@
-:- module(balancedd, [
+% ============================================================
+% DETETIVE: balanced_d
+%
+% Detetive misto. Combina tres pressoes: pede mandato cedo (assim que as
+% pistas reduzem os suspeitos a <=2), fecha a cidade do roubo recente, e,
+% quando nao ha evento novo util, patrulha em direcao as cidades de
+% tesouro. Sem se especializar, aplica pressao de bloqueio + mandato +
+% posicionamento ao mesmo tempo.
+% Generalista: raramente e o pior contra qualquer ladrao, mas tambem
+% nao explora nenhuma fraqueza especifica a fundo.
+% ============================================================
+
+:- module(balanced_d, [
     detetive_preload/5,
     detetive_action/3
 ]).

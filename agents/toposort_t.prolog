@@ -1,25 +1,16 @@
-% ==============================================================================
-% Agente Ladrão - CSI107 Linguagens de Programação
-% Autores: <Nome> - <Matrícula>
+% ============================================================
+% LADRAO: toposort_t
 %
-% Estratégia:
-%   - Calcula a ordem de roubo via ordenação topológica das dependências.
-%   - Usa BFS para rota mínima entre cidades.
-%   - No primeiro turno, gasta todos os disfarces disponíveis omitindo o máximo
-%     de características para dificultar o mandato do detetive.
-%   - Após roubar o tesouro, foge imediatamente (condição de vitória exige
-%     estar em cidade diferente da do roubo).
-%
-% Observações sobre a máquina de jogo (Interactor.prolog):
-%   - Eventos têm a forma roubo(Item, Cidade, Atributos), onde Atributos são
-%     N características da aparência atual do ladrão (N = qtd itens já roubados
-%     antes + 1). O ladrão vaza pistas a cada roubo.
-%   - disfarce(LS) consome 1 unidade de disfarce independente do tamanho de LS.
-%   - LS passado ao preload tem forma procurado(ID, AP), sem o nome.
-%   - Condição de vitória: roubado(Tesouro, C1) e ladrão em C \= C1.
-% ==============================================================================
+% Ladrao por ordenacao topologica. Resolve a ordem de roubo fazendo a
+% ordenacao topologica das dependencias de itens/tesouro e segue essa
+% ordem por rotas minimas (BFS). No primeiro turno gasta todo o orcamento
+% de disfarce OMITINDO o maximo de caracteristicas, para dificultar o
+% mandato. Apos roubar o tesouro, foge imediatamente (a vitoria exige
+% estar em cidade diferente da do roubo). Planejamento correto e enxuto,
+% sem isca nem modelo de bloqueio do detetive.
+% ============================================================
 
-:- module(ladrao, [ladrao_preload/7, ladrao_action/3]).
+:- module(toposort_t, [ladrao_preload/7, ladrao_action/3]).
 
 % ------------------------------------------------------------------------------
 % Base de conhecimento dinâmica

@@ -1,4 +1,13 @@
-:- module('agenteL',[ladrao_action/3,ladrao_preload/7]).
+% ============================================================
+% LADRAO: scripted_t
+%
+% Roteiro fixo (exemplo/template). Executa uma sequencia de movimentos e
+% roubos hardcoded para um mapa especifico (a->c->d->e, rouba, retorna,
+% etc.). Nao le o cenario nem se adapta — quebra em qualquer outro mapa.
+% Serve so como esqueleto da interface ladrao_preload/ladrao_action.
+% ============================================================
+
+:- module(scripted_t,[ladrao_action/3,ladrao_preload/7]).
 
 
 ladrao_preload(_, %Grafo

@@ -1,4 +1,16 @@
-:- module(warrantd, [
+% ============================================================
+% DETETIVE: warrant_hunter_d
+%
+% Especialista em pistas e mandato. Pede mandato assim que ALGUM
+% subconjunto das pistas reveladas reduz os suspeitos a no maximo dois;
+% com mandato, persegue a cidade do ultimo roubo e inspeciona. A captura
+% vem da identificacao (mandato correto + co-localizacao), nao de
+% trancar cidades.
+% Forte contra ladroes que vazam caracteristicas reais cedo; neutralizado
+% por identidade ambigua e disfarce que mantem >=3 suspeitos compativeis.
+% ============================================================
+
+:- module(warrant_hunter_d, [
     detetive_preload/5,
     detetive_action/3
 ]).

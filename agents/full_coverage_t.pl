@@ -1,18 +1,18 @@
 % ============================================================
-% AGENTE LADRAO: ladrao_raffles_simples
+% LADRAO: full_coverage_t
 %
-% Estrategia:
-% 1. Escolhe uma identidade ambigua e usa tres disfarces.
-% 2. Escolhe um tesouro cuja cadeia permita deixar dois itens de fora.
-% 3. Rouba praticamente todos os itens do mapa, exceto dois reservados.
-% 4. Entre itens disponiveis, evita escolhas que deixem uma unica
-%    continuacao obvia dependente do item que acabou de ser roubado.
-% 5. Depois de cada roubo, evita o caminho minimo mais previsivel.
-% 6. So rouba o tesouro final quando a cobertura global estiver pronta.
-% 7. Depois do tesouro, escolhe uma saida aleatoria.
+% Ladrao de cobertura total. Escolhe um tesouro cuja cadeia permita
+% deixar dois itens de fora e rouba praticamente TODOS os itens do mapa
+% (exceto esses dois reservados), de modo que os roubos nao revelem qual
+% e o objetivo real. Entre itens disponiveis, evita escolhas que deixem
+% uma unica continuacao obvia dependente do item recem-roubado; e apos
+% cada roubo evita o caminho minimo mais previsivel. So rouba o tesouro
+% final quando a cobertura esta pronta, e sai por uma rota aleatoria.
+% Forte em ocultar o alvo; caro em turnos (pode nao terminar em mapas de
+% orcamento curto).
 % ============================================================
 
-:- module(ladrao_raffles_simples, [
+:- module(full_coverage_t, [
     ladrao_preload/7,
     ladrao_action/3
 ]).

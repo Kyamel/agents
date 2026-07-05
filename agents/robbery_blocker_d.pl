@@ -1,4 +1,16 @@
-:- module(blockerd, [
+% ============================================================
+% DETETIVE: robbery_blocker_d
+%
+% Bloqueador agressivo. Fecha a cidade do roubo mais recente — a
+% resposta mais direta contra fuga imediata. Enquanto nao ha roubo,
+% fecha qualquer cidade ainda livre, mantendo sempre uma trava ativa.
+% Usa mandato e inspecao como pressao secundaria.
+% Como a trava chega sempre uma rodada depois do roubo, pega quem
+% volta/demora na cidade roubada; um ladrao que sempre se move e nao
+% retorna costuma escapar.
+% ============================================================
+
+:- module(robbery_blocker_d, [
     detetive_preload/5,
     detetive_action/3
 ]).

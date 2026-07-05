@@ -1,4 +1,17 @@
-:- module(baitt_anti_minimo, [
+% ============================================================
+% LADRAO: unpredictable_t
+%
+% Ladrao anti-predicao. Combina isca (roubar itens de uma cadeia falsa
+% para gerar pistas e alvo ambiguos) com uma politica de rota que evita
+% CONFIRMAR o modelo guloso do detetive: aceita o alvo real custar alguns
+% passos a mais que o tesouro minimo e faz desvios de um passo controlados
+% para nao andar sempre pelo caminho previsivel. Parametrizado (quantos
+% itens-isca, quantos desvios, folga de custo) e afinado para enfrentar
+% detetives de caminho minimo. O disfarce costuma ficar desligado quando
+% o alvo e um preditor de rota.
+% ============================================================
+
+:- module(unpredictable_t, [
     ladrao_preload/7,
     ladrao_action/3
 ]).

@@ -1,19 +1,17 @@
 % ============================================================
-% AGENTE LADRAO: ladrao_raffles_simples
+% LADRAO: coverage_detour_t
 %
-% Estrategia:
-% 1. Escolhe uma identidade ambigua e usa tres disfarces.
-% 2. Escolhe um tesouro cuja cadeia permita deixar dois itens de fora.
-% 3. Rouba praticamente todos os itens do mapa, exceto dois reservados.
-% 4. Completa uma cadeia-isca antes do ultimo requisito verdadeiro.
-% 5. Evita cidades de tesouros cujas cadeias ja estejam completas.
-% 6. Entre itens disponiveis, evita continuacoes forcadas e obvias.
-% 7. Depois de cada roubo, evita o caminho minimo mais previsivel.
-% 8. So se aproxima do alvo quando roubar o tesouro ja for legal.
-% 9. Depois do tesouro, escolhe uma saida aleatoria.
+% Ladrao de cobertura com desvios anti-predicao. Coleta ampla (deixando
+% poucos itens de fora) para ocultar o alvo, e adiciona uma camada forte
+% de imprevisibilidade de rota: penaliza cidades de conectividade extrema
+% no inicio, evita passar por cidades de tesouros ja completos e, depois
+% de cada roubo, planeja desvios que fogem do caminho minimo previsivel.
+% So rouba o alvo quando a cobertura esta pronta. Muito dificil de prever,
+% mas as varias camadas de desvio custam turnos e podem levar ao empate
+% em mapas grandes.
 % ============================================================
 
-:- module(ladrao_raffles_simples, [
+:- module(coverage_detour_t, [
     ladrao_preload/7,
     ladrao_action/3
 ]).

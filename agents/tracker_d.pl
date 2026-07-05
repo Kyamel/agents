@@ -1,4 +1,17 @@
-:- module(shortestd, [
+% ============================================================
+% DETETIVE: tracker_d
+%
+% Cacador com estimativa de posicao. Mantem uma estimativa de onde o
+% ladrao esta: corrige-a com cada evento de roubo e, sem evento novo,
+% projeta um passo provavel do ladrao (menor caminho ao objetivo mais
+% proximo). Com mandato, FECHA a cidade estimada e inspeciona; sem
+% mandato, persegue a estimativa. Combina deducao de pistas (mandato
+% quando <=2 suspeitos) com caca posicional.
+% Forte e agressivo quando consegue mandato; depende de estimar bem a
+% posicao e de o disfarce nao segurar o mandato para sempre.
+% ============================================================
+
+:- module(tracker_d, [
     detetive_preload/5,
     detetive_action/3
 ]).
@@ -9,11 +22,16 @@
 :- dynamic known_treasure/3.
 :- dynamic known_suspect/2.
 :- dynamic known_lock/1.
+:- dynamic estimate_loc/1.
+:- dynamic estimated_stolen/1.
+:- dynamic seen_robberies/1.
+:- dynamic inspected_estimate/1.
 
 %!  detetive_preload(+Grafo, +Suspeitos, +Itens, +Tesouros, pronto) is det.
 %
-%   Detetive preditivo: assume que o ladrao escolhe objetivos desbloqueados por
-%   menor caminho e tenta fechar uma cidade prevista na proxima rota.
+%   Detetive cacador: combina mandato com perseguicao. Ele estima onde o
+%   ladrao esta, atualiza a estimativa com eventos de roubo e simula um passo
+%   provavel do ladrao por menor caminho.
 detetive_preload(Grafo, Suspeitos, Itens, Tesouros, pronto) :-
     limpar_memoria,
     forall(member(adj(A, B), Grafo), lembrar_aresta(A, B)),
@@ -26,64 +44,121 @@ detetive_preload(Grafo, Suspeitos, Itens, Tesouros, pronto) :-
 
 %!  detetive_action(+Eventos, +EstadoDetetive, -Acao) is det.
 %
-%   Primeiro tenta bloquear a rota prevista do ladrao. Depois usa mandato como
-%   pressao secundaria e se move em direcao ao ultimo roubo.
-detetive_action(Eventos, _Estado, fechar(Cidade)) :-
-    cidade_predita_para_bloqueio(Eventos, Cidade),
-    lembrar_lock(Cidade),
-    !.
-detetive_action(_Eventos, detective(_, nenhum, Pistas), pedir_mandato(Id, SubPistas)) :-
-    possible_warrant(Pistas, Id, SubPistas),
-    !.
-detetive_action(_, detective(_, Mandato, _), inspecionar) :-
-    Mandato \= nenhum,
-    !.
-detetive_action(Eventos, detective(loc(Cidade), _, _), move(Cidade, Proxima)) :-
-    ultimo_roubo(Eventos, _Item, CidadeRoubo),
-    Cidade \= CidadeRoubo,
-    proximo_passo(Cidade, CidadeRoubo, Proxima),
-    !.
-detetive_action(_, detective(loc(Cidade), _, _), move(Cidade, Proxima)) :-
-    melhor_patrulha(Cidade, Proxima),
+%   Atualiza a estimativa e age: se tem mandato e acredita estar na cidade do
+%   ladrao, inspeciona; senao, continua cacando a posicao estimada.
+detetive_action(Eventos, detective(loc(Cidade), Mandato, Pistas), Acao) :-
+    atualizar_estimativa(Eventos),
+    escolher_acao(Cidade, Mandato, Pistas, Acao),
     !.
 detetive_action(_, _, nada).
 
 
-% --- Predicao de rota do ladrao
+% --- Politica
 
-%!  cidade_predita_para_bloqueio(+Eventos, -Cidade) is semidet.
-%
-%   Se ja houve roubo, usa a cidade do roubo mais recente como ultima posicao
-%   conhecida do ladrao. Senao, fecha uma cidade provavel de primeira coleta.
-cidade_predita_para_bloqueio(Eventos, Cidade) :-
-    ultimo_roubo(Eventos, _Item, CidadeAtual),
-    itens_roubados(Eventos, Roubados),
-    melhor_alvo_previsto(CidadeAtual, Roubados, _Obj, CidadeAlvo),
-    cidade_de_armadilha(CidadeAtual, CidadeAlvo, Cidade),
-    \+ known_lock(Cidade),
+escolher_acao(Cidade, Mandato, _Pistas, inspecionar) :-
+    Mandato \= nenhum,
+    estimate_loc(Cidade),
+    \+ inspected_estimate(Cidade),
+    assertz(inspected_estimate(Cidade)),
     !.
-cidade_predita_para_bloqueio(Eventos, Cidade) :-
-    Eventos \= [],
-    ultimo_roubo(Eventos, _Item, CidadeAtual),
-    \+ known_lock(CidadeAtual),
-    Cidade = CidadeAtual,
+escolher_acao(_Cidade, nenhum, Pistas, pedir_mandato(Id, SubPistas)) :-
+    possible_warrant(Pistas, Id, SubPistas),
     !.
-cidade_predita_para_bloqueio([], Cidade) :-
-    primeira_cidade_provavel(Cidade),
-    \+ known_lock(Cidade).
+escolher_acao(_Cidade, Mandato, _Pistas, fechar(Alvo)) :-
+    Mandato \= nenhum,
+    estimate_loc(Alvo),
+    \+ known_lock(Alvo),
+    lembrar_lock(Alvo),
+    !.
+escolher_acao(Cidade, _Mandato, _Pistas, move(Cidade, Proxima)) :-
+    alvo_de_caca(Alvo),
+    Cidade \= Alvo,
+    proximo_passo(Cidade, Alvo, Proxima),
+    !.
+escolher_acao(Cidade, _Mandato, _Pistas, move(Cidade, Proxima)) :-
+    melhor_patrulha(Cidade, Proxima),
+    !.
+escolher_acao(_, _, _, nada).
 
-%!  cidade_de_armadilha(+Origem, +Destino, -Cidade) is semidet.
+%!  alvo_de_caca(-Cidade) is semidet.
 %
-%   Fecha o proximo passo da rota prevista. Se o destino ja e a origem, fecha a
-%   propria origem como armadilha de saida.
-cidade_de_armadilha(Origem, Origem, Origem) :- !.
-cidade_de_armadilha(Origem, Destino, Cidade) :-
-    caminho_mais_curto(Origem, Destino, [Origem, Cidade | _]).
+%   Usa a estimativa atual, projetada um passo a frente, como alvo.
+alvo_de_caca(CidadeProjetada) :-
+    estimate_loc(Cidade),
+    itens_estimados(Roubados),
+    projetar_ladrao(Cidade, Roubados, CidadeProjetada),
+    !.
+alvo_de_caca(Cidade) :-
+    estimate_loc(Cidade).
+
+
+% --- Estimativa do ladrao
+
+%!  atualizar_estimativa(+Eventos) is det.
+%
+%   Eventos de roubo corrigem a posicao estimada. Sem evento novo, a estimativa
+%   avanca um passo seguindo o plano provavel do ladrao.
+atualizar_estimativa(Eventos) :-
+    processar_eventos(Eventos, TeveRouboNovo),
+    ( TeveRouboNovo == true
+    -> true
+    ; avancar_estimativa_sem_evento
+    ).
+
+processar_eventos(Eventos, TeveRouboNovo) :-
+    findall(Item-Cidade, member(roubo(Item, Cidade, _), Eventos), Roubos),
+    length(Roubos, Total),
+    seen_robberies(Vistos),
+    forall(member(Item-_, Roubos), lembrar_roubo(Item)),
+    ( Total > Vistos,
+      Roubos = [ItemNovo-CidadeNova | _]
+    -> lembrar_roubo(ItemNovo),
+       set_estimate(CidadeNova),
+       retractall(seen_robberies(_)),
+       assertz(seen_robberies(Total)),
+       TeveRouboNovo = true
+    ;  TeveRouboNovo = false
+    ).
+
+lembrar_roubo(Item) :-
+    estimated_stolen(Item),
+    !.
+lembrar_roubo(Item) :-
+    assertz(estimated_stolen(Item)).
+
+set_estimate(Cidade) :-
+    retractall(estimate_loc(_)),
+    retractall(inspected_estimate(_)),
+    assertz(estimate_loc(Cidade)).
+
+avancar_estimativa_sem_evento :-
+    estimate_loc(Cidade),
+    itens_estimados(Roubados),
+    projetar_ladrao(Cidade, Roubados, Proxima),
+    !,
+    set_estimate(Proxima).
+avancar_estimativa_sem_evento.
+
+itens_estimados(Itens) :-
+    findall(Item, estimated_stolen(Item), Brutos),
+    sort(Brutos, Itens).
+
+%!  projetar_ladrao(+Cidade, +Roubados, -ProximaCidade) is semidet.
+%
+%   Simula um passo provavel do ladrao: se ele ja esta na cidade de um objetivo
+%   disponivel, assume que ficara parado para roubar; caso contrario, avanca no
+%   menor caminho ate o melhor objetivo previsto.
+projetar_ladrao(Cidade, Roubados, Cidade) :-
+    melhor_alvo_previsto(Cidade, Roubados, _Obj, Cidade),
+    !.
+projetar_ladrao(Cidade, Roubados, Proxima) :-
+    melhor_alvo_previsto(Cidade, Roubados, _Obj, CidadeAlvo),
+    proximo_passo(Cidade, CidadeAlvo, Proxima).
 
 %!  melhor_alvo_previsto(+CidadeAtual, +Roubados, -Objeto, -CidadeObjeto) is semidet.
 %
-%   Escolhe o proximo objetivo assumindo um ladrao guloso por menor caminho e
-%   menor cadeia restante de requisitos.
+%   Assume um ladrao racional simples: vai para o objetivo disponivel mais
+%   proximo, com desempate por menor cadeia restante.
 melhor_alvo_previsto(CidadeAtual, Roubados, Objeto, CidadeObjeto) :-
     findall(Score-Obj-CidadeObj,
         ( objetivo_disponivel_previsto(Roubados, Obj),
@@ -96,10 +171,6 @@ melhor_alvo_previsto(CidadeAtual, Roubados, Objeto, CidadeObjeto) :-
         Pares),
     keysort(Pares, [_-Objeto-CidadeObjeto | _]).
 
-%!  objetivo_disponivel_previsto(+Roubados, -Objeto) is nondet.
-%
-%   Gera objetos que um ladrao de menor caminho poderia buscar agora: itens
-%   necessarios desbloqueados ou tesouros cujos requisitos ja foram coletados.
 objetivo_disponivel_previsto(Roubados, Tesouro) :-
     known_treasure(Tesouro, _Cidade, Requisitos),
     \+ member(Tesouro, Roubados),
@@ -125,25 +196,6 @@ dependencia_restante(Objeto, Roubados, Restante) :-
     requisitos_totais(Requisitos, Todos),
     subtract(Todos, Roubados, Pendentes),
     length(Pendentes, Restante).
-
-primeira_cidade_provavel(Cidade) :-
-    findall(Score-C,
-        ( objetivo_disponivel_previsto([], Obj),
-          cidade_do_objeto(Obj, C),
-          grau(C, Grau),
-          dependencia_restante(Obj, [], Restante),
-          Score is Restante * 10 - Grau
-        ),
-        Pares),
-    keysort(Pares, [_-Cidade | _]).
-
-ultimo_roubo([roubo(Item, Cidade, _) | _], Item, Cidade) :- !.
-ultimo_roubo([_ | Eventos], Item, Cidade) :-
-    ultimo_roubo(Eventos, Item, Cidade).
-
-itens_roubados(Eventos, Roubados) :-
-    findall(Item, member(roubo(Item, _Cidade, _), Eventos), Itens),
-    sort(Itens, Roubados).
 
 
 % --- Requisitos e objetos
@@ -181,7 +233,12 @@ limpar_memoria :-
     retractall(known_item(_, _, _)),
     retractall(known_treasure(_, _, _)),
     retractall(known_suspect(_, _)),
-    retractall(known_lock(_)).
+    retractall(known_lock(_)),
+    retractall(estimate_loc(_)),
+    retractall(estimated_stolen(_)),
+    retractall(seen_robberies(_)),
+    retractall(inspected_estimate(_)),
+    assertz(seen_robberies(0)).
 
 lembrar_aresta(A, B) :-
     assertz(known_edge(A, B)),
@@ -240,7 +297,7 @@ grau(Cidade, Grau) :-
     length(Unicos, Grau).
 
 
-% --- Mandato como pressao secundaria
+% --- Mandato
 
 possible_warrant(Pistas, Id, SubPistas) :-
     non_empty_subset(Pistas, SubPistas),

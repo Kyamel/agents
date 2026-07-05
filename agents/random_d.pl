@@ -1,4 +1,13 @@
-:- module(randomd, [
+% ============================================================
+% DETETIVE: random_d
+%
+% Baseline aleatorio. Escolhe acoes de forma variada (mover, fechar,
+% mandato, inspecionar) sem estrategia dirigida. Serve como referencia
+% de controle: um ladrao competente deve venca-lo com folga, e capturas
+% ocasionais acontecem so por acaso.
+% ============================================================
+
+:- module(random_d, [
     detetive_preload/5,
     detetive_action/3
 ]).

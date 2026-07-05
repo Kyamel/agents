@@ -1,4 +1,15 @@
-:- module(guardd, [
+% ============================================================
+% DETETIVE: pursuer_d
+%
+% Perseguidor puro. Nao fecha cidades: usa a cidade do roubo mais
+% recente como alvo e caminha em sua direcao pelo menor caminho,
+% aplicando pressao espacial por perseguicao. Pede mandato assim que as
+% pistas reduzem os suspeitos a <=2 e, com mandato, inspeciona.
+% So captura por inspecao (co-localizacao + mandato correto); e fraco
+% contra quem revela pouco (bom disfarce) e mantem distancia.
+% ============================================================
+
+:- module(pursuer_d, [
     detetive_preload/5,
     detetive_action/3
 ]).
@@ -6,38 +17,27 @@
 :- dynamic known_edge/2.
 :- dynamic known_city/1.
 :- dynamic known_suspect/2.
-:- dynamic treasure_city/1.
-:- dynamic known_lock/1.
 
 %!  detetive_preload(+Grafo, +Suspeitos, +Itens, +Tesouros, pronto) is det.
 %
-%   Detetive guardiao: prioriza fechar/campar cidades de tesouro, forcando o
-%   ladrao a sobreviver ao passo de fuga final.
-detetive_preload(Grafo, Suspeitos, _Itens, Tesouros, pronto) :-
+%   Detetive perseguidor: usa a cidade do roubo mais recente como alvo de
+%   movimento. Nao fecha cidades, para isolar pressao espacial por perseguicao.
+detetive_preload(Grafo, Suspeitos, _Itens, _Tesouros, pronto) :-
     retractall(known_edge(_, _)),
     retractall(known_city(_)),
     retractall(known_suspect(_, _)),
-    retractall(treasure_city(_)),
-    retractall(known_lock(_)),
     forall(member(adj(A, B), Grafo), remember_edge(A, B)),
     forall(member(procurado(Id, Aparencia), Suspeitos),
-           assertz(known_suspect(Id, Aparencia))),
-    forall(member(tesouro(_, Cidade, _), Tesouros),
-           remember_treasure_city(Cidade)).
+           assertz(known_suspect(Id, Aparencia))).
 
 detetive_action(_, detective(_, nenhum, Pistas), pedir_mandato(Id, SubPistas)) :-
     possible_warrant(Pistas, Id, SubPistas),
     !.
-detetive_action(_, _Estado, fechar(Cidade)) :-
-    treasure_city(Cidade),
-    \+ known_lock(Cidade),
-    assertz(known_lock(Cidade)),
-    !.
 detetive_action(_, detective(_, Mandato, _), inspecionar) :-
     Mandato \= nenhum,
     !.
-detetive_action(_, detective(loc(Cidade), _, _), move(Cidade, Proxima)) :-
-    nearest_treasure_city(Cidade, Alvo),
+detetive_action(Eventos, detective(loc(Cidade), _, _), move(Cidade, Proxima)) :-
+    latest_robbery_city(Eventos, Alvo),
     Cidade \= Alvo,
     proximo_passo(Cidade, Alvo, Proxima),
     !.
@@ -58,19 +58,9 @@ remember_city(Cidade) :-
 remember_city(Cidade) :-
     assertz(known_city(Cidade)).
 
-remember_treasure_city(Cidade) :-
-    treasure_city(Cidade),
-    !.
-remember_treasure_city(Cidade) :-
-    assertz(treasure_city(Cidade)).
-
-nearest_treasure_city(Cidade, Alvo) :-
-    setof(L-T,
-        ( treasure_city(T),
-          caminho_mais_curto(Cidade, T, Caminho),
-          length(Caminho, L)
-        ),
-        [_-Alvo | _]).
+latest_robbery_city([roubo(_, Cidade, _) | _], Cidade) :- !.
+latest_robbery_city([_ | Eventos], Cidade) :-
+    latest_robbery_city(Eventos, Cidade).
 
 melhor_patrulha(Cidade, Proxima) :-
     setof(Score-Vizinho,

@@ -1,4 +1,15 @@
-:- module(thief, [
+% ============================================================
+% LADRAO: greedy_t
+%
+% Ladrao guloso de referencia. A cada turno: se ja tem o tesouro-alvo,
+% foge para um vizinho qualquer; se esta na cidade de algo roubavel,
+% rouba; senao caminha pelo menor caminho ate o proximo objetivo util.
+% Sem disfarce elaborado, sem isca e sem evasao — coleta a cadeia real
+% pelo caminho mais curto e sai. Simples e previsivel: bom baseline,
+% vulneravel a detetives que preveem o menor caminho e a mandato.
+% ============================================================
+
+:- module(greedy_t, [
     ladrao_preload/7,
     ladrao_action/3
 ]).

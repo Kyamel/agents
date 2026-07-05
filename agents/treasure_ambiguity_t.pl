@@ -1,57 +1,18 @@
 % ============================================================
-% AGENTE LADRAO: raffles_v8
+% LADRAO: treasure_ambiguity_t
 %
-% Base do raffles_v7 (ataque destravado + ambiguidade que ganha o
-% marpled 100%) + a CAMADA DE EVASAO AGNOSTICA do ladrao_raffles.pl,
-% que e o que ganha partidas da familia de bloqueadores (shortestd,
-% neighborblockd, blockerd) onde o v7 fazia 0%.
-%
-% Filosofia da evasao (licao do ladrao_raffles, oposta ao que o v8
-% anterior fez errado):
-%  - Modela a UNIAO de padroes de bloqueio, sem adivinhar o oponente:
-%    armadilha golosa (shortestd), fila de vizinhos que avanca 1/turno
-%    (neighborblockd) e cidade do ultimo roubo (blockerd).
-%  - Rerroteia o PASSO de forma SOFT e fail-safe: so desvia se ha
-%    caminho limpo ate o MESMO destino; se o destino e perigoso ou nao
-%    ha desvio, cai no passo normal (aceita o risco). NUNCA recusa
-%    objetivo nem bloqueia rigido -> nao paralisa (a paralisia empatava
-%    e foi o erro do v8 anterior).
-%
-% (Descricao do nucleo v7 herdada abaixo.)
-% Fork do raffles_v6, focado nos dois detetives META (marpled + shortestd).
-% Mudancas em relacao ao v6:
-%
-%  A. ATAQUE DESTRAVADO. O v6 so roubava o alvo depois de "cobertura
-%     global pronta" (roubar quase todo o mapa), o que estourava o
-%     orcamento de turnos e transformava vitorias em empates. O v7
-%     rouba o alvo assim que: a cadeia real esta completa, ha
-%     ambiguidade suficiente (>= 1 outra cadeia de tesouro completa; 2
-%     quando o orcamento de turnos e folgado) e existe rota de fuga.
-%     Ter >= 2 tesouros "prontos" derruba o mp_ready_target do marpled,
-%     que so fecha com candidato UNICO. So coleta os itens necessarios
-%     (cadeia real + baits), nao o mapa inteiro.
-%
-%  B. MOVIMENTO ENXUTO. Removida a maquinaria que paralisava o v6
-%     (desvio_final, penalidade de conectividade no passo, anti-minimo
-%     generico, evitar toda cidade de tesouro pronta). O v7 anda pelo
-%     caminho minimo e so desvia do passo EXATO que o detetive tranca.
-%
-%  C. EVASAO DIRIGIDA AO shortestd. O ladrao roda dentro de si a
-%     predicao do shortestd (mesmo mapa, mesmos eventos, mesmo turno ->
-%     mesma trava) e, se o passo canonico cairia justo na celula que o
-%     shortestd vai fechar, desvia para outro passo minimo de mesmo
-%     custo rumo ao mesmo destino. Ideia herdada do evasort.pl.
-%     LIMITE: so evita a trava NOVA de cada turno, nao a trava
-%     persistente do engine (evitar a persistente venceria mais partidas
-%     do shortestd mas paralisa contra o marpled) -> shortestd continua
-%     dificil. marpled: 0%->100% (map-independent).
-%
-%  Mantido do v6: identidade ambigua + tres disfarces, escolha do
-%  tesouro-alvo e a disciplina de diversificacao de cadeias (segurar o
-%  ultimo item real ate a ambiguidade valer) que neutraliza o marpled.
+% Ladrao de ambiguidade de tesouro — especializado em derrotar o preditor
+% do roubo final. Ideia central: no instante em que rouba o alvo, mantem
+% pelo menos DUAS outras cadeias de tesouro tambem completas (segurando o
+% ultimo item da cadeia real ate a ambiguidade valer). Com >=2 tesouros
+% "prontos" ao mesmo tempo, um detetive que deduz a cidade do heist perde
+% o candidato unico e nunca fecha. Coleta so os itens necessarios (cadeia
+% real + baits), rouba o alvo assim que ha ambiguidade + rota de fuga, e
+% durante o movimento preve a trava do detetive de rota e desvia do passo
+% travado. Identidade ambigua + tres disfarces no inicio.
 % ============================================================
 
-:- module(raffles_v8, [
+:- module(treasure_ambiguity_t, [
     ladrao_preload/7,
     ladrao_action/3
 ]).
@@ -65,22 +26,9 @@
 :- dynamic itens_necessarios_mem/1.
 :- dynamic cidade_anterior/1.
 
-% Eventos vistos neste turno, a trava NOVA do turno e a trava ATIVA
-% persistente (armadilha golosa do shortestd).
+% Eventos vistos neste turno e a trava que o shortestd colocaria agora.
 :- dynamic eventos_turno/1.
 :- dynamic trava_turno/1.
-:- dynamic trava_ativa/1.
-
-% Modelo agnostico de bloqueio (uniao de padroes da familia):
-%  - fila_bloqueios: vizinhos do ultimo roubo, 1 por turno (neighborblockd)
-%  - bloqueio_persistente: ultimo da fila, que fica travado
-%  - origem_roubo_recente: cidade do ultimo roubo (blockerd)
-%  - cidade_ja_bloqueada / ultimo_roubo_cidade: memoria auxiliar
-:- dynamic fila_bloqueios/1.
-:- dynamic bloqueio_persistente/1.
-:- dynamic origem_roubo_recente/1.
-:- dynamic cidade_ja_bloqueada/1.
-:- dynamic ultimo_roubo_cidade/1.
 
 % Espelho da predicao do shortestd (memoria PROPRIA, prefixo sd_):
 % mesmo mapa, mesmos eventos, mesmo turno => mesma trava. Nunca toca no
@@ -94,10 +42,6 @@
 % graus muito baixos/altos recebem penalidade na escolha de item.
 grau_baixo_limite(1).
 grau_alto_limite(5).
-
-% Quantos passos extras um desvio evasivo pode custar. Teto contra
-% paralisia em mapas apertados (ver passo_evitando_riscos).
-folga_desvio(3).
 
 % ============================================================
 % PRELOAD
@@ -130,9 +74,7 @@ ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto,
 
     escolher_identidade(Suspeitos, LadraoID),
     escolher_tesouro(Objetivo),
-    definir_plano_coleta(Objetivo),
-
-    assertz(fila_bloqueios([])).
+    definir_plano_coleta(Objetivo).
 
 % Conjunto de itens que a estrategia realmente precisa: a cadeia do
 % alvo mais as `Alvo` cadeias de bait mais baratas (as que geram a
@@ -172,10 +114,8 @@ definir_plano_coleta(Target) :-
 ladrao_action(Eventos, Estado, AcaoFinal) :-
     registrar_eventos(Eventos),
     prever_trava_shortestd(Eventos),
-    atualizar_modelo_bloqueios(Eventos),
     decidir_acao(Estado, AcaoInicial),
     adaptar_movimento(Estado, AcaoInicial, AcaoFinal),
-    avancar_modelo_bloqueios,
     !.
 ladrao_action(_, _, nada).
 
@@ -190,96 +130,21 @@ prever_trava_shortestd(Eventos) :-
     retractall(trava_turno(_)),
     (   sd_predict(Eventos, Cidade)
     ->  ( sd_lock(Cidade) -> true ; assertz(sd_lock(Cidade)) ),
-        assertz(trava_turno(Cidade)),
-        retractall(trava_ativa(_)),
-        assertz(trava_ativa(Cidade))
+        assertz(trava_turno(Cidade))
     ;   assertz(trava_turno(nenhum))
     ).
 
-% Trava do shortestd NESTE turno (nova); usada na fuga.
+% Cidade que o shortestd tranca NESTE turno (ou 'nenhum'). E deste
+% valor por-turno que a evasao desvia: so nos turnos em que o detetive
+% de fato coloca uma trava nova. (Evitar a trava PERSISTENTE — a que
+% fica ativa no engine — paralisava o ladrao em mapas pequenos contra
+% detetives que nao sao o shortestd; ver comentario do cabecalho.)
 lock_evasao(Lock) :-
     ( trava_turno(L), L \== nenhum -> Lock = L ; Lock = nenhum ).
 
 % ============================================================
-% MODELO AGNOSTICO DE BLOQUEIO (uniao de padroes da familia)
-% ============================================================
-% Nao identifica o oponente: mantem uma crenca conservadora sobre quais
-% cidades podem estar/ficar trancadas, a partir so do mapa e dos roubos.
-
-% A cada roubo NOVO (visto nos eventos, ja com o delay do engine),
-% reancora os modelos reativos na cidade do roubo.
-atualizar_modelo_bloqueios(Eventos) :-
-    ultimo_roubo_evento(Eventos, Cidade),
-    \+ ultimo_roubo_cidade(Cidade),
-    !,
-    retractall(ultimo_roubo_cidade(_)),
-    assertz(ultimo_roubo_cidade(Cidade)),
-    retractall(origem_roubo_recente(_)),
-    assertz(origem_roubo_recente(Cidade)),
-    atualizar_fila_vizinhos(Cidade).
-atualizar_modelo_bloqueios(_).
-
-ultimo_roubo_evento([roubo(_, Cidade, _) | _], Cidade) :- !.
-ultimo_roubo_evento([_ | Resto], Cidade) :-
-    ultimo_roubo_evento(Resto, Cidade).
-
-% Fila de vizinhos do roubo, grau crescente (igual ao neighborblockd).
-atualizar_fila_vizinhos(CidadeRoubo) :-
-    findall(Score-Vizinho,
-        ( aresta(CidadeRoubo, Vizinho),
-          \+ cidade_ja_bloqueada(Vizinho),
-          grau_cidade(Vizinho, Grau),
-          Score is -Grau
-        ),
-        Pares),
-    keysort(Pares, Ordenados),
-    findall(Vizinho, member(_-Vizinho, Ordenados), Fila),
-    retractall(fila_bloqueios(_)),
-    assertz(fila_bloqueios(Fila)),
-    retractall(bloqueio_persistente(_)).
-
-% Cidade que a fila-de-vizinhos fecha AGORA (ou a persistente restante).
-proximo_bloqueio_previsto(Cidade) :-
-    fila_bloqueios([Cidade | _]),
-    !.
-proximo_bloqueio_previsto(Cidade) :-
-    bloqueio_persistente(Cidade).
-
-% No fim do turno, "consome" a fila 1 por turno (como o detetive fecha).
-avancar_modelo_bloqueios :-
-    fila_bloqueios([Cidade | Resto]),
-    !,
-    retractall(fila_bloqueios(_)),
-    assertz(fila_bloqueios(Resto)),
-    ( cidade_ja_bloqueada(Cidade) -> true ; assertz(cidade_ja_bloqueada(Cidade)) ),
-    retractall(bloqueio_persistente(_)),
-    ( Resto == [] -> assertz(bloqueio_persistente(Cidade)) ; true ).
-avancar_modelo_bloqueios.
-
-% Uniao das cidades a evitar como PASSAGEM (best-effort; ver movimento).
-cidade_a_evitar(Cidade) :-
-    trava_ativa(Cidade),
-    Cidade \== nenhum.
-cidade_a_evitar(Cidade) :-
-    proximo_bloqueio_previsto(Cidade).
-cidade_a_evitar(Cidade) :-
-    origem_roubo_recente(Cidade).
-
-% ============================================================
 % DECISAO
 % ============================================================
-
-% PRIORIDADE MAXIMA: se a celula onde estou sera trancada NESTE turno
-% (o detetive fecha DEPOIS do ladrao andar), saio dela agora. Cobre o
-% "comecar em cima da primeira trava do shortestd" (que mata ate o
-% ladrao_raffles ~50% das vezes). Vale mais que disfarcar/roubar.
-decidir_acao(
-    thief(loc(Cidade), _, _, _, _, _),
-    move(Cidade, Proxima)
-) :-
-    trava_turno(Cidade),
-    fuga_da_trava(Cidade, Proxima),
-    !.
 
 % Usa tres modificacoes no primeiro turno.
 decidir_acao(
@@ -906,39 +771,20 @@ destino_estrategico(_Cidade, Target, Itens, Destino) :-
     pode_iniciar_aproximacao_final(Target, Itens),
     tesouro_mem(Target, Destino, _).
 
-% Escolha do passo (SOFT, fail-safe):
-%  1. evita a UNIAO de cidades perigosas rumo ao MESMO destino;
-%  2. senao, passo minimo evitando as outras cidades de tesouro;
-%  3. senao, o passo minimo canonico (aceita o risco).
-% Nunca recusa o objetivo: se o proprio destino e perigoso, a etapa 1
-% falha e cai nas seguintes (a paralisia so acontece se bloquearmos o
-% destino, o que nao fazemos).
+% Passo base = caminho minimo evitando as OUTRAS cidades de tesouro
+% (quando ha rota alternativa); senao, o passo minimo canonico. Se o
+% passo base cairia exatamente no lock ativo, troca por outro passo
+% minimo de mesmo custo. So se nao houver alternativa e pisa no lock
+% (raro; e contra qualquer detetive que nao seja o shortestd o lock e
+% "fantasma" e entrar e inofensivo).
 passo_seguro(Cidade, Destino, Proxima) :-
-    passo_evitando_riscos(Cidade, Destino, Proxima),
-    !.
-passo_seguro(Cidade, Destino, Proxima) :-
-    passo_min_base(Cidade, Destino, Proxima),
-    !.
-passo_seguro(Cidade, Destino, Proxima) :-
-    proximo_passo(Cidade, Destino, Proxima).
-
-% Caminho que contorna todas as cidades perigosas previstas (menos a
-% origem), so se: o destino NAO for perigoso, houver rota, E o desvio
-% custar no maximo `folga_desvio` passos a mais que o minimo. O teto e
-% essencial: sem ele, num mapa apertado o desvio estoura o orcamento de
-% turnos e paralisa (empate/derrota). Com ele, so desvia quando e
-% barato; senao aceita o risco e vai pelo minimo.
-passo_evitando_riscos(Cidade, Destino, Proxima) :-
-    findall(Perigosa, cidade_a_evitar(Perigosa), Perigos0),
-    sort(Perigos0, Perigos),
-    Perigos \= [],
-    delete(Perigos, Cidade, Bloqueados),
-    \+ memberchk(Destino, Bloqueados),
-    caminho_sem_cidades(Cidade, Destino, Bloqueados, [Cidade, Proxima | Resto]),
-    distancia(Cidade, Destino, DMin),
-    length([Proxima | Resto], DDesvio),
-    folga_desvio(Folga),
-    DDesvio =< DMin + Folga.
+    lock_evasao(Lock),
+    passo_min_base(Cidade, Destino, Base),
+    (   Base == Lock,
+        passo_minimo_evitando(Cidade, Destino, Lock, Alt)
+    ->  Proxima = Alt
+    ;   Proxima = Base
+    ).
 
 passo_min_base(Cidade, Destino, Proxima) :-
     cidades_tesouro_exceto_destino(Destino, Bloq0),
@@ -972,29 +818,6 @@ cidades_tesouro_exceto_destino(Destino, Bloqueadas) :-
         ),
         Bloqueadas0),
     sort(Bloqueadas0, Bloqueadas).
-
-% Sai da celula que sera trancada neste turno: prefere um vizinho fora
-% da uniao de perigos e que nao volta; senao qualquer vizinho (tem que
-% sair de qualquer jeito antes do lock cair).
-fuga_da_trava(Cidade, Proxima) :-
-    findall(Perigosa, cidade_a_evitar(Perigosa), Perigos0),
-    sort(Perigos0, Perigos),
-    findall(Vizinho,
-        ( aresta(Cidade, Vizinho),
-          Vizinho \== Cidade,
-          \+ memberchk(Vizinho, Perigos),
-          nao_retorna(Vizinho)
-        ),
-        Vs0),
-    sort(Vs0, Vs),
-    Vs \= [],
-    !,
-    random_member(Proxima, Vs).
-fuga_da_trava(Cidade, Proxima) :-
-    findall(Vizinho, ( aresta(Cidade, Vizinho), Vizinho \== Cidade ), Vs0),
-    sort(Vs0, Vs),
-    Vs \= [],
-    random_member(Proxima, Vs).
 
 % Saida de fuga: vizinho que nao volta e nao e a cidade trancada.
 saida_evasiva_lock(Cidade, Lock, Proxima) :-
@@ -1157,12 +980,6 @@ limpar_memoria :-
 
     retractall(eventos_turno(_)),
     retractall(trava_turno(_)),
-    retractall(trava_ativa(_)),
-    retractall(fila_bloqueios(_)),
-    retractall(bloqueio_persistente(_)),
-    retractall(origem_roubo_recente(_)),
-    retractall(cidade_ja_bloqueada(_)),
-    retractall(ultimo_roubo_cidade(_)),
     retractall(sd_edge(_, _)),
     retractall(sd_item(_, _, _)),
     retractall(sd_treasure(_, _, _)),

@@ -1,4 +1,15 @@
-:- module(drawerl, [
+% ============================================================
+% LADRAO: cautious_evader_t
+%
+% Ladrao cauteloso com disciplina de disfarce. Preve os bloqueios do
+% detetive antes de cada movimento e desvia deles, e — crucialmente — NAO
+% comeca a roubar sem antes ter gasto disfarces suficientes: sem pistas
+% reveladas com disfarce, o detetive nao consegue montar mandato. Conta as
+% proprias acoes para dosar exposicao e planeja o passo de fuga final.
+% Prioriza sobreviver ao mandato e aos bloqueios em vez de coletar rapido.
+% ============================================================
+
+:- module(cautious_evader_t, [
     ladrao_preload/7,
     ladrao_action/3
 ]).

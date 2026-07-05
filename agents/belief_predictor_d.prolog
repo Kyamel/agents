@@ -1,4 +1,16 @@
-:- module(detetive_crenca, [
+% ============================================================
+% DETETIVE: belief_predictor_d
+%
+% Preditor por crenca de objetivo. Mantem uma crenca sobre o proximo
+% objetivo do ladrao a partir das dependencias e dos itens ja roubados,
+% e tranca a CIDADE DO ITEM previsto (nao o passo da rota). Ao inferir
+% qual sera o proximo item obrigatorio, sela o destino antes de o ladrao
+% chegar. Usa pistas/mandato como apoio.
+% Forte contra quem completa cadeias em ordem previsivel; contornado por
+% quem diversifica QUAL objetivo busca a cada momento.
+% ============================================================
+
+:- module(belief_predictor_d, [
     detetive_preload/5,
     detetive_action/3
 ]).

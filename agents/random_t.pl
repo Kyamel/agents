@@ -1,4 +1,13 @@
-:- module(randomt, [
+% ============================================================
+% LADRAO: random_t
+%
+% Baseline aleatorio. Escolhe acoes validas de forma variada, sem
+% planejar cadeia, rota ou disfarce. Referencia de controle: praticamente
+% nao completa o objetivo contra detetives competentes; serve para medir
+% o piso de desempenho.
+% ============================================================
+
+:- module(random_t, [
     ladrao_preload/7,
     ladrao_action/3
 ]).

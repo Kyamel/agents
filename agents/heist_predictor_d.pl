@@ -1,49 +1,19 @@
 % ============================================================
-%  Detetive Marple — Agente Inteligente (v3.0)
+% DETETIVE: heist_predictor_d
 %
-%  Disciplina CSI107 - Linguagens de Programacao (DECSI/UFOP).
-%  Estrategia: fechar reativo (nao-perder) + caca por mandato
-%  posicional (maximizar capturas). Ver docs/DETETIVE_MARPLE.md.
-%
-%  --- Camada 1: nucleo "nao perde" -------------------------------
-%  P1 fechar PREDITIVO: fecha a cidade-alvo assim que TODOS os
-%  pre-requisitos do tesouro (exceto ele mesmo) aparecem em Events —
-%  ou seja, no MAIS TARDIO entre "ultimo item da cadeia roubado" e
-%  "tesouro roubado", o que for visivel primeiro. Existe desde a
-%  v3.0 porque o motor corrigido pelo professor (2026-06) passou a
-%  ter DELAY de 1 rodada entre um roubo acontecer e o evento ficar
-%  visivel pro detetive (getEvents so reflete eventos "liberados";
-%  um roubo fica "pendente" durante o turno do detetive imediatamente
-%  seguinte). Esperar o evento do PROPRIO tesouro (v2.1) deixou de
-%  ser seguro: o turno do detetive que segue o roubo do tesouro nao
-%  vê mais esse roubo (delay), entao um ladrao que foge imediatamente
-%  escapa sempre. Fechar no penultimo evento da cadeia (1 furto antes)
-%  absorve exatamente essa rodada perdida — ver prova e limites em
-%  docs/TESTES_ADVERSARIOS.md.
-%
-%  --- Camada 2: caca ao ladrao que SENTA (maximizar vitorias) ----
-%  Um ladrao pode roubar o tesouro e NAO fugir (fica parado na
-%  cidade fechada). Contra um detetive so-fechar isso e empate — e
-%  empate vale ZERO na competicao (so vitorias absolutas contam, ver
-%  docs/REGRAS_NAO_ESCRITAS.md). v2.0 converte esses empates em
-%  vitoria via mandato + inspecionar, com duas ideias-chave:
-%
-%    1. MANDATO TARDIO: so pede mandato apos o tesouro ser roubado
-%       ("heist-done") = informacao maxima. O mandato e ONE-SHOT e
-%       PERMANENTE (o Interactor so aceita pedir_mandato com mandato
-%       'nenhum'); pedir cedo, sobre pistas ainda corrompidas por
-%       disfarce, trava no ID errado para sempre. Esperar nao custa
-%       nada — o ladrao que senta nao vai a lugar nenhum.
-%
-%    2. MANDATO POSICIONAL: o disfarce afeta os PRIMEIROS atributos
-%       (primeiros revelados); logo as pistas reveladas mais TARDE
-%       sao as mais reais. O mandato le a ordem das revelacoes nos
-%       Events e confia no sufixo (posicoes altas). Robusto a
-%       QUALQUER ID de ladrao — a versao anterior (v1.x) so capturava
-%       disfarcados por acaso, quando o ladrao era ID 0.
+% Preditor do roubo final. Para CADA tesouro, verifica se todos os seus
+% pre-requisitos ja apareceram nos eventos de roubo; quando exatamente
+% UM tesouro fica "pronto", fecha a cidade dele — a aposta e que o roubo
+% final acontece ali. Fecha ja no penultimo evento da cadeia para
+% absorver o atraso de 1 rodada do engine. Depois do heist, pede um
+% mandato TARDIO e POSICIONAL: confia nas pistas reveladas mais tarde
+% (posicoes altas da aparencia), que o disfarce nao altera, e inspeciona
+% o ladrao que ficou parado na cidade do tesouro.
+% Forte contra quem completa uma unica cadeia; cego quando >=2 tesouros
+% ficam prontos ao mesmo tempo (a deducao perde o candidato unico).
 % ============================================================
 
-:- module('marpled', [detetive_action/3, detetive_preload/5]).
+:- module(heist_predictor_d, [detetive_action/3, detetive_preload/5]).
 
 :- dynamic mp_adj/2.
 :- dynamic mp_suspect/2.

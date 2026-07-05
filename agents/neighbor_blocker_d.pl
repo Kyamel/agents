@@ -1,4 +1,17 @@
-:- module(neighborblockd, [
+% ============================================================
+% DETETIVE: neighbor_blocker_d
+%
+% Bloqueador de vizinhos, anti-delay. Quando ve um roubo, assume que o
+% ladrao ja saiu da cidade roubada e passa a fechar as cidades VIZINHAS
+% a ela, uma por turno, em ordem de grau crescente (as saidas menos
+% conectadas primeiro). Explora o atraso de visibilidade do engine para
+% selar as rotas de fuga provaveis ao redor do ultimo roubo. Usa mandato
+% como pressao secundaria.
+% Forte contra quem foge para um vizinho e demora; fraco contra quem se
+% afasta rapido por vizinhos de grau alto ou preve a fila de bloqueios.
+% ============================================================
+
+:- module(neighbor_blocker_d, [
     detetive_preload/5,
     detetive_action/3
 ]).

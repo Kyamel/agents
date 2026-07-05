@@ -1,4 +1,17 @@
-:- module(adaptt, [
+% ============================================================
+% LADRAO: adaptive_t
+%
+% Ladrao adaptativo ao tamanho do jogo. Usa evasao ativa contra o
+% preditor de rota (preve a trava e desvia) e identidade ambigua, e LIGA
+% ou DESLIGA a isca conforme o unico sinal confiavel de "tamanho" da
+% partida: max_turnos do cenario. Jogo curto -> isca ligada (ambiguidade
+% de alvo/identidade decide antes de o detetive cercar). Jogo longo ->
+% isca desligada (ela multiplicaria roubos, revelaria a posicao dezenas
+% de vezes e atrasaria a fuga); persegue so a cadeia real, minimizando
+% exposicao. Sem identificar o adversario, adapta-se ao regime do jogo.
+% ============================================================
+
+:- module(adaptive_t, [
     ladrao_preload/7,
     ladrao_action/3
 ]).
@@ -20,7 +33,7 @@
 % Tudo o mais (disfarce anti-marple, diversificação de objetivo, evasão do
 % shortestd) vem do evasort e vale nos dois regimes.
 
-:- use_module('evasort.pl', []).
+:- use_module('route_lock_evader_t.pl', []).
 
 % Acima disto consideramos "jogo longo" e desligamos a isca. england=30 (curto),
 % metro*=255 (longo). Qualquer corte em (30, 255) separa as duas famílias.
@@ -29,7 +42,7 @@ limite_jogo_longo(100).
 
 ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto,
                LadraoID, ObjetivoLadrao) :-
-    evasort:ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto,
+    route_lock_evader_t:ladrao_preload(Grafo, Suspeitos, Itens, Tesouros, pronto,
                            LadraoID, ObjetivoLadrao),
     ( jogo_longo(Grafo) -> desligar_isca ; true ).
 
@@ -61,4 +74,4 @@ desligar_isca :-
 
 
 ladrao_action(Eventos, Estado, Acao) :-
-    evasort:ladrao_action(Eventos, Estado, Acao).
+    route_lock_evader_t:ladrao_action(Eventos, Estado, Acao).

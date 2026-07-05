@@ -1,40 +1,18 @@
 % ============================================================
-% Nome: Mayke Anselmo Brito Lellis     Matrícula: 22.2.8008
-% Nome: Lucas dos Anjos Camelo          Matrícula: 22.2.8002
+% LADRAO: ambiguity_bait_t
+%
+% Ladrao de ambiguidade e isca. Alvo = tesouro de menor cadeia de
+% pre-requisitos. Identidade = suspeito de aparencia mais ambigua, e no
+% primeiro turno gasta todo o disfarce trocando os atributos-chave por
+% valores de outro suspeito, aparentando uma identidade diferente e
+% dificultando o mandato. Escolhe automaticamente um tesouro secundario e
+% coleta seus itens quando o desvio de rota e pequeno, confundindo o
+% detetive sobre o objetivo real. Diversifica a rota: entre itens a
+% distancia equivalente, escolhe um alternativo para o detetive nao
+% antecipar a proxima cidade obrigatoria.
 % ============================================================
 
-% ============================================================
-% AGENTE LADRAO: ladrao_raffles
-%
-% Estrategias empregadas:
-%
-% 1. TESOURO: menor cadeia de pre-requisitos recursivos.
-%
-% 2. IDENTIDADE: suspeito com maior ambiguidade de aparencia,
-%    dificultando o mandato do detetive.
-%
-% 3. DISFARCE INICIAL: usa todo o orçamento para modificar os
-%    primeiros atributos antes do primeiro roubo, aumentando a
-%    ambiguidade das primeiras pistas reveladas.
-%
-% 4. DISFARCE FORTE: plano pre-calculado que substitui atributos
-%    chave por valores de outro suspeito, fazendo o ladrao parecer
-%    uma identidade completamente diferente.
-%
-% 5. BAIT STRATEGY: escolhe automaticamente um tesouro secundario
-%    e coleta seus itens quando o desvio de rota e pequeno, confundindo
-%    o detetive sobre o objetivo real sem depender de nomes do mapa.
-%
-% 6. DIVERSIFICACAO DE ROTA: quando ha itens pendentes a distancia
-%    equivalente ao item canonico, escolhe um alternativo, evitando
-%    que o detetive antecipe e bloqueie a proxima cidade obrigatoria.
-%
-% Prioridade: disfarce forte > fuga > disfarce inicial
-%             > tesouro > bait strategy > cadeia real (com diversificacao)
-% ============================================================
-
-
-:- module(ladrao_raffles_old, [
+:- module(ambiguity_bait_t, [
     ladrao_preload/7,
     ladrao_action/3
 ]).
