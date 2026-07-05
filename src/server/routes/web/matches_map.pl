@@ -8,6 +8,7 @@
 :- use_module('../../views/match_detail', [render_not_found/1]).
 :- use_module('../../views/match_map_data').
 :- use_module('../../views/match_map_page').
+:- use_module('../../views/agent_link').
 
 :- http_handler('/map/', handler, [method(get), prefix]).
 
@@ -36,12 +37,18 @@ render_map_page(Request, Match) :-
     atom_json_dict(DataJson, Data, [width(0)]),
     matches:agent_display_name(Match.thief_agent_id, ThiefName),
     matches:agent_display_name(Match.detective_agent_id, DetectiveName),
+    agent_link:agent_link(Match.thief_agent_id, ThiefName, ThiefLink),
+    agent_link:agent_link(
+        Match.detective_agent_id,
+        DetectiveName,
+        DetectiveLink
+    ),
     engine:scenario_text(Match.scenario, MapName),
     atom_concat('/matches/', Match.id, DetailLink),
     match_map_page:content(
         MapName,
-        ThiefName,
-        DetectiveName,
+        ThiefLink,
+        DetectiveLink,
         DetailLink,
         DataJson,
         Content

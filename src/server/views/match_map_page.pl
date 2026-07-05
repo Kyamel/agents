@@ -5,12 +5,12 @@
 :- use_module(page_section).
 :- use_module(ui).
 
-%!  content(+MapName, +ThiefName, +DetectiveName, +DetailLink, +DataJson,
+%!  content(+MapName, +ThiefLink, +DetectiveLink, +DetailLink, +DataJson,
 %!          -Content) is det.
 %
 %   Componentes declarativos da pagina do mapa. O JSON contem frames prontos;
 %   os templates sao clonados pelo controlador durante o playback.
-content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
+content(MapName, ThiefLink, DetectiveLink, DetailLink, DataJson, Content) :-
     page_section:back_link(DetailLink, 'Voltar para a partida', BackLink),
     map_controls(Controls),
     map_legend(Legend),
@@ -57,8 +57,8 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
         h1([class(TitleClass)], 'Mapa da partida'),
         p([class(DescriptionClass)], [
             'Mapa: ', b([], MapName),
-            '  •  Ladrão: ', b([], ThiefName),
-            '  •  Detetive: ', b([], DetectiveName)
+            '  •  Ladrão: ', b([], ThiefLink),
+            '  •  Detetive: ', b([], DetectiveLink)
         ]),
         Legend,
         Controls,

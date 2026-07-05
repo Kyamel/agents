@@ -206,22 +206,19 @@
     "/api/v1/agents/{id}": {
       "get": {
         "tags": ["Agents"],
-        "summary": "Consulta um agente",
+        "summary": "Consulta o perfil e o histórico de um agente",
+        "description": "Retorna metadados públicos, proprietário, estatísticas gerais e o histórico paginado de partidas. O código-fonte só aparece para agentes públicos.",
         "parameters": [
-          { "$ref": "#/components/parameters/IdPath" }
+          { "$ref": "#/components/parameters/IdPath" },
+          { "$ref": "#/components/parameters/PageQuery" },
+          { "$ref": "#/components/parameters/PerPageQuery" }
         ],
         "responses": {
           "200": {
-            "description": "Agente encontrado",
+            "description": "Perfil do agente encontrado",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "agent": { "$ref": "#/components/schemas/Agent" }
-                  },
-                  "required": ["agent"]
-                }
+                "schema": { "$ref": "#/components/schemas/AgentProfileResponse" }
               }
             }
           },
@@ -740,7 +737,14 @@
           "started_at": { "type": "string" },
           "finished_at": { "type": "string" }
         },
-        "required": ["id", "thief_agent_id", "detective_agent_id", "winner", "status", "created_at"]
+        "required": [
+          "id",
+          "thief_agent_id",
+          "detective_agent_id",
+          "winner",
+          "status",
+          "created_at"
+        ]
       },
       "MatchSummary": {
         "type": "object",
@@ -748,7 +752,9 @@
         "properties": {
           "id": { "type": "integer" },
           "thief_agent_id": { "type": "integer" },
+          "thief_agent_name": { "type": "string" },
           "detective_agent_id": { "type": "integer" },
+          "detective_agent_name": { "type": "string" },
           "scenario": { "type": "string" },
           "winner": {
             "type": "string",
@@ -764,7 +770,42 @@
           "started_at": { "type": "string" },
           "finished_at": { "type": "string" }
         },
-        "required": ["id", "thief_agent_id", "detective_agent_id", "winner", "status", "created_at"]
+        "required": [
+          "id",
+          "thief_agent_id",
+          "thief_agent_name",
+          "detective_agent_id",
+          "detective_agent_name",
+          "winner",
+          "status",
+          "created_at"
+        ]
+      },
+      "AgentMatchSummary": {
+        "allOf": [
+          { "$ref": "#/components/schemas/MatchSummary" },
+          {
+            "type": "object",
+            "properties": {
+              "agent_side": {
+                "type": "string",
+                "enum": ["thief", "detective"]
+              },
+              "agent_result": {
+                "type": "string",
+                "enum": ["win", "loss", "draw", "pending", "not_completed"]
+              },
+              "opponent_id": { "type": "integer" },
+              "opponent_name": { "type": "string" }
+            },
+            "required": [
+              "agent_side",
+              "agent_result",
+              "opponent_id",
+              "opponent_name"
+            ]
+          }
+        ]
       },
       "MatchWithReplay": {
         "allOf": [
@@ -1211,6 +1252,51 @@
           "draws": { "type": "integer", "minimum": 0 }
         },
         "required": ["wins", "losses", "draws"]
+      },
+      "PerformanceStats": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Stats" },
+          {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Total de partidas concluídas com resultado."
+              },
+              "win_rate": {
+                "type": "number",
+                "format": "float",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "Percentual de vitórias entre as partidas concluídas."
+              }
+            },
+            "required": ["total", "win_rate"]
+          }
+        ]
+      },
+      "AgentOwner": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "username": { "type": "string" }
+        },
+        "required": ["id", "username"]
+      },
+      "AgentProfileResponse": {
+        "type": "object",
+        "properties": {
+          "agent": { "$ref": "#/components/schemas/Agent" },
+          "owner": { "$ref": "#/components/schemas/AgentOwner" },
+          "stats": { "$ref": "#/components/schemas/PerformanceStats" },
+          "matches": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AgentMatchSummary" }
+          },
+          "pagination": { "$ref": "#/components/schemas/Pagination" }
+        },
+        "required": ["agent", "owner", "stats", "matches", "pagination"]
       },
       "User": {
         "type": "object",

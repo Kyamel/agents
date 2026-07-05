@@ -2,13 +2,13 @@
     delete_agent/3,
     list_page/4,
     list_page_with_owners/4,
-    public_view/2
+    profile_page/4,
+    performance_stats/2
 ]).
 
 :- use_module('../db/db').
 :- use_module('../engine/engine').
 :- use_module('./scopes').
-:- use_module('./users').
 :- use_module(library(apply)).
 
 % Camada de servico do recurso "agente". Contem a regra de negocio e NUNCA
@@ -33,16 +33,81 @@ delete_agent(_User, _Id, not_found).
 list_page(Page, PerPage, Agents, Pagination) :-
     db:list_agents_page(Page, PerPage, Agents, Pagination).
 
-%!  public_view(+Id, -Outcome) is det.
+%!  profile_page(+Id, +Page, +PerPage, -Outcome) is det.
 %
-%   Visao publica de um agente. Outcome: agent(Public) | not_found. Agentes
-%   publicos expõem o codigo como `source`; privados mantem apenas metadados.
-%   `source_text` e detalhe interno do banco e nunca sai daqui.
-public_view(Id, agent(Public)) :-
+%   Perfil público compartilhado pela página HTML e pela API. O histórico vem
+%   paginado e cada partida recebe o papel, resultado e adversário do agente.
+%   Outcome:
+%     profile(Agent, Owner, Stats, Matches, Pagination) | not_found.
+profile_page(Id, Page, PerPage,
+             profile(Public, Owner, Stats, History, Pagination)) :-
     db:get_agent(Id, Agent),
     !,
-    public_agent(Agent, Public).
-public_view(_Id, not_found).
+    public_agent(Agent, Public),
+    public_owner(Agent.owner_user_id, Owner),
+    db:agent_record(Agent.id, Record),
+    performance_stats(Record, Stats),
+    db:list_matches_by_agent_page(
+        Agent.id,
+        Page,
+        PerPage,
+        Matches,
+        Pagination
+    ),
+    maplist(agent_match(Agent.id), Matches, History).
+profile_page(_, _, _, not_found).
+
+%!  performance_stats(+Record, -Stats) is det.
+%
+%   Acrescenta total de partidas concluídas e win rate percentual ao
+%   retrospecto básico já usado no restante do sistema.
+performance_stats(Record, Stats) :-
+    Total is Record.wins + Record.losses + Record.draws,
+    win_rate(Record.wins, Total, WinRate),
+    Stats = Record.put(_{
+        total: Total,
+        win_rate: WinRate
+    }).
+
+win_rate(_Wins, 0, 0.0) :- !.
+win_rate(Wins, Total, Rate) :-
+    Rounded is round(Wins * 1000 / Total),
+    Rate is float(Rounded) / 10.0.
+
+public_owner(OwnerId, Public) :-
+    db:find_user_by_id(OwnerId, Owner),
+    !,
+    Public = _{id: Owner.id, username: Owner.username}.
+public_owner(OwnerId, Public) :-
+    Public = _{id: OwnerId, username: ""}.
+
+agent_match(AgentId, Match, Rich) :-
+    agent_side(Match, AgentId, Side, OpponentId, OpponentName),
+    agent_result(Match.status, Match.winner, Side, Result),
+    Rich = Match.put(_{
+        agent_side: Side,
+        agent_result: Result,
+        opponent_id: OpponentId,
+        opponent_name: OpponentName
+    }).
+
+agent_side(Match, AgentId, "thief", OpponentId, OpponentName) :-
+    Match.thief_agent_id =:= AgentId,
+    !,
+    OpponentId = Match.detective_agent_id,
+    OpponentName = Match.detective_agent_name.
+agent_side(Match, _AgentId, "detective", OpponentId, OpponentName) :-
+    OpponentId = Match.thief_agent_id,
+    OpponentName = Match.thief_agent_name.
+
+agent_result("done", "draw", _Side, "draw") :- !.
+agent_result("done", Winner, Side, "win") :-
+    Winner == Side,
+    !.
+agent_result("done", _Winner, _Side, "loss") :- !.
+agent_result("queued", _Winner, _Side, "pending") :- !.
+agent_result("running", _Winner, _Side, "pending") :- !.
+agent_result(_Status, _Winner, _Side, "not_completed").
 
 public_agent(Agent, Public) :-
     get_dict(source_text, Agent, Source),

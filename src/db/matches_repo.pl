@@ -7,6 +7,7 @@
     list_matches_by_status/2,
     get_match/2,
     list_matches_page/4,
+    list_matches_by_agent_page/5,
     owner_record/2,
     agent_record/2
 ]).
@@ -125,6 +126,33 @@ list_matches_page(RequestedPage, PerPage, Matches, Pagination) :-
            LEFT JOIN agents AS detective ON detective.id = m.detective_agent_id \c
           ORDER BY m.id ASC LIMIT ~w OFFSET ~w;",
         [Cols, PerPage, Offset]),
+    repo:get_all_with(SQL, matches_repo:match_summary_row_dict, Matches).
+
+%!  list_matches_by_agent_page(+AgentId, +RequestedPage, +PerPage,
+%!                             -Matches, -Pagination) is det.
+%
+%   Histórico paginado de um agente em qualquer papel, mais recente primeiro.
+%   Usa os mesmos resumos leves da listagem geral e os índices dos dois papéis.
+list_matches_by_agent_page(AgentId, RequestedPage, PerPage,
+                           Matches, Pagination) :-
+    repo:lit(AgentId, QId),
+    format(string(Where),
+        "WHERE m.thief_agent_id = ~s OR m.detective_agent_id = ~s",
+        [QId, QId]),
+    format(string(CountWhere),
+        "WHERE thief_agent_id = ~s OR detective_agent_id = ~s",
+        [QId, QId]),
+    repo:count_rows("matches", CountWhere, TotalItems),
+    repo:paginate(RequestedPage, PerPage, TotalItems, Pagination),
+    Offset is (Pagination.page - 1) * PerPage,
+    summary_columns(Cols),
+    format(string(SQL),
+        "SELECT ~w \c
+           FROM matches AS m \c
+           LEFT JOIN agents AS thief ON thief.id = m.thief_agent_id \c
+           LEFT JOIN agents AS detective ON detective.id = m.detective_agent_id \c
+          ~s ORDER BY m.id DESC LIMIT ~w OFFSET ~w;",
+        [Cols, Where, PerPage, Offset]),
     repo:get_all_with(SQL, matches_repo:match_summary_row_dict, Matches).
 
 % Retrospecto (vitorias/derrotas/empates) agregado direto no SQL, sem trazer as

@@ -4,6 +4,7 @@
 ]).
 
 :- use_module(ui).
+:- use_module(agent_link).
 
 % `CurrentUser` e o usuario logado (dict) ou o atomo `anon`; o dono ganha um
 % botao de exclusao (ver actions/3).
@@ -15,18 +16,15 @@ agent_card(Agent, CurrentUser, Html) :-
     privacy_badge(Agent, PrivacyHtml),
     actions(Agent, CurrentUser, ActionsHtml),
     ui:text_class(emphasis, 'break-words', NameClass),
-    ui:text_class(meta, 'text-surface-500 font-mono', IdClass),
-    ui:pill_class(neutral, RoleBadgeClass),
+    role_badge_class(Agent.role, RoleBadgeClass),
     format(atom(DomId), 'agent-card-~w', [Agent.id]),
     ui:surface_class('px-3.5 py-3', CardClass),
+    format(string(ProfileLabel), "~w #~w", [Name, Agent.id]),
+    agent_link:agent_link(Agent.id, ProfileLabel, NameLink),
     Html = div([id(DomId), class(CardClass)], [
         div([class('flex items-start justify-between gap-2')], [
             div([class('min-w-0 flex-1')], [
-                h2([class(NameClass)], [
-                    Name,
-                    span([class(IdClass)], [' #', Agent.id])
-
-                ])
+                h2([class(NameClass)], NameLink)
             ]),
             div([class('flex shrink-0 flex-wrap justify-end gap-2')], [
                 PrivacyHtml,
@@ -169,3 +167,12 @@ normalize_id(X, S) :- term_string(X, S).
 role_label("thief", 'Ladrão') :- !.
 role_label("detective", 'Detetive') :- !.
 role_label(Other, Other).
+
+role_badge_class("thief", Class) :-
+    !,
+    ui:pill_class(amber, Class).
+role_badge_class("detective", Class) :-
+    !,
+    ui:pill_class(sky, Class).
+role_badge_class(_, Class) :-
+    ui:pill_class(neutral, Class).

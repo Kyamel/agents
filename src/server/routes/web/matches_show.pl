@@ -10,6 +10,7 @@
 :- use_module('../../views/page_section').
 :- use_module('../../views/ui').
 :- use_module('../../views/button_link').
+:- use_module('../../views/agent_link').
 
 % Prefix em /matches/ para capturar /matches/<id>. /matches/new tem handler
 % proprio (mais especifico) e ganha por especificidade.
@@ -66,8 +67,14 @@ render_detail(Request, Match, ThiefName, DetectiveName, Replay) :-
     get_dict(frames, MapData, Frames),
     match_map_data:frame_events(Frames, Events),
     page_section:back_link('/matches', 'Voltar para partidas', BackLink),
-    stat_card('Ladrão', ThiefName, ThiefCard),
-    stat_card('Detetive', DetectiveName, DetectiveCard),
+    agent_link:agent_link(Match.thief_agent_id, ThiefName, ThiefLink),
+    agent_link:agent_link(
+        Match.detective_agent_id,
+        DetectiveName,
+        DetectiveLink
+    ),
+    stat_card('Ladrão', ThiefLink, ThiefCard),
+    stat_card('Detetive', DetectiveLink, DetectiveCard),
     winner_card(Match.winner, WinnerCard),
     setup_section(Setup, SetupHtml),
     events_section(Events, EventsHtml),
@@ -99,8 +106,14 @@ render_progress(Request, Match, Status, Elapsed) :-
     elapsed_text(Elapsed, ElapsedText),
     status_banner(Status, Banner),
     page_section:back_link('/matches', 'Voltar para partidas', BackLink),
-    stat_card('Ladrão', ThiefName, ThiefCard),
-    stat_card('Detetive', DetectiveName, DetectiveCard),
+    agent_link:agent_link(Match.thief_agent_id, ThiefName, ThiefLink),
+    agent_link:agent_link(
+        Match.detective_agent_id,
+        DetectiveName,
+        DetectiveLink
+    ),
+    stat_card('Ladrão', ThiefLink, ThiefCard),
+    stat_card('Detetive', DetectiveLink, DetectiveCard),
     stat_card('Tempo decorrido', ElapsedText, TimeCard),
     atom_concat('/matches/', Match.id, SelfLink),
     ui:text_class(meta, AuxiliaryClass),
