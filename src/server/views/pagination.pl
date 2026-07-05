@@ -88,7 +88,7 @@ page_control_class(State, Class) :-
 
 page_control_tone(enabled, 'bg-surface-800 hover:bg-surface-700').
 page_control_tone(disabled,
-                  'border border-surface-700 bg-surface-900 text-surface-600').
+                  'border border-surface-700 bg-surface-900 text-surface-500').
 
 page_window(BasePath, Meta, Html) :-
     window_bounds(Meta.page, Meta.totalPages, Start, End),

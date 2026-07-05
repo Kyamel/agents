@@ -71,7 +71,7 @@ content(MapName, ThiefName, DetectiveName, DetailLink, DataJson, Content) :-
         script([type('application/json'), id('match-map-data')], DataJson),
         script([
             type(module),
-            src('/assets/match_map.js?v=39')
+            src('/assets/match_map.js?v=44')
         ], [])
     ].
 
@@ -197,7 +197,8 @@ map_replay_layout(AppearanceCard, CollectedCard, Html) :-
                xl:grid-cols-[minmax(16rem,_1fr)_var(--mm-graph-width)] \c
                map-wide:grid-cols-[var(--mm-left-width)_var(--mm-graph-width)_minmax(12rem,_1fr)]'),
         style('--mm-graph-width:56rem;\c
-               --mm-left-width:minmax(12rem,1fr)')
+               --mm-left-width:minmax(12rem,1fr);\c
+               --mm-right-width:20rem')
     ], [
         LeftPanel,
         div([

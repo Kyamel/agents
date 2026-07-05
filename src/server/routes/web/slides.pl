@@ -570,7 +570,7 @@ navigation_control(Id, none, Label, AriaLabel,
                        id(Id),
                        class('min-h-12 flex items-center justify-center rounded-xl px-2 \c
                               sm:px-4 border border-surface-800 bg-surface-900 \c
-                              text-surface-600 text-sm sm:text-base font-bold \c
+                              text-surface-500 text-sm sm:text-base font-bold \c
                               cursor-not-allowed'),
                        'aria-label'(AriaLabel),
                        'aria-disabled'(true)

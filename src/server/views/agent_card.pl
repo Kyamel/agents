@@ -73,7 +73,7 @@ stats_line(Agent, Html) :-
 stats_line(_Agent, '').
 
 record_line(Stats, [W, Sep, L, Sep, D]) :-
-    Sep = span([class('text-surface-600')], ' - '),
+    Sep = span([class('text-surface-500')], ' - '),
     stat_part(Stats.wins,   'V', 'text-emerald-300', W),
     stat_part(Stats.losses, 'D', 'text-ufop-400',     L),
     stat_part(Stats.draws,  'E', 'text-surface-300', D).

@@ -106,11 +106,10 @@ render_progress(Request, Match, Status, Elapsed) :-
     ui:text_class(meta, AuxiliaryClass),
     ui:link_class(AuxiliaryClass, RefreshClass),
     ui:text_class(title, 'mt-3 mb-1', TitleClass),
-    ui:text_class(meta, 'font-mono text-surface-500 mb-5 break-all', IdClass),
+    %ui:text_class(meta, 'font-mono text-surface-500 mb-5 break-all', IdClass),
     page:reply_page(Request, 'Partida em andamento', [
         BackLink,
         h1([class(TitleClass)], 'Partida em andamento'),
-        p([class(IdClass)], Match.id),
         div([class('grid sm:grid-cols-3 gap-4 mb-8')], [
             ThiefCard, DetectiveCard, TimeCard
         ]),
