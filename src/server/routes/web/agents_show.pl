@@ -43,7 +43,7 @@ render_outcome(not_found, Request) :-
     render_not_found(Request).
 
 render_profile(Request, Agent, Owner, Stats, Matches, PaginationMeta) :-
-    page_section:back_link('/agents', 'Voltar para agentes', BackLink),
+    page_section:back_link_to_list(Request, '/agents', 'Voltar para agentes', BackLink),
     profile_heading(Agent, Owner, Heading),
     stats_summary(Stats, StatsSummary),
     card_list:card_grid(

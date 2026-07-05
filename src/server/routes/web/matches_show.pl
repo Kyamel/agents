@@ -66,7 +66,7 @@ render_detail(Request, Match, ThiefName, DetectiveName, Replay) :-
     match_map_data:map_data(Match.scenario, Replay, MapData),
     get_dict(frames, MapData, Frames),
     match_map_data:frame_events(Frames, Events),
-    page_section:back_link('/matches', 'Voltar para partidas', BackLink),
+    page_section:back_link_to_list(Request, '/matches', 'Voltar para partidas', BackLink),
     agent_link:agent_link(Match.thief_agent_id, ThiefName, ThiefLink),
     agent_link:agent_link(
         Match.detective_agent_id,
@@ -105,7 +105,7 @@ render_progress(Request, Match, Status, Elapsed) :-
     matches:agent_display_name(Match.detective_agent_id, DetectiveName),
     elapsed_text(Elapsed, ElapsedText),
     status_banner(Status, Banner),
-    page_section:back_link('/matches', 'Voltar para partidas', BackLink),
+    page_section:back_link_to_list(Request, '/matches', 'Voltar para partidas', BackLink),
     agent_link:agent_link(Match.thief_agent_id, ThiefName, ThiefLink),
     agent_link:agent_link(
         Match.detective_agent_id,

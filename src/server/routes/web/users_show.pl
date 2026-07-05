@@ -45,7 +45,7 @@ to_agent_profile(stat(Agent, Stats), _{agent: Agent, stats: Stats}).
 
 % Resposta (HTML)
 render_profile(Request, Id, User, Profile) :-
-    page_section:back_link('/agents', 'Voltar para agentes', BackLink),
+    page_section:back_link_to_list(Request, '/agents', 'Voltar para agentes', BackLink),
     stats_summary(Profile.stats, Summary),
     agents_section(Profile.agents, AgentsSection),
     format(atom(BaseUrl), '/users/~w', [Id]),
