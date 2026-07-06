@@ -104,7 +104,7 @@ render_progress(Request, Match, Status, Elapsed) :-
     matches:agent_display_name(Match.thief_agent_id, ThiefName),
     matches:agent_display_name(Match.detective_agent_id, DetectiveName),
     elapsed_text(Elapsed, ElapsedText),
-    status_banner(Status, Banner),
+    status_banner(Status, Match.error_message, Banner),
     page_section:back_link_to_list(Request, '/matches', 'Voltar para partidas', BackLink),
     agent_link:agent_link(Match.thief_agent_id, ThiefName, ThiefLink),
     agent_link:agent_link(
@@ -139,8 +139,9 @@ elapsed_text(Elapsed, Text) :-
     format(string(Text), "~w s", [Elapsed]).
 elapsed_text(_Elapsed, "-").
 
-status_banner(Status, Html) :-
-    status_meta(Status, Title, Hint, Accent),
+status_banner(Status, ErrorMessage, Html) :-
+    status_meta(Status, Title, DefaultHint, Accent),
+    status_hint(Status, ErrorMessage, DefaultHint, Hint),
     ui:tinted_card_class(Accent, Class),
     ui:text_class(meta, 'opacity-80 mt-1', HintClass),
     Html = div([
@@ -152,6 +153,13 @@ status_banner(Status, Html) :-
         p([class('font-semibold')], Title),
         p([class(HintClass)], Hint)
     ]).
+
+status_hint(Status, ErrorMessage, _DefaultHint, ErrorMessage) :-
+    memberchk(Status, ["error", "timeout"]),
+    string(ErrorMessage),
+    ErrorMessage \== "",
+    !.
+status_hint(_Status, _ErrorMessage, DefaultHint, DefaultHint).
 
 status_meta("queued", 'Na fila',
     'Aguardando um worker disponível para iniciar a execução.', amber) :- !.

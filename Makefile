@@ -48,6 +48,7 @@ test:
 	swipl -q -s tests/slides_test.pl -g run_tests -t halt
 	swipl -q -s tests/match_map_data_test.pl -g run_tests -t halt
 	swipl -q -s tests/agent_profile_test.pl -g run_tests -t halt
+	swipl -q -s tests/match_queue_test.pl -g run_tests -t halt
 	swipl -q -s tests/ambiguity_bait_t_test.pl -g run_tests -t halt
 	swipl -q -s tests/full_coverage_t_test.pl -g run_tests -t halt
 	node tests/match_map_layout_test.mjs

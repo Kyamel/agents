@@ -3,7 +3,7 @@
     create_pending_match/4,
     update_match_status/2,
     finalize_match/3,
-    mark_match_failed/2,
+    mark_match_failed/3,
     list_matches_by_status/2,
     get_match/2,
     list_matches_page/4,
@@ -18,7 +18,7 @@
 % Colunas opcionais (scenario/started/finished) e status com fallback usam um
 % mapeador de dominio via repo:get_*_with/3. Reexportado por db.pl.
 
-match_columns("id, thief_agent_id, detective_agent_id, scenario, winner, replay_json, status, created_at, started_at, finished_at").
+match_columns("id, thief_agent_id, detective_agent_id, scenario, winner, replay_json, status, created_at, started_at, finished_at, error_message").
 summary_columns(
     "m.id, m.thief_agent_id, m.detective_agent_id, m.scenario, m.winner, \c
      m.status, m.created_at, m.started_at, m.finished_at, \c
@@ -80,18 +80,19 @@ finalize_match(MatchId, Winner, ReplayJson) :-
     repo:quote(ReplayJson, QR),
     repo:quote(Now, QF),
     format(string(SQL),
-        "UPDATE matches SET winner = ~s, replay_json = ~s, status = 'done', finished_at = ~s WHERE id = ~s;",
+        "UPDATE matches SET winner = ~s, replay_json = ~s, status = 'done', finished_at = ~s, error_message = NULL WHERE id = ~s;",
         [QW, QR, QF, QId]),
     repo:exec(SQL).
 
-mark_match_failed(MatchId, Status) :-
+mark_match_failed(MatchId, Status, ErrorMessage) :-
     repo:now_iso(Now),
     repo:lit(MatchId, QId),
     repo:quote(Status, QStatus),
     repo:quote(Now, QF),
+    repo:quote(ErrorMessage, QError),
     format(string(SQL),
-        "UPDATE matches SET status = ~s, finished_at = ~s WHERE id = ~s;",
-        [QStatus, QF, QId]),
+        "UPDATE matches SET status = ~s, finished_at = ~s, error_message = ~s WHERE id = ~s;",
+        [QStatus, QF, QError, QId]),
     repo:exec(SQL).
 
 % Re-enfileirar pendentes apos restart, dai a ordem crescente.
@@ -215,7 +216,7 @@ record_from_total(row(Total, Wins, Draws), _{wins: Wins, losses: Losses, draws: 
 record_wld(row(Wins, Losses, Draws), _{wins: Wins, losses: Losses, draws: Draws}).
 
 match_row_dict(row(Id, Thief, Detective, Scenario, Winner, Replay, Status,
-                   CreatedAt, StartedAt, FinishedAt),
+                   CreatedAt, StartedAt, FinishedAt, ErrorMessage),
                Match) :-
     norm_status(Status, StatusT),
     norm_optional(Scenario, ScenarioT),
@@ -223,6 +224,7 @@ match_row_dict(row(Id, Thief, Detective, Scenario, Winner, Replay, Status,
     norm_optional(FinishedAt, FinishedT),
     norm_optional(Winner, WinnerT),
     norm_optional(Replay, ReplayT),
+    norm_optional(ErrorMessage, ErrorMessageT),
     repo:int(Id, IdN),
     repo:int(Thief, ThiefN),
     repo:int(Detective, DetectiveN),
@@ -237,7 +239,8 @@ match_row_dict(row(Id, Thief, Detective, Scenario, Winner, Replay, Status,
         status: StatusT,
         created_at: CreatedT,
         started_at: StartedT,
-        finished_at: FinishedT
+        finished_at: FinishedT,
+        error_message: ErrorMessageT
     }.
 
 match_summary_row_dict(row(Id, Thief, Detective, Scenario, Winner, Status,

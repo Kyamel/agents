@@ -182,10 +182,16 @@ finish_job(MatchId, exit(0), OutFile) :-
     cleanup(MatchId, OutFile).
 finish_job(MatchId, timeout, OutFile) :-
     !,
-    fail_job(MatchId, "timeout", timeout),
+    fail_job(MatchId, "timeout", "A partida excedeu o tempo limite de execução."),
     cleanup(MatchId, OutFile).
 finish_job(MatchId, _Status, OutFile) :-
-    fail_job(MatchId, "error", subprocess_failed),
+    result_error_message(OutFile, Message),
+    !,
+    fail_job(MatchId, "error", Message),
+    cleanup(MatchId, OutFile).
+finish_job(MatchId, Status, OutFile) :-
+    format(string(Message), "O subprocesso da partida falhou: ~w.", [Status]),
+    fail_job(MatchId, "error", Message),
     cleanup(MatchId, OutFile).
 
 %!  read_result(+OutFile, -Winner, -ReplayJson) is semidet.
@@ -193,14 +199,22 @@ finish_job(MatchId, _Status, OutFile) :-
 %   Le o JSON escrito pelo subprocesso. Falha se o arquivo nao existir, estiver
 %   corrompido ou carregar `error` (e nao `winner`/`replay`).
 read_result(OutFile, Winner, ReplayJson) :-
+    read_result_payload(OutFile, Payload),
+    get_dict(winner, Payload, Winner),
+    get_dict(replay, Payload, Replay),
+    atom_json_dict(ReplayJson, Replay, [width(0)]).
+
+read_result_payload(OutFile, Payload) :-
     exists_file(OutFile),
     setup_call_cleanup(
         open(OutFile, read, In, [encoding(utf8)]),
         catch(json_read_dict(In, Payload), _, fail),
-        close(In)),
-    get_dict(winner, Payload, Winner),
-    get_dict(replay, Payload, Replay),
-    atom_json_dict(ReplayJson, Replay, [width(0)]).
+        close(In)).
+
+result_error_message(OutFile, Message) :-
+    read_result_payload(OutFile, Payload),
+    get_dict(error, Payload, RawMessage),
+    failure_message(RawMessage, Message).
 
 cleanup(MatchId, OutFile) :-
     delete_if_exists(OutFile),
@@ -213,9 +227,32 @@ delete_if_exists(File) :-
 delete_if_exists(_File).
 
 fail_job(MatchId, Status, Reason) :-
-    format(user_error, "[match ~w] falhou (~w): ~q~n", [MatchId, Status, Reason]),
-    catch(db:mark_match_failed(MatchId, Status), _, true),
+    failure_message(Reason, Message),
+    format(user_error, "[match ~w] falhou (~w): ~s~n", [MatchId, Status, Message]),
+    catch(db:mark_match_failed(MatchId, Status, Message), _, true),
     forget_job(MatchId).
+
+failure_message(Reason, Message) :-
+    reason_text(Reason, RawMessage),
+    truncate_message(RawMessage, 2000, Message).
+
+reason_text(Reason, Reason) :-
+    string(Reason),
+    !.
+reason_text(Reason, Message) :-
+    catch(message_to_string(Reason, Message), _, fail),
+    !.
+reason_text(Reason, Message) :-
+    term_string(Reason, Message).
+
+truncate_message(RawMessage, Limit, Message) :-
+    string_length(RawMessage, Length),
+    Length > Limit,
+    !,
+    PrefixLength is Limit - 3,
+    sub_string(RawMessage, 0, PrefixLength, _, Prefix),
+    string_concat(Prefix, "...", Message).
+truncate_message(Message, _Limit, Message).
 
 % =============================
 % Registro de jobs (em memoria, so os ativos)

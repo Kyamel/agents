@@ -49,7 +49,8 @@ migrate :-
         status TEXT,
         created_at TEXT NOT NULL,
         started_at TEXT,
-        finished_at TEXT
+        finished_at TEXT,
+        error_message TEXT
     );"),
     migrate_users_columns,
     migrate_agents_columns,
@@ -69,7 +70,8 @@ migrate_agents_columns :-
 % dai o `catch` por coluna para manter a migracao idempotente.
 migrate_matches_columns :-
     forall(member(Def, ["scenario TEXT", "status TEXT",
-                        "started_at TEXT", "finished_at TEXT"]),
+                        "started_at TEXT", "finished_at TEXT",
+                        "error_message TEXT"]),
            ( format(string(SQL), "ALTER TABLE matches ADD COLUMN ~s;", [Def]),
              catch(sql_exec(SQL), _, true) )).
 
