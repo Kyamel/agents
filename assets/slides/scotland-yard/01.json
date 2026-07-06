@@ -1,0 +1,8 @@
+{
+  "title": "Problema e escopo",
+  "subtitle": "De um exercício executado localmente para uma aplicação Web multiusuário",
+  "image": "/assets/slides/demo/imgs/scotland-yard-map.webp",
+  "image_alt": "Mapa estilizado de uma partida de perseguição",
+  "right_text": "O ladrão tenta concluir seu objetivo sem ser capturado; o detetive interpreta pistas, bloqueia cidades e procura alcançá-lo.",
+  "paragraph": "A plataforma reúne autenticação, envio de agentes Prolog, criação assíncrona de partidas, persistência e replay dos resultados."
+}

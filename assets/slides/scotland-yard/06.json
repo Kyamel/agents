@@ -1,0 +1,6 @@
+{
+  "title": "Frontend funcional e acessível",
+  "subtitle": "HTML declarativo em Prolog; JavaScript apenas na interação rica",
+  "right_text": "Mostrar match_map_page.pl e match_map.js: controles do replay, slider de turnos, atalhos de teclado, mapa SVG e layout responsivo.",
+  "paragraph": "Componentes visuais reutilizáveis centralizam estilos; landmarks, rótulos ARIA e live regions ajudam na navegação assistiva."
+}

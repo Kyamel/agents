@@ -1,0 +1,6 @@
+{
+  "title": "Backend: uma regra, duas interfaces",
+  "subtitle": "Separação próxima ao MVC, sem duplicar a lógica de negócio",
+  "right_text": "Comparar routes/web/matches_new.pl, routes/api/matches_list.pl e services/matches.pl.",
+  "paragraph": "A rota interpreta HTTP e renderiza a resposta; o serviço valida agentes, papéis e cenário, e então enfileira a partida."
+}

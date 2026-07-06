@@ -1,0 +1,6 @@
+{
+  "title": "Fluxo principal",
+  "subtitle": "Agente → partida → fila → execução → replay",
+  "right_text": "No navegador: entrar na plataforma, consultar os agentes, criar uma partida e acompanhar o resultado turno a turno.",
+  "paragraph": "Demonstração: interface responsiva, estado da partida, eventos e mapa interativo."
+}

@@ -1,0 +1,6 @@
+{
+  "title": "Resultado",
+  "subtitle": "Uma aplicação Web completa construída em torno de um problema de programação lógica",
+  "right_text": "Cadastro e autenticação • agentes públicos ou privados • API documentada • partidas concorrentes • histórico e estatísticas • replay visual",
+  "paragraph": "O principal resultado foi integrar Web, banco de dados e execução de agentes Prolog em uma arquitetura modular e testável."
+}

@@ -1,0 +1,6 @@
+{
+  "title": "Arquitetura em camadas",
+  "subtitle": "Rotas HTTP → serviços → persistência e engine",
+  "right_text": "As rotas Web geram HTML; os endpoints da API geram JSON. Ambos reutilizam os mesmos serviços e regras de negócio.",
+  "paragraph": "SWI-Prolog no servidor • SQLite como fonte dos dados • DSL HTML e Tailwind na interface • JavaScript modular no replay"
+}

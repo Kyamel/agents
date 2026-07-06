@@ -1,0 +1,6 @@
+{
+  "title": "O núcleo: execução assíncrona",
+  "subtitle": "A requisição não espera a partida terminar",
+  "right_text": "enqueue_match → fila de mensagens → pool de workers → subprocesso SWI-Prolog → replay JSON → SQLite",
+  "paragraph": "Cada partida roda em um processo separado, com timeout e recuperação de jobs após reinício. O código enviado também passa por validações antes de ser aceito."
+}
