@@ -10,6 +10,3 @@ __pycache__/
 src/config.pl
 tools/eval/results/*
 !tools/eval/results/.gitkeep
-scenarios/*
-!scenarios/cenario1.prolog
-!scenarios/mapa1.prolog
