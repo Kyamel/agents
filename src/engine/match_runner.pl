@@ -174,12 +174,13 @@ read_scenario_terms(File, Terms) :-
 
 read_terms(In, Terms) :-
     read_term(In, Term, []),
-    ( Term == end_of_file
-    ->  Terms = []
-    ;   Terms = [Term|Rest],
-        read_terms(In, Rest)
-    ).
-
+    read_terms_(Term, In, Terms).
+    
+read_terms_(end_of_file, _In, []) :-
+    !.
+read_terms_(Term, In, [Term|Rest]) :-
+    read_terms(In, Rest).
+    
 sort_pair(A, B, [A, B]) :- A @=< B, !.
 sort_pair(A, B, [B, A]).
 
