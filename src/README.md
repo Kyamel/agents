@@ -88,4 +88,4 @@ swipl --pldoc=4000 src/main.pl
 
 ## Observação
 
-O projeto usa tailwind CDN para estilização, então garanta que sua máquina esteja conectada a internet para a correta exibição das páginas.
+O projeto usa tailwind CDN para estilização, então garanta que sua máquina esteja conectada à internet para a correta exibição das páginas.
