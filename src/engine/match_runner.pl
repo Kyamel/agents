@@ -41,10 +41,7 @@ disguise_count(Q) :- config:engine_disguises(Q).
 available_scenarios(Scenarios) :-
     config:scenario_dir(Dir),
     to_atom(Dir, DirAtom),
-    (   exists_directory(DirAtom)
-    ->  directory_files(DirAtom, Entries)
-    ;   Entries = []
-    ),
+    directory_entries(DirAtom, Entries),
     findall(scenario(Value, Label),
             ( member(Entry, Entries),
               file_name_extension(Base, prolog, Entry),
@@ -54,6 +51,12 @@ available_scenarios(Scenarios) :-
             ),
             Unsorted),
     sort(2, @=<, Unsorted, Scenarios).
+
+directory_entries(DirAtom, Entries) :-
+    exists_directory(DirAtom),
+    !,
+    directory_files(DirAtom, Entries).
+directory_entries(_DirAtom, []).
 
 % Valida a escolha vinda do formulario contra os cenarios disponiveis.
 valid_scenario(Value) :-
