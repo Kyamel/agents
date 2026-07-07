@@ -9,8 +9,8 @@
 
 %!  send_verification_email(+To, +VerifyUrl, -Status) is det.
 send_verification_email(To, VerifyUrl, Status) :-
-    Subject = "Verify your account",
+    Subject = "Verifique sua conta",
     format(string(Html),
-           "<p>Click to verify your account:</p><p><a href=\"~w\">Verify email</a></p>",
+           "<p>Clique para verificar sua conta:</p><p><a href=\"~w\">Verificar email</a></p>",
            [VerifyUrl]),
     mail:send_email(To, Subject, Html, Status).
