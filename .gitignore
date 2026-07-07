@@ -8,5 +8,5 @@ __pycache__/
 *.pyc
 
 src/config.pl
-tools/eval/results/*
-!tools/eval/results/.gitkeep
+tools/results/*
+!tools/results/.gitkeep

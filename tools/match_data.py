@@ -1,20 +1,8 @@
-#!/usr/bin/env python3
-"""Run thief-agent evaluation batches against one or more detective agents.
-
-This is an external harness: it calls the professor engine through SWI-Prolog
-without editing src/engine/Interactor.prolog, captures the textual replay, and
-writes CSV tables for later analysis/plotting.
-"""
+"""Parsing, normalization, and scoring helpers for match evaluation data."""
 
 from __future__ import annotations
 
-import argparse
-import csv
-import hashlib
-import itertools
-import json
 import re
-import subprocess
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
@@ -23,13 +11,7 @@ from statistics import mean
 from typing import Any
 
 
-ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_SCENARIO = ROOT / "maps/cenario1.prolog"
-DEFAULT_DETECTIVES = [ROOT / "agents/randomd.pl"]
-DEFAULT_OUT = ROOT / "tools/eval/results"
-
-
-DEFAULT_WEIGHTS = {
+DEFAULT_WEIGHTS: dict[str, float] = {
     "vit": 1000.0,
     "turn": 10.0,
     "pist": 15.0,
@@ -37,13 +19,14 @@ DEFAULT_WEIGHTS = {
     "mov": 5.0,
 }
 
-
 LOG_RE = re.compile(r"^(?P<turn>\d+)\s+(?P<role>ladrao|detetive):\s+(?P<action>.*)\[(?P<status>OK|Ilegal)\]$")
 EVENT_RE = re.compile(r"^>>>> Evento (?P<event>roubo\(.*\))$")
 RESULT_RE = re.compile(r"^__RESULT__=(?P<winner>\w+)$")
 STATE_RE = re.compile(r"^__STATE__=(?P<state>gSt\(.*\))$")
 MOVE_RE = re.compile(r"^move\((?P<from>[^,]+),(?P<to>[^)]+)\)$")
 ROBBERY_RE = re.compile(r"^roubo\((?P<item>.*),(?P<city>[^,]+),\[(?P<attrs>.*)\]\)$")
+
+Row = dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -53,242 +36,6 @@ class Scenario:
     edges: list[tuple[str, str]]
     suspects: dict[int, list[str]]
     max_turns: int
-
-
-def main() -> int:
-    args = parse_args()
-    scenario = parse_scenario(args.scenario)
-    detectives = [resolve_path(p) for p in args.detectives]
-    thieves = [resolve_path(p) for p in args.thieves]
-    weights = {
-        "vit": args.w_vit,
-        "turn": args.w_turn,
-        "pist": args.w_pist,
-        "risk": args.w_risk,
-        "mov": args.w_mov,
-    }
-
-    config = {
-        "scenario": str(scenario.path.relative_to(ROOT)),
-        "thieves": [str(p.relative_to(ROOT)) for p in thieves],
-        "detectives": [str(p.relative_to(ROOT)) for p in detectives],
-        "rounds": args.rounds,
-        "seed_start": args.seed_start,
-        "qdis": args.disguises,
-        "weights": weights,
-    }
-    out_dir = output_dir(args.output_dir, config)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    raw_dir = out_dir / "raw"
-    raw_dir.mkdir(exist_ok=True)
-    (out_dir / "config.json").write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-
-    all_rows = []
-    total = len(thieves) * len(detectives) * args.rounds
-    done = 0
-    for thief in thieves:
-        for detective in detectives:
-            for round_idx in range(1, args.rounds + 1):
-                seed = args.seed_start + round_idx - 1
-                raw = run_match(scenario.path, thief, detective, seed, args.disguises)
-                metrics = score_match(raw, scenario, weights)
-                row = {
-                    "run_id": run_id(thief, detective, scenario.path, seed),
-                    "round": round_idx,
-                    "seed": seed,
-                    "scenario": rel(scenario.path),
-                    "thief_agent": rel(thief),
-                    "detective_agent": rel(detective),
-                    **metrics,
-                }
-                all_rows.append(row)
-                raw_path = raw_dir / f"{row['run_id']}.json"
-                raw_path.write_text(json.dumps({"row": row, "raw": raw}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-                done += 1
-                print(
-                    f"[{done:03d}/{total:03d}] {rel(thief)} vs {rel(detective)} "
-                    f"seed={seed} score={row['score']:.2f} winner={row['winner']}"
-                )
-
-    write_csv(out_dir / "matches.csv", all_rows)
-    summary_rows = summarize(all_rows)
-    write_csv(out_dir / "summary.csv", summary_rows)
-    best_worst_rows = best_worst(all_rows)
-    write_csv(out_dir / "best_worst.csv", best_worst_rows)
-
-    print_win_rates(all_rows, thieves, detectives)
-    print()
-    print(f"Resultados salvos em: {out_dir}")
-    print(f"- {out_dir / 'matches.csv'}")
-    print(f"- {out_dir / 'summary.csv'}")
-    print(f"- {out_dir / 'best_worst.csv'}")
-    print(f"- {raw_dir}/")
-    return 0
-
-
-GREEN = "\033[32m"
-RED = "\033[31m"
-RESET = "\033[0m"
-
-def print_win_rates(
-    rows: list[Row],
-    thieves: list[Path],
-    detectives: list[Path],
-) -> None:
-    print()
-    print("Win rates:")
-
-    for thief in thieves:
-        thief_name = rel(thief)
-        thief_rows = [
-            row for row in rows
-            if row["thief_agent"] == thief_name
-        ]
-
-        print(f"- {thief_name}")
-
-        for detective in detectives:
-            detective_name = rel(detective)
-            matchup = [
-                row for row in thief_rows
-                if row["detective_agent"] == detective_name
-            ]
-
-            print_win_rate_line(f"  vs {detective_name}", matchup)
-
-        print_win_rate_line("  GLOBAL", thief_rows)
-
-    print_win_rate_line("- GLOBAL GERAL", rows)
-
-
-def print_win_rate_line(label: str, rows: list[Row]) -> None:
-    total_matches = len(rows)
-
-    wins = sum(int(row["won"]) for row in rows)
-    losses = sum(int(row["lost"]) for row in rows)
-    draws = total_matches - wins - losses
-
-    decided_matches = wins + losses
-
-    if decided_matches:
-        win_rate_text = f"{wins / decided_matches:.2%}"
-        loss_rate_text = f"{losses / decided_matches:.2%}"
-    else:
-        win_rate_text = "N/A"
-        loss_rate_text = "N/A"
-
-    draw_rate = draws / total_matches if total_matches else 0.0
-
-    print(
-        f"{label}: "
-        f"{GREEN}vitórias {win_rate_text} ({wins}){RESET} | "
-        f"{RED}derrotas {loss_rate_text} ({losses}){RESET} | "
-        f"empates {draw_rate:.2%} ({draws}) | "
-        f"total {total_matches}"
-    )
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Evaluate thief agents against detective agents on cenario1.")
-    parser.add_argument("--rounds", "-n", type=int, default=50, help="numero de rodadas por detetive (padrao: 50)")
-    parser.add_argument(
-        "--thieves",
-        "--thief",
-        "-t",
-        nargs="+",
-        required=True,
-        help="arquivos .pl dos agentes ladroes a comparar",
-    )
-    parser.add_argument(
-        "--detectives",
-        "-d",
-        nargs="+",
-        default=[str(p) for p in DEFAULT_DETECTIVES],
-        help="lista de arquivos .pl dos detetives (padrao: agents/randomd.pl)",
-    )
-    parser.add_argument("--scenario", default=str(DEFAULT_SCENARIO), help="cenario .prolog (padrao: src/engine/cenario1.prolog)")
-    parser.add_argument("--output-dir", default=str(DEFAULT_OUT), help="diretorio base dos resultados")
-    parser.add_argument("--seed-start", type=int, default=1, help="primeira seed usada na bateria")
-    parser.add_argument("--disguises", type=int, default=3, help="quantidade de disfarces passada ao engine")
-    parser.add_argument("--w-vit", type=float, default=DEFAULT_WEIGHTS["vit"])
-    parser.add_argument("--w-turn", type=float, default=DEFAULT_WEIGHTS["turn"])
-    parser.add_argument("--w-pist", type=float, default=DEFAULT_WEIGHTS["pist"])
-    parser.add_argument("--w-risk", type=float, default=DEFAULT_WEIGHTS["risk"])
-    parser.add_argument("--w-mov", type=float, default=DEFAULT_WEIGHTS["mov"])
-    return parser.parse_args()
-
-
-def resolve_path(value: str | Path) -> Path:
-    path = Path(value)
-    if not path.is_absolute():
-        path = ROOT / path
-    path = path.resolve()
-    if not path.exists():
-        raise SystemExit(f"Arquivo nao encontrado: {path}")
-    return path
-
-
-def rel(path: Path) -> str:
-    try:
-        return str(path.resolve().relative_to(ROOT))
-    except ValueError:
-        return str(path.resolve())
-
-
-def output_dir(base: str, config: dict) -> Path:
-    base_path = resolve_or_create_base(base)
-    digest = hashlib.sha256(json.dumps(config, sort_keys=True).encode("utf-8")).hexdigest()[:12]
-    thieves = slug("-".join(Path(t).stem for t in config["thieves"]))
-    detectors = slug("-".join(Path(d).stem for d in config["detectives"]))
-    name = f"{Path(config['scenario']).stem}__{thieves}__vs__{detectors}__n{config['rounds']}__seed{config['seed_start']}__{digest}"
-    return base_path / name
-
-
-def resolve_or_create_base(value: str) -> Path:
-    path = Path(value)
-    if not path.is_absolute():
-        path = ROOT / path
-    return path.resolve()
-
-
-def slug(value: str) -> str:
-    clean = re.sub(r"[^a-zA-Z0-9_.-]+", "-", value).strip("-")
-    return clean or "agent"
-
-
-def run_id(thief: Path, detective: Path, scenario: Path, seed: int) -> str:
-    payload = f"{rel(thief)}|{rel(detective)}|{rel(scenario)}|{seed}"
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
-
-
-def prolog_atom(path: Path) -> str:
-    return "'" + str(path).replace("\\", "\\\\").replace("'", "\\'") + "'"
-
-
-def scenario_arg(path: Path) -> Path:
-    return path.with_suffix("")
-
-
-def run_match(scenario: Path, thief: Path, detective: Path, seed: int, disguises: int) -> dict:
-    interactor = ROOT / "src/engine/Interactor.prolog"
-    goal = (
-        f"set_random(seed({seed})),"
-        f"consult({prolog_atom(interactor)}),"
-        f"gameStart({prolog_atom(scenario_arg(scenario))},{disguises},{prolog_atom(thief)},{prolog_atom(detective)},S,V),"
-        "nl,write('__STATE__='),write_canonical(S),"
-        "nl,write('__RESULT__='),write(V),nl,"
-        "halt."
-    )
-    proc = subprocess.run(
-        ["swipl", "-q", "-g", goal],
-        cwd=ROOT,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    if proc.returncode != 0:
-        raise RuntimeError(f"SWI-Prolog falhou\nSTDERR:\n{proc.stderr}\nSTDOUT:\n{proc.stdout}")
-    return parse_output(proc.stdout, proc.stderr, seed)
 
 
 def parse_output(stdout: str, stderr: str, seed: int) -> dict:
@@ -350,9 +97,6 @@ def parse_robbery(text: str) -> dict:
     }
 
 
-Row = dict[str, Any]
-
-
 def parse_initial_state(state: str) -> dict[str, object]:
     if not state.startswith("gSt("):
         return {}
@@ -401,8 +145,8 @@ def split_top_level(text: str) -> list[str]:
     return parts
 
 
-def parse_scenario(path_value: str) -> Scenario:
-    path = resolve_path(path_value)
+def parse_scenario(path_value: str | Path) -> Scenario:
+    path = Path(path_value).resolve()
     text = path.read_text(encoding="utf-8")
     cities = re.findall(r"^\s*cidade\(([^)]+)\)\.", text, re.MULTILINE)
     edges = re.findall(r"^\s*conectado\(([^,]+),([^)]+)\)\.", text, re.MULTILINE)
@@ -695,20 +439,3 @@ def best_worst(rows: list[Row]) -> list[Row]:
         output.extend([best, worst])
     return output
 
-
-def write_csv(path: Path, rows: list[dict]) -> None:
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
-    fieldnames = list(rows[0].keys())
-    with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-if __name__ == "__main__":
-    try:
-        raise SystemExit(main())
-    except KeyboardInterrupt:
-        raise SystemExit(130)

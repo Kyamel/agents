@@ -5,15 +5,17 @@ resultados.
 
 ## Rodar baterias de partidas
 
-Use `tools/eval/run.py` para comparar ladroes e detetives em um cenario.
+Use `tools/run.py` para comparar ladroes e detetives em um cenario.
+O script de linha de comando usa `tools/match_data.py` para fazer parsing,
+normalizacao, extracao de metricas e agregacoes dos resultados.
 
 Exemplo:
 
 ```sh
-python3 tools/eval/run.py \
+python3 tools/run.py \
   -n 50 \
-  -t agents/thief.pl agents/thiefnew.pl \
-  -d agents/randomd.pl agents/warrantd.pl agents/neighborblockd.pl \
+  -t agents/random_t.pl agents/greedy_t.pl \
+  -d agents/random_d.pl agents/warrant_hunter_d.pl agents/neighbor_blocker_d.pl \
   --scenario maps/cenario1.prolog
 ```
 
@@ -28,7 +30,7 @@ Opcoes principais:
 Os resultados sao salvos em uma nova pasta dentro de:
 
 ```text
-tools/eval/results/
+tools/results/
 ```
 
 Cada pasta contem:
@@ -40,23 +42,23 @@ Cada pasta contem:
 
 ## Gerar graficos
 
-Use `tools/eval/plot.py` para gerar os PNGs de uma pasta de resultados:
+Use `tools/plot.py` para gerar os PNGs de uma pasta de resultados:
 
 ```sh
-python3 tools/eval/plot.py tools/eval/results/<pasta-gerada>
+python3 tools/plot.py tools/results/<pasta-gerada>
 ```
 
 Os graficos sao salvos em:
 
 ```text
-tools/eval/results/<pasta-gerada>/figs/
+tools/results/<pasta-gerada>/figs/
 ```
 
 ## Notebook
 
-Tambem existe `tools/eval/plot.ipynb` para analise grafica interativa.
+Tambem existe `tools/plot.ipynb` para analise grafica interativa.
 
-O notebook importa diretamente as funcoes de `tools/eval/plot.py`, entao ele
+O notebook importa diretamente as funcoes de `tools/plot.py`, entao ele
 gera os mesmos graficos do script sem duplicar a logica. Use o notebook quando
 quiser ver os graficos renderizados perto das celulas de analise.
 
