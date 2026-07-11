@@ -37,7 +37,7 @@ Carregar `src/main.pl` dispara `initialization(main)`, que sobe as camadas em or
 
 ![[02-bootstrap]]
 
-**Fala:** "No boot, inicializo o banco e aplico migrações, sincronizo papéis de admin, subo o servidor HTTP e ligo o pool de workers - que já recupera partidas pendentes de uma execução anterior."
+**Fala:** "No boot, inicializo o banco e aplico migrações, sincronizo papéis de admin, subo o servidor HTTP e ligo o pool de workers, que já recupera partidas pendentes de uma execução anterior."
 
 ---
 
