@@ -51,7 +51,7 @@ Cinco tabelas. Tokens de verificação de email e de sessão são guardados como
 
 Colunas omitidas do diagrama por brevidade: `username`, vários `created_at`, `started_at`, `finished_at`, `error_message`. Valores de `matches.status`: `queued | running | done | error | timeout`.
 
-**Fala:** "O banco tem usuários, verificações de email, sessões, agentes e partidas. Tokens são armazenados como hash. O agente guarda o próprio código-fonte. A partida guarda o ciclo de vida completo, do `queued` até o `replay_json` final - o que permite reconstruir a visualização sem rodar o jogo de novo."
+**Fala:** "O banco tem usuários, verificações de email, sessões, agentes e partidas. Tokens são armazenados como hash. O agente guarda o próprio código-fonte. A partida guarda o ciclo de vida completo, do `queued` até o `replay_json` final, o que permite reconstruir a visualização sem rodar o jogo de novo."
 
 ---
 
@@ -93,7 +93,7 @@ Exemplo real - `POST /api/v1/matches` (exige Bearer) devolve **202 queued**, sem
 
 ![[06b-api-post-matches]]
 
-**Fala:** "A API é declarativa: cada endpoint só diz seu caminho, quem pode acessar e como responder. Uma infra comum aplica CORS, rate limit e Bearer. Criar partida devolve `202 queued` - não segura a requisição até o jogo acabar."
+**Fala:** "A API é declarativa: cada endpoint só diz seu caminho, quem pode acessar e como responder. Uma infra comum aplica CORS, rate limit e Bearer. Criar partida devolve `202 queued`, não segura a requisição até o jogo acabar."
 
 ---
 
@@ -121,7 +121,7 @@ O login web devolve um cookie `HttpOnly`, mas a API JSON também aceita **Bearer
 
 ![[07_1-auth-cookie-bearer]]
 
-Detalhe que costuma confundir: o token só aparece **no corpo JSON uma vez**, na *resposta* de `POST /api/v1/auth/login`. Nas requisições autenticadas seguintes ele vai **no header** `Authorization`, nunca no body. A rota web `/login` seta cookie; a rota de API de login **não seta cookie**, devolve o token para o cliente guardar.
+Obs: o token só aparece **no corpo JSON uma vez**, na *resposta* de `POST /api/v1/auth/login`. Nas requisições autenticadas seguintes ele vai **no header** `Authorization`, nunca no body. A rota web `/login` seta cookie; a rota de API de login **não seta cookie**, devolve o token para o cliente guardar.
 
 | Cliente | Login devolve | Envia nas próximas | Proteção |
 |---|---|---|---|
@@ -143,7 +143,7 @@ A partida pode demorar (ou travar num agente ruim), então **não roda dentro da
 
 ![[08-nucleo-assincrono]]
 
-Pontos para citar no vídeo:
+Destaques:
 
 - **Isolamento:** cada partida é um processo `swipl` separado -> o estado global da engine não vaza entre partidas e o servidor nunca trava.
 - **Concorrência:** o pool tem `max(8, cpu-1)` workers.
@@ -162,7 +162,7 @@ Aqui está o mesmo fluxo **do ponto de vista do cliente**, com as **duas (ou tr�
 
 ![[08_1-ciclo-cliente]]
 
-> Na **interface web** (`/map/{id}`) esse mesmo JSON normalizado já vem **embutido inline** no HTML (o `DataJson` gerado por `match_map_data:map_data/3`), então a página não precisa da requisição extra - o JS lê o dado já presente e só cuida do layout, do SVG e do playback. O endpoint `GET /api/v1/map/{id}` existe para quem consome a partida **pela API** (ou para recarregar o mapa sob demanda).
+> Na **interface web** (`/map/{id}`) esse mesmo JSON normalizado já vem **embutido inline** no HTML (o `DataJson` gerado por `match_map_data:map_data/3`), então a página não precisa da requisição extra, o JS lê o dado já presente e só cuida do layout, do SVG e do playback. O endpoint `GET /api/v1/map/{id}` existe para quem consome a partida **pela API** (ou para recarregar o mapa sob demanda).
 
 Por que **duas requisições** e não uma só que espera a partida?
 
@@ -170,7 +170,7 @@ Por que **duas requisições** e não uma só que espera a partida?
 - O `202 queued` devolve na hora um `match_id`; o cliente decide **quando** e **com que frequência** consultar (o front pode até só mostrar a partida concluída depois).
 - Estados intermediários (`queued`/`running`, com `elapsed_seconds` via `GET /api/v1/jobs/{id}`) permitem uma UI de progresso sem bloquear nada.
 
-**Fala:** "Do lado do cliente são requisições separadas: a primeira enfileira e recebe na hora um id com estado `queued`. Enquanto o worker roda em segundo plano, o cliente consulta o status. Quando fica `done`, ele busca o replay já normalizado - cidades, arestas e os frames de cada turno - e o JavaScript só monta o mapa a partir desse JSON."
+**Fala:** "Do lado do cliente são requisições separadas: a primeira enfileira e recebe na hora um id com estado `queued`. Enquanto o worker roda em segundo plano, o cliente consulta o status. Quando fica `done`, ele busca o replay já normalizado; cidades, arestas e os frames de cada turno; e o JavaScript só monta o mapa a partir desse JSON."
 
 ### Contrato do JSON normalizado da partida
 
@@ -236,12 +236,12 @@ Produzido por `match_map_data:map_data/3` e servido em `GET /api/v1/map/{id}` (m
 
 Observações do contrato:
 
-- **Tudo é acumulado**: `tPath`, `dPath`, `blocked`, `collected`, `revealed` e `appearance` já refletem o estado *até* aquele turno - o front só desenha.
+- **Tudo é acumulado**: `tPath`, `dPath`, `blocked`, `collected`, `revealed` e `appearance` já refletem o estado *até* aquele turno, o front só desenha.
 - **Ausência vira sentinela**, não erro: cenário inválido -> `cities/edges = []`; sem alvo -> `objective` com `null`; identidade desconhecida -> `thiefIdentity: null`.
 - **`appearance[].current = null`** significa atributo omitido por disfarce; `original = null` significa atributo *adicionado* por disfarce.
 - Valores como cidade, item e atributo são **strings** (átomos Prolog serializados via `term_text/2`), não termos.
 
-**Fala (contrato):** "O que o JavaScript recebe não é o log cru: é um contrato estável. Um cabeçalho com grafo, itens e objetivo, e uma lista de frames - um por turno - com o estado já acumulado: posições, rotas, cidades bloqueadas, itens coletados, pistas, aparência e mandato. Além de uma timeline de eventos tipada, com um texto legível pronto. Assim o front só apresenta; toda a regra ficou no servidor."
+**Fala (contrato):** "O que o JavaScript recebe não é o log cru: é um contrato estável. Um cabeçalho com grafo, itens e objetivo, e uma lista de frames, um por turno, com o estado já acumulado: posições, rotas, cidades bloqueadas, itens coletados, pistas, aparência e mandato. Além de uma timeline de eventos tipada, com um texto legível pronto. Assim o front só apresenta; toda a regra ficou no servidor."
 
 ---
 
@@ -267,7 +267,7 @@ Não há build de CSS: `page.pl` injeta o **Tailwind via CDN** e um objeto `wind
 
 > Como o Tailwind é **CDN**, é preciso internet durante a gravação, senão a página aparece sem estilo.
 
-**Fala:** "Uso Tailwind por CDN, sem build. A paleta fica num único objeto que serve tanto às classes do HTML quanto às cores do SVG do replay - então não há cor duplicada entre CSS e JavaScript."
+**Fala:** "Uso Tailwind por CDN, sem build. A paleta fica num único objeto que serve tanto às classes do HTML quanto às cores do SVG do replay, então não há cor duplicada entre CSS e JavaScript."
 
 ---
 
