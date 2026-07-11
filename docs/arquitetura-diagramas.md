@@ -113,6 +113,25 @@ O **login** emite a sessão que vira cookie `HttpOnly`:
 
 ---
 
+## 7.1. Autenticação: cookie vs Bearer (mesma store)
+
+**Código:** [`src/server/routes/api/auth_login.pl`](../src/server/routes/api/auth_login.pl) · [`src/server/http/authz.pl`](../src/server/http/authz.pl) · [`src/server/http/web_session.pl`](../src/server/http/web_session.pl) · [`src/db/auth_repo.pl`](../src/db/auth_repo.pl)
+
+O login web devolve um cookie `HttpOnly`, mas a API JSON também aceita **Bearer token** para clientes que não usam cookies (apps nativos, CLI, `fetch`). São **o mesmo token de sessão**, só com transporte diferente: o browser recebe e reenvia via cookie automaticamente; o app nativo obtém o token no corpo da resposta do login e o reenvia no header `Authorization: Bearer TOKEN`. Ambos caem no mesmo `find_user_id_by_session_token_hash/2`, sobre a mesma tabela `auth_sessions`.
+
+![[07_1-auth-cookie-bearer]]
+
+Detalhe que costuma confundir: o token só aparece **no corpo JSON uma vez** — na *resposta* de `POST /api/v1/auth/login`. Nas requisições autenticadas seguintes ele vai **no header** `Authorization`, nunca no body. A rota web `/login` seta cookie; a rota de API de login **não seta cookie**, devolve o token para o cliente guardar.
+
+| Cliente | Login devolve | Envia nas próximas | Proteção |
+|---|---|---|---|
+| **Browser (web)** | `Set-Cookie: agents_session=… HttpOnly; SameSite=Lax` | cookie automático | JS não lê o token (XSS); SameSite mitiga CSRF |
+| **App nativo / CLI / fetch** | `token` no corpo JSON | header `Authorization: Bearer TOKEN` | o app é dono do token; sem cookie, sem CSRF |
+
+**Fala:** "O login web devolve um cookie HttpOnly, que é o certo pro browser, porque o JavaScript nunca toca no token. Mas a API também aceita Bearer token: um app nativo faz o login, recebe o token no corpo da resposta e passa a mandá-lo no header Authorization. É a mesma sessão, a mesma tabela e a mesma validação — só muda o transporte, cookie para o browser e Bearer para quem não tem cookie."
+
+---
+
 ## 8. O núcleo: execução **assíncrona** de partidas
 
 **Código:** [`src/services/matches.pl`](../src/services/matches.pl) · [`src/engine/match_queue.pl`](../src/engine/match_queue.pl) · [`src/engine/match_worker.pl`](../src/engine/match_worker.pl) · [`src/engine/sandbox.pl`](../src/engine/sandbox.pl) · [`src/engine/registry.pl`](../src/engine/registry.pl)
