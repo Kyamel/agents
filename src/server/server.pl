@@ -2,6 +2,7 @@
     start/0
 ]).
 
+:- use_module(library(settings), [set_setting/2]).
 :- use_module(library(http/thread_httpd)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_cors)).
