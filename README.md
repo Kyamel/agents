@@ -14,7 +14,7 @@ O [motor do jogo](src/engine/Interactor.prolog) utilizado foi disponibilizado pe
 
 Instruções para execução do servidor estão disponíveis em [src/README.md](src/README.md).
 
-https://youtu.be/t8u9XmyGOkw
+https://img.youtube.com/vi/t8u9XmyGOkw/maxresdefault.jpg
 
 ## 1. Tema
 
