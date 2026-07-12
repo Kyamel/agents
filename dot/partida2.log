@@ -1,0 +1,173 @@
+255 ladrao: disfarce([trocar(altura(alta),altura(media)),trocar(genero(gen1),genero(gen2)),trocar(cor_olhos(escuro),cor_olhos(castanho))])[OK]
+255 detetive: move(m3_2_1_2,m3_2_1_1)[OK]
+254 ladrao: move(m3_2_0_2,m3_1_0_2)[OK]
+254 detetive: move(m3_2_1_1,m3_2_1_0)[OK]
+
+  >>>> Evento roubo(mapa_sul,m3_1_0_2,[altura(media)])
+253 ladrao: roubar(mapa_sul)[OK]
+253 detetive: move(m3_2_1_0,m3_2_2_0)[OK]
+252 ladrao: move(m3_1_0_2,m3_0_0_2)[OK]
+252 detetive: move(m3_2_2_0,m3_1_2_0)[OK]
+251 ladrao: move(m3_0_0_2,m3_0_0_1)[OK]
+251 detetive: move(m3_1_2_0,m3_1_1_0)[OK]
+250 ladrao: move(m3_0_0_1,m3_0_0_0)[OK]
+250 detetive: move(m3_1_1_0,m3_1_0_0)[OK]
+249 ladrao: move(m3_0_0_0,m3_1_0_0)[OK]
+249 detetive: move(m3_1_0_0,m3_1_0_1)[OK]
+
+  >>>> Evento roubo(cartao_norte,m3_1_0_0,[altura(media),genero(gen2)])
+248 ladrao: roubar(cartao_norte)[OK]
+248 detetive: move(m3_1_0_1,m3_1_0_2)[OK]
+247 ladrao: move(m3_1_0_0,m3_1_0_1)[OK]
+247 detetive: move(m3_1_0_2,m3_1_0_1)[OK]
+246 ladrao: move(m3_1_0_1,m3_1_1_1)[OK]
+246 detetive: move(m3_1_0_1,m3_1_0_0)[OK]
+245 ladrao: move(m3_1_1_1,m3_1_2_1)[OK]
+245 detetive: move(m3_1_0_0,m3_2_0_0)[OK]
+244 ladrao: move(m3_1_2_1,m3_1_2_0)[OK]
+244 detetive: move(m3_2_0_0,m3_1_0_0)[OK]
+
+  >>>> Evento roubo(badge_oeste,m3_1_2_0,[altura(media),genero(gen2),cor_olhos(castanho)])
+243 ladrao: roubar(badge_oeste)[OK]
+243 detetive: move(m3_1_0_0,m3_2_0_0)[OK]
+
+  >>>> Evento roubo(mini_chave_norte,m3_1_2_0,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto)])
+242 ladrao: roubar(mini_chave_norte)[OK]
+242 detetive: move(m3_2_0_0,m3_1_0_0)[OK]
+
+  >>>> Evento roubo(combustivel_sul,m3_1_2_0,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba])
+241 ladrao: roubar(combustivel_sul)[OK]
+241 detetive: move(m3_1_0_0,m3_1_1_0)[OK]
+240 ladrao: move(m3_1_2_0,m3_1_2_1)[OK]
+240 detetive: move(m3_1_1_0,m3_1_2_0)[OK]
+239 ladrao: move(m3_1_2_1,m3_1_1_1)[OK]
+239 detetive: move(m3_1_2_0,m3_2_2_0)[OK]
+238 ladrao: move(m3_1_1_1,m3_1_0_1)[OK]
+238 detetive: move(m3_2_2_0,m3_1_2_0)[OK]
+237 ladrao: move(m3_1_0_1,m3_1_0_0)[OK]
+237 detetive: move(m3_1_2_0,m3_2_2_0)[OK]
+
+  >>>> Evento roubo(broca_sul,m3_1_0_0,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba,casaco(azul)])
+236 ladrao: roubar(broca_sul)[OK]
+236 detetive: move(m3_2_2_0,m3_1_2_0)[OK]
+235 ladrao: move(m3_1_0_0,m3_1_1_0)[OK]
+235 detetive: move(m3_1_2_0,m3_1_1_0)[OK]
+234 ladrao: move(m3_1_1_0,m3_1_1_1)[OK]
+234 detetive: move(m3_1_1_0,m3_1_0_0)[OK]
+233 ladrao: move(m3_1_1_1,m3_1_1_2)[OK]
+233 detetive: move(m3_1_0_0,m3_2_0_0)[OK]
+232 ladrao: move(m3_1_1_2,m3_1_0_2)[OK]
+232 detetive: move(m3_2_0_0,m3_1_0_0)[OK]
+
+  >>>> Evento roubo(fibra_sul,m3_1_0_2,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba,casaco(azul)])
+231 ladrao: roubar(fibra_sul)[OK]
+231 detetive: move(m3_1_0_0,m3_2_0_0)[OK]
+230 ladrao: move(m3_1_0_2,m3_1_1_2)[OK]
+230 detetive: move(m3_2_0_0,m3_1_0_0)[OK]
+
+  >>>> Evento roubo(senha_sul,m3_1_1_2,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba,casaco(azul)])
+229 ladrao: roubar(senha_sul)[OK]
+229 detetive: move(m3_1_0_0,m3_1_0_1)[OK]
+
+  >>>> Evento roubo(chave_norte,m3_1_1_2,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba,casaco(azul)])
+228 ladrao: roubar(chave_norte)[OK]
+228 detetive: move(m3_1_0_1,m3_1_1_1)[OK]
+227 ladrao: move(m3_1_1_2,m3_1_1_1)[OK]
+227 detetive: move(m3_1_1_1,m3_1_1_2)[OK]
+
+  >>>> Evento roubo(token_norte,m3_1_1_1,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba,casaco(azul)])
+226 ladrao: roubar(token_norte)[OK]
+226 detetive: move(m3_1_1_2,m3_1_1_1)[OK]
+225 ladrao: move(m3_1_1_1,m3_1_2_1)[OK]
+225 detetive: fechar(m3_2_2_2)[OK]
+
+  >>>> Evento roubo(luva_sul,m3_1_2_1,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba,casaco(azul)])
+224 ladrao: roubar(luva_sul)[OK]
+224 detetive: move(m3_1_1_1,m3_1_1_0)[OK]
+
+  >>>> Evento roubo(carimbo_oeste,m3_1_2_1,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba,casaco(azul)])
+223 ladrao: roubar(carimbo_oeste)[OK]
+223 detetive: move(m3_1_1_0,m3_1_2_0)[OK]
+222 ladrao: move(m3_1_2_1,m3_1_1_1)[OK]
+222 detetive: move(m3_1_2_0,m3_1_2_1)[OK]
+221 ladrao: move(m3_1_1_1,m3_1_1_0)[OK]
+221 detetive: move(m3_1_2_1,m3_1_2_0)[OK]
+
+  >>>> Evento roubo(selo_oeste,m3_1_1_0,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba,casaco(azul)])
+220 ladrao: roubar(selo_oeste)[OK]
+220 detetive: move(m3_1_2_0,m3_1_2_1)[OK]
+219 ladrao: move(m3_1_1_0,m3_1_1_1)[OK]
+219 detetive: move(m3_1_2_1,m3_1_1_1)[OK]
+218 ladrao: move(m3_1_1_1,m3_1_1_2)[OK]
+218 detetive: move(m3_1_1_1,m3_1_1_0)[OK]
+
+  >>>> Evento roubo(chip_oeste,m3_1_1_2,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba,casaco(azul)])
+217 ladrao: roubar(chip_oeste)[OK]
+217 detetive: move(m3_1_1_0,m3_2_1_0)[OK]
+216 ladrao: move(m3_1_1_2,m3_1_0_2)[OK]
+216 detetive: move(m3_2_1_0,m3_1_1_0)[OK]
+215 ladrao: move(m3_1_0_2,m3_1_0_1)[OK]
+215 detetive: move(m3_1_1_0,m3_1_1_1)[OK]
+
+  >>>> Evento roubo(decoder_oeste,m3_1_0_1,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba,casaco(azul)])
+214 ladrao: roubar(decoder_oeste)[OK]
+214 detetive: move(m3_1_1_1,m3_1_1_2)[OK]
+213 ladrao: move(m3_1_0_1,m3_1_1_1)[OK]
+213 detetive: move(m3_1_1_2,m3_1_0_2)[OK]
+
+  >>>> Evento roubo(anel_leste,m3_1_1_1,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba,casaco(azul)])
+212 ladrao: roubar(anel_leste)[OK]
+212 detetive: move(m3_1_0_2,m3_1_0_1)[OK]
+211 ladrao: move(m3_1_1_1,m3_1_1_0)[OK]
+211 detetive: move(m3_1_0_1,m3_1_1_1)[OK]
+
+  >>>> Evento roubo(codigo_leste,m3_1_1_0,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba,casaco(azul)])
+210 ladrao: roubar(codigo_leste)[OK]
+210 detetive: move(m3_1_1_1,m3_1_1_0)[OK]
+209 ladrao: move(m3_1_1_0,m3_1_1_1)[OK]
+209 detetive: move(m3_1_1_0,m3_2_1_0)[OK]
+208 ladrao: move(m3_1_1_1,m3_1_1_2)[OK]
+208 detetive: move(m3_2_1_0,m3_1_1_0)[OK]
+207 ladrao: move(m3_1_1_2,m3_1_0_2)[OK]
+207 detetive: move(m3_1_1_0,m3_2_1_0)[OK]
+
+  >>>> Evento roubo(bateria_leste,m3_1_0_2,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba,casaco(azul)])
+206 ladrao: roubar(bateria_leste)[OK]
+206 detetive: move(m3_2_1_0,m3_1_1_0)[OK]
+205 ladrao: move(m3_1_0_2,m3_1_1_2)[OK]
+205 detetive: move(m3_1_1_0,m3_1_0_0)[OK]
+204 ladrao: move(m3_1_1_2,m3_1_2_2)[OK]
+204 detetive: move(m3_1_0_0,m3_1_0_1)[OK]
+
+  >>>> Evento roubo(cortador_leste,m3_1_2_2,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba,casaco(azul)])
+203 ladrao: roubar(cortador_leste)[OK]
+203 detetive: move(m3_1_0_1,m3_1_0_2)[OK]
+202 ladrao: move(m3_1_2_2,m3_1_1_2)[OK]
+202 detetive: move(m3_1_0_2,m3_1_1_2)[OK]
+201 ladrao: move(m3_1_1_2,m3_1_1_1)[OK]
+201 detetive: move(m3_1_1_2,m3_1_2_2)[OK]
+200 ladrao: move(m3_1_1_1,m3_0_1_1)[OK]
+200 detetive: move(m3_1_2_2,m3_1_2_1)[OK]
+199 ladrao: move(m3_0_1_1,m3_0_2_1)[OK]
+199 detetive: move(m3_1_2_1,m3_1_2_2)[OK]
+198 ladrao: move(m3_0_2_1,m3_0_2_0)[OK]
+198 detetive: move(m3_1_2_2,m3_1_2_1)[OK]
+197 ladrao: move(m3_0_2_0,m3_0_1_0)[OK]
+197 detetive: move(m3_1_2_1,m3_1_2_2)[OK]
+196 ladrao: move(m3_0_1_0,m3_0_0_0)[OK]
+196 detetive: move(m3_1_2_2,m3_1_2_1)[OK]
+195 ladrao: move(m3_0_0_0,m3_1_0_0)[OK]
+195 detetive: move(m3_1_2_1,m3_1_2_2)[OK]
+194 ladrao: move(m3_1_0_0,m3_1_0_1)[OK]
+194 detetive: move(m3_1_2_2,m3_1_2_1)[OK]
+193 ladrao: move(m3_1_0_1,m3_2_0_1)[OK]
+193 detetive: move(m3_1_2_1,m3_1_2_2)[OK]
+192 ladrao: move(m3_2_0_1,m3_2_0_2)[OK]
+192 detetive: move(m3_1_2_2,m3_1_2_1)[OK]
+
+  >>>> Evento roubo(coroa_leste,m3_2_0_2,[altura(media),genero(gen2),cor_olhos(castanho),cor_cabelo(preto),barba,casaco(azul)])
+191 ladrao: roubar(coroa_leste)[OK]
+191 detetive: move(m3_1_2_1,m3_1_2_2)[OK]
+190 ladrao: move(m3_2_0_2,m3_2_1_2)[OK]
+S = gSt(thief(loc(m3_2_0_2), 3, aparencia([altura(alta), genero(gen1), cor_olhos(escuro), cor_cabelo(preto), barba, casaco(...)]), coroa_leste, [], 3), detective(loc(m3_2_1_2), nenhum, []), coroa_leste, [], evt([], []), livre, 255),
+V = ladrao.

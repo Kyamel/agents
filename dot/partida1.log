@@ -1,0 +1,63 @@
+255 ladrao: disfarce([trocar(cor_olhos(escuro),cor_olhos(verde)),trocar(cor_cabelo(castanho),cor_cabelo(ruivo)),omitir(atletico)])[OK]
+255 detetive: move(paddington_station,baker_street)[OK]
+254 ladrao: move(paddington_station,baker_street)[OK]
+254 detetive: move(baker_street,kings_cross)[OK]
+253 ladrao: move(baker_street,kings_cross)[OK]
+253 detetive: move(kings_cross,liverpool_street)[OK]
+
+  >>>> Evento roubo(radio_policial,kings_cross,[altura(media)])
+252 ladrao: roubar(radio_policial)[OK]
+252 detetive: move(liverpool_street,tower_of_london)[OK]
+251 ladrao: move(kings_cross,regents_park)[OK]
+251 detetive: move(tower_of_london,liverpool_street)[OK]
+250 ladrao: move(regents_park,soho)[OK]
+250 detetive: move(liverpool_street,kings_cross)[OK]
+
+  >>>> Evento roubo(jogo_gazuas,soho,[altura(media),genero(gen1)])
+249 ladrao: roubar(jogo_gazuas)[OK]
+249 detetive: move(kings_cross,liverpool_street)[OK]
+248 ladrao: move(soho,piccadilly_circus)[OK]
+248 detetive: move(liverpool_street,kings_cross)[OK]
+
+  >>>> Evento roubo(documento_falso,piccadilly_circus,[altura(media),genero(gen1),cor_olhos(verde)])
+247 ladrao: roubar(documento_falso)[OK]
+247 detetive: move(kings_cross,regents_park)[OK]
+246 ladrao: move(piccadilly_circus,victoria_station)[OK]
+246 detetive: move(regents_park,oxford_circus)[OK]
+
+  >>>> Evento roubo(passe_seguranca,victoria_station,[altura(media),genero(gen1),cor_olhos(verde),cor_cabelo(ruivo)])
+245 ladrao: roubar(passe_seguranca)[OK]
+245 detetive: move(oxford_circus,piccadilly_circus)[OK]
+244 ladrao: move(victoria_station,hyde_park)[OK]
+244 detetive: move(piccadilly_circus,victoria_station)[OK]
+243 ladrao: move(hyde_park,paddington_station)[OK]
+243 detetive: move(victoria_station,westminster)[OK]
+242 ladrao: move(paddington_station,baker_street)[OK]
+242 detetive: move(westminster,victoria_station)[OK]
+
+  >>>> Evento roubo(chave_mestra,baker_street,[altura(media),genero(gen1),cor_olhos(verde),cor_cabelo(ruivo),atletico])
+241 ladrao: roubar(chave_mestra)[OK]
+241 detetive: move(victoria_station,westminster)[OK]
+240 ladrao: move(baker_street,regents_park)[OK]
+240 detetive: move(westminster,victoria_station)[OK]
+239 ladrao: move(regents_park,camden_town)[OK]
+239 detetive: move(victoria_station,hyde_park)[OK]
+
+  >>>> Evento roubo(disfarce,camden_town,[altura(media),genero(gen1),cor_olhos(verde),cor_cabelo(ruivo),atletico])
+238 ladrao: roubar(disfarce)[OK]
+238 detetive: move(hyde_park,paddington_station)[OK]
+237 ladrao: move(camden_town,kings_cross)[OK]
+237 detetive: fechar(scotland_yard)[OK]
+236 ladrao: move(kings_cross,covent_garden)[OK]
+236 detetive: move(paddington_station,regents_park)[OK]
+235 ladrao: move(covent_garden,trafalgar_square)[OK]
+235 detetive: move(regents_park,camden_town)[OK]
+234 ladrao: move(trafalgar_square,scotland_yard)[OK]
+234 detetive: move(camden_town,kings_cross)[OK]
+
+  >>>> Evento roubo(arquivos_confidenciais,scotland_yard,[altura(media),genero(gen1),cor_olhos(verde),cor_cabelo(ruivo),atletico])
+233 ladrao: roubar(arquivos_confidenciais)[OK]
+233 detetive: move(kings_cross,camden_town)[OK]
+232 ladrao: move(scotland_yard,westminster)[OK]
+S = gSt(thief(loc(paddington_station), 9, aparencia([altura(media), genero(gen1), cor_olhos(escuro), cor_cabelo(castanho), atletico]), arquivos_confidenciais, [], 3), detective(loc(paddington_station), nenhum, []), arquivos_confidenciais, [], evt([], []), livre, 255),
+V = detetive.
