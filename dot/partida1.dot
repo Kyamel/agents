@@ -1,0 +1,56 @@
+digraph JogoDetetiveLadrao {
+  node [shape=circle];
+
+  // Pontos especiais
+  camden_town [shape=doublecircle, style=filled, fillcolor="gold", label="camden_town\nRoubo: disfarce\nFim detetive"];
+  paddington_station [shape=circle, style=filled, fillcolor="palegreen", label="paddington_station\nInicio ladrao\nInicio detetive"];
+  westminster [shape=circle, style=filled, fillcolor="lightgray", label="westminster\nFim ladrao"];
+  kings_cross [shape=doublecircle, style=filled, fillcolor="gold", label="kings_cross\nRoubo: radio_policial"];
+  soho [shape=doublecircle, style=filled, fillcolor="gold", label="soho\nRoubo: jogo_gazuas"];
+  piccadilly_circus [shape=doublecircle, style=filled, fillcolor="gold", label="piccadilly_circus\nRoubo: documento_falso"];
+  victoria_station [shape=doublecircle, style=filled, fillcolor="gold", label="victoria_station\nRoubo: passe_seguranca"];
+  baker_street [shape=doublecircle, style=filled, fillcolor="gold", label="baker_street\nRoubo: chave_mestra"];
+  scotland_yard [shape=doublecircle, style=filled, fillcolor="gold", label="scotland_yard\nRoubo: arquivos_confidenciais"];
+
+  // Caminho do ladrao
+  paddington_station -> baker_street [color="red", label="T254"];
+  baker_street -> kings_cross [color="red", label="T253"];
+  kings_cross -> regents_park [color="red", label="T251"];
+  regents_park -> soho [color="red", label="T250"];
+  soho -> piccadilly_circus [color="red", label="T248"];
+  piccadilly_circus -> victoria_station [color="red", label="T246"];
+  victoria_station -> hyde_park [color="red", label="T244"];
+  hyde_park -> paddington_station [color="red", label="T243"];
+  paddington_station -> baker_street [color="red", label="T242"];
+  baker_street -> regents_park [color="red", label="T240"];
+  regents_park -> camden_town [color="red", label="T239"];
+  camden_town -> kings_cross [color="red", label="T237"];
+  kings_cross -> covent_garden [color="red", label="T236"];
+  covent_garden -> trafalgar_square [color="red", label="T235"];
+  trafalgar_square -> scotland_yard [color="red", label="T234"];
+  scotland_yard -> westminster [color="red", label="T232"];
+
+  // Caminho do detetive
+  paddington_station -> baker_street [color="blue", label="T255"];
+  baker_street -> kings_cross [color="blue", label="T254"];
+  kings_cross -> liverpool_street [color="blue", label="T253"];
+  liverpool_street -> tower_of_london [color="blue", label="T252"];
+  tower_of_london -> liverpool_street [color="blue", label="T251"];
+  liverpool_street -> kings_cross [color="blue", label="T250"];
+  kings_cross -> liverpool_street [color="blue", label="T249"];
+  liverpool_street -> kings_cross [color="blue", label="T248"];
+  kings_cross -> regents_park [color="blue", label="T247"];
+  regents_park -> oxford_circus [color="blue", label="T246"];
+  oxford_circus -> piccadilly_circus [color="blue", label="T245"];
+  piccadilly_circus -> victoria_station [color="blue", label="T244"];
+  victoria_station -> westminster [color="blue", label="T243"];
+  westminster -> victoria_station [color="blue", label="T242"];
+  victoria_station -> westminster [color="blue", label="T241"];
+  westminster -> victoria_station [color="blue", label="T240"];
+  victoria_station -> hyde_park [color="blue", label="T239"];
+  hyde_park -> paddington_station [color="blue", label="T238"];
+  paddington_station -> regents_park [color="blue", label="T236"];
+  regents_park -> camden_town [color="blue", label="T235"];
+  camden_town -> kings_cross [color="blue", label="T234"];
+  kings_cross -> camden_town [color="blue", label="T233"];
+}
