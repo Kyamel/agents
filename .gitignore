@@ -10,3 +10,6 @@ __pycache__/
 src/config.pl
 tools/results/*
 !tools/results/.gitkeep
+
+*.hi
+*.o
