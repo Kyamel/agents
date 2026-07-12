@@ -8,7 +8,7 @@ A solução foi dividida em três partes principais:
 
 1. **Parsing do log**
 
-   A funcao `parseLog` recebe o texto inteiro do arquivo, separa em linhas e usa `parseLine` para identificar apenas os eventos importantes: movimentos validos do ladrão, movimentos validos do detetive, eventos de roubo.
+   A funcao `parseLog` recebe o texto inteiro do arquivo, separa em linhas e usa `parseLine` para identificar apenas os eventos importantes: movimentos válidos do ladrão, movimentos válidos do detetive, eventos de roubo.
 
    Linhas com ações inválidas ou ações que não alteram o mapa, como `nada`, são ignoradas.
 
