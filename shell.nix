@@ -6,6 +6,8 @@ pkgs.mkShell {
     pkgs.sqlite
     pkgs.pkg-config
     pkgs.gcc
+    pkgs.haskell.compiler.ghc98
+    pkgs.graphviz
 
     (pkgs.python313.withPackages (ps: with ps; [
       mypy
