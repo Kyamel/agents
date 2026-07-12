@@ -1,0 +1,38 @@
+20 ladrao:   move(c,d)      [OK]
+20 detetive: nada           [OK]
+19 ladrao:   move(d,e)      [OK]
+19 detetive: nada           [OK]
+
+>>>> Evento roubo(cartao_cofre, e, [altura(180)])
+
+18 ladrao:   roubar(cartao_cofre) [OK]
+18 detetive: nada                 [OK]
+17 ladrao:   move(e,d)            [OK]
+17 detetive: fechar(d)            [OK]
+16 ladrao:   move(d,c)            [OK]
+
+S = gSt(
+      thief(
+        loc(c),
+        0,
+        aparencia([
+          altura(180),
+          genero(gen1),
+          corpulento,
+          cor_olhos(escuro),
+          cor_cabelo(escuro),
+          ton_pele(...)
+          | ...
+        ]),
+        cx_joias,
+        [],
+        3
+      ),
+      detective(loc(a), nenhum, []),
+      cx_joias,
+      [],
+      evt([], []),
+      livre,
+      20
+    ),
+V = detetive.

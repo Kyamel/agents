@@ -1,0 +1,15 @@
+digraph JogoDetetiveLadrao {
+  node [shape=circle];
+
+  // Pontos especiais
+  c [shape=circle, style=filled, fillcolor="lightcyan", label="c\nInicio ladrao\nFim ladrao"];
+  e [shape=doublecircle, style=filled, fillcolor="gold", label="e\nRoubo: cartao_cofre"];
+
+  // Caminho do ladrao
+  c -> d [color="red", label="T20"];
+  d -> e [color="red", label="T19"];
+  e -> d [color="red", label="T17"];
+  d -> c [color="red", label="T16"];
+
+  // Caminho do detetive
+}
