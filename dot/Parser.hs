@@ -22,28 +22,28 @@ data GameGraph = GameGraph [Movement] [Theft]
     deriving Show
 
 data ParsedEvent
-    = ParsedMove Movement  -- ^ A linha descreve um @move(...)@.
-    | ParsedTheft Theft    -- ^ A linha descreve um @Evento roubo(...)@.
+    = ParsedMove Movement
+    | ParsedTheft Theft
     deriving Show
 
--- | Anotacao a ser pintada num nó do grafo
+-- | Anotação a ser pintada num nó do grafo
 data NodeMark = NodeMark City String
     deriving Show
 
 -- ============================================================
--- Parser generico
+-- Parser genérico
 -- ============================================================
 
 -- newtype é como um 'data' restrito a UM construtor com UM unico campo.
--- Em troca dessa restricao, o wrapper e apagado em tempo de execucao:
--- 'Parser' e a funcao que ele envolve tem a mesma representacao em memoria
--- (custo zero), ao contrario de 'data'.
+-- Em troca dessa restriçâo, o wrapper é apagado em tempo de execuão:
+-- 'Parser' é a função que ele envolve tem a mesma representçâo em memória
+-- (custo zero), ao contrário de 'data'.
 newtype Parser a = Parser (String -> Either String (a, String))
 
 runParser :: Parser a -> String -> Either String (a, String)
 runParser (Parser p) input = p input
 
--- | 'fmap' aplica uma funcao ao valor lido, se a leitura deu certo.
+-- | 'fmap' aplica uma função ao valor lido, se a leitura deu certo.
 instance Functor Parser where
     fmap f (Parser p) = Parser $ \input ->
         case p input of
@@ -61,7 +61,7 @@ instance Applicative Parser where
                     Left err       -> Left err
                     Right (x, r2)  -> Right (f x, r2)
 
--- | @('>>=')@ liga a saida de um parser na escolha do proximo parser.
+-- | @('>>=')@ liga a saída de um parser na escolha do próximo parser.
 instance Monad Parser where
     return = pure
     (Parser p) >>= f = Parser $ \input ->
@@ -70,7 +70,7 @@ instance Monad Parser where
             Right (a, rest) -> runParser (f a) rest
 
 -- ============================================================
--- Combinadores basicos
+-- Combinadores básicos
 -- ============================================================
 
 failP :: String -> Parser a
@@ -121,7 +121,7 @@ digit = satisfy isDigit
 space :: Parser Char
 space = satisfy isSpace
 
--- | Lê um caractere valido em nome de cidade / item: Letra, digito ou _.
+-- | Lê um caractere válido em nome de cidade / item: Letra, dígito ou _.
 identChar :: Parser Char
 identChar = satisfy (\c -> isAlphaNum c || c == '_')
 
@@ -145,7 +145,7 @@ identifier :: Parser String
 identifier = many1 identChar
 
 -- ============================================================
--- Parsers do dominio
+-- Parsers do domínio
 -- ============================================================
 
 agentP :: Parser Agent
@@ -218,7 +218,7 @@ addEvent (GameGraph moves thefts) (ParsedTheft t) =
     GameGraph moves (t : thefts)
 
 -- ============================================================
--- Renderizacao para .dot
+-- Renderização para .dot
 -- ============================================================
 
 startsWith :: String -> String -> Bool
@@ -251,7 +251,7 @@ renderDot (GameGraph moves thefts) =
         [ "}" ]
     )
 
--- | Junta as marcacoes de roubo e as posicoes inicial, final de cada agente.
+-- | Junta as marcações de roubo e as posições inicial, final de cada agente.
 allMarks :: [Movement] -> [Theft] -> [NodeMark]
 allMarks moves thefts =
     theftMarks thefts ++
@@ -263,7 +263,7 @@ theftMarks [] = []
 theftMarks (Theft cidade item : rest) =
     NodeMark cidade ("Roubo: " ++ item) : theftMarks rest
 
--- | Marca as cidades de inicio e fim do trajeto de um agente.
+-- | Marca as cidades de início e fim do trajeto de um agente.
 agentMarks :: Agent -> String -> [Movement] -> [NodeMark]
 agentMarks ag name moves =
     case agentPositions ag moves of
@@ -274,7 +274,7 @@ agentMarks ag name moves =
             , NodeMark fim ("Fim " ++ name)
             ]
 
--- | Primeira origem e ultimo destino do agente, ou 'Nothing' se ele nao anda.
+-- | Primeira origem e último destino do agente, ou 'Nothing' se ele não anda.
 agentPositions :: Agent -> [Movement] -> Maybe (City, City)
 agentPositions ag moves =
     case filterByAgent ag moves of
@@ -347,7 +347,7 @@ hasEndMark cidade (NodeMark c label : rest)
     | cidade == c && startsWith "Fim" label = True
     | otherwise = hasEndMark cidade rest
 
--- | Junta varios rotulos numa unica string, separados por quebra @\\n@ do dot.
+-- | Junta varios rótulos numa única string, separados por quebra @\\n@ do dot.
 joinLines :: [String] -> String
 joinLines [] = ""
 joinLines [x] = x
@@ -363,7 +363,7 @@ colorOf :: Agent -> String
 colorOf Ladrao = "red"
 colorOf Detetive = "blue"
 
--- | Mantem apenas os movimentos do agente dado.
+-- | Mantém apenas os movimentos do agente dado.
 filterByAgent :: Agent -> [Movement] -> [Movement]
 filterByAgent ag [] = []
 filterByAgent ag (m : ms)
@@ -384,5 +384,5 @@ main = do
             writeFile outputPath (renderDot graph)
 
         _ -> do
-            putStrLn "Uso: runhaskell Parser.hs entrada.log saida.dot"
-            putStrLn "Depois: dot saida.dot -Tjpeg -o saida.jpeg"
+            putStrLn "Uso: runhaskell Parser.hs partida1.log partida1.dot"
+            putStrLn "Depois: dot partida1.dot -Tjpeg -o partida1.jpeg"
