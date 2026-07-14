@@ -1,5 +1,8 @@
 # Gerador de grafo DOT
 
+Lucas dos Anjos Camelo 22.2.8002
+Mayke Anselmo Brito Lellis 22.2.8008
+
 Este programa lê um arquivo de log gerado pela engine do jogo Detetive x Ladrão e gera um arquivo `.dot` compatível com Graphviz.
 
 ## Arquitetura
