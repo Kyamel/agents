@@ -1,4 +1,4 @@
-# Gerador de grafo DOT
+# Parser
 
 Lucas dos Anjos Camelo 22.2.8002
 Mayke Anselmo Brito Lellis 22.2.8008
@@ -11,7 +11,7 @@ A solução foi dividida em quatro partes principais:
 
 1. **Parser genérico (combinador de parsers)**
 
-   Oprograma trata o problema como uma pequena gramática (estilo regex). A base é um tipo de parser genérico:
+   O programa trata o problema como uma pequena gramática. A base é um tipo de parser genérico:
 
    ```haskell
    newtype Parser a = Parser (String -> Either String (a, String))
@@ -32,7 +32,7 @@ A solução foi dividida em quatro partes principais:
 
 2. **Parsers de domínio**
 
-   Com o vocabulário acima, cada formato de linha vira um parser que se lê quase como a especificação do formato:
+   Com o vocabulário acima, cada formato de linha vira um parser:
 
    - `moveLine`: lê `255 ladrao: move(origem,destino)[OK]` -> `ParsedMove`;
    - `theftLine`: lê `>>>> Evento roubo(item,cidade,[...])` -> `ParsedTheft`;
