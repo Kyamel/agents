@@ -1,4 +1,4 @@
-# CSI606-2026-01 - Remoto - Trabalho Final - Resultados
+# CSI606-2026-01 - Trabalho Final - Resultados
 
 **Discente:** Lucas dos Anjos Camelo
 
