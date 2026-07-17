@@ -59,6 +59,7 @@ Além do escopo previsto, foram implementados:
 - **Registro de acesso** (*access log*).
 - **Páginas auxiliares** de *about*, documentação e slides, além de um servidor de documentação (`pldoc`).
 - **Exclusão de agentes** pelo próprio dono.
+- **Vizualização de Partida**: Realizada no [cliente via JS](assets/match_map.js), exibe gráfico iterativo turno a turno do percurso e ações dos agentes.
 
 ## 5. Principais desafios e dificuldades
 
