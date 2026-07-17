@@ -70,8 +70,6 @@ Além do escopo previsto, foram implementados:
 - **Integração com o SQLite via `prosqlite`** e organização da camada de acesso a dados (repositórios) em Prolog.
 - **Parsing dos logs da engine** para gerar a visualização em grafo, resolvido com um combinador de parsers em Haskell.
 
-> Observação: complementar esta seção com as dificuldades específicas vividas durante o desenvolvimento.
-
 ## 6. Instruções para instalação e execução
 
 As instruções completas estão em [src/README.md](src/README.md). Em resumo:
