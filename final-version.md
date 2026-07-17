@@ -4,8 +4,6 @@
 
 ## Resumo
 
-Este trabalho implementa uma **plataforma Web para submissão e execução de agentes Prolog** que disputam partidas de turnos no estilo "detetive e ladrão" (inspirado no jogo de tabuleiro *Scotland Yard*). A aplicação permite que usuários se cadastrem, verifiquem seu e-mail, enviem agentes escritos em Prolog, criem partidas entre dois agentes (um no papel de ladrão, outro de detetive) e acompanhem os resultados por meio de uma interface Web e de uma API HTTP.
-
 O backend foi construído inteiramente em **SWI-Prolog**, servindo tanto as páginas HTML quanto a API REST, com persistência em **SQLite**. Cada partida é executada de forma **isolada em um subprocesso próprio**, orquestrado por uma fila com pool de workers, de modo que a requisição HTTP nunca bloqueia e o estado global da engine não vaza de uma partida para outra. A proposta original (ver [proposal.md](proposal.md)) foi integralmente atendida e ainda estendida com funcionalidades adicionais, como a visualização das partidas em forma de grafo.
 
 ## 1. Tecnologias utilizadas - Backend e Frontend
@@ -122,5 +120,3 @@ SWI-PROLOG. *Cryptographic password hashes*. Disponível em: <https://www.swi-pr
 TAILWIND CSS. *Tailwind CSS Documentation*. Disponível em: <https://tailwindcss.com/docs>. Acesso em: 16 maio 2026.
 
 RESEND. *Resend Documentation*. Disponível em: <https://resend.com/docs>. Acesso em: 16 maio 2026.
-
-GRAPHVIZ. *Graphviz Documentation*. Disponível em: <https://graphviz.org/documentation/>. Acesso em: 16 maio 2026.
